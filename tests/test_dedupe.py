@@ -2,6 +2,18 @@ from playlist_forge.analyze.dedupe import find_duplicate_tracks, find_playlist_o
 from playlist_forge.models import Track
 
 
+def test_duplicate_detection_handles_empty_input():
+    assert find_duplicate_tracks([]) == []
+
+
+def test_duplicate_detection_skips_same_spotify_id():
+    tracks = [
+        Track(spotify_id="same", title="Song", artist="Band", album="X", isrc="US1234567890"),
+        Track(spotify_id="same", title="Song (Live)", artist="Band", album="Y", isrc="US1234567890"),
+    ]
+    assert find_duplicate_tracks(tracks, threshold=0.0) == []
+
+
 def test_finds_duplicate_by_isrc():
     tracks = [
         Track(spotify_id="a1", title="Song (Remaster)", artist="Band", album="X",
@@ -42,3 +54,29 @@ def test_playlist_overlap_detection():
     pairs = {(o.playlist_a_id, o.playlist_b_id) for o in overlaps}
     assert ("p1", "p2") in pairs
     assert not any("p3" in pair for pair in pairs)
+
+
+def test_playlist_overlap_handles_empty_input():
+    assert find_playlist_overlaps([]) == []
+
+
+def test_playlist_overlap_with_single_playlist_returns_no_pairs():
+    tracks = [
+        Track(
+            spotify_id="t1",
+            title="A",
+            artist="X",
+            album="",
+            playlist_ids=["p1"],
+            playlist_names=["Only Playlist"],
+        ),
+        Track(
+            spotify_id="t2",
+            title="B",
+            artist="Y",
+            album="",
+            playlist_ids=["p1"],
+            playlist_names=["Only Playlist"],
+        ),
+    ]
+    assert find_playlist_overlaps(tracks, threshold=0.0) == []

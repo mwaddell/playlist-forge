@@ -20,6 +20,7 @@ import requests
 from . import cache
 from .config import Settings
 from .models import Track
+from .rate_limit import DEFAULT_MAX_RETRIES, header_value, retry_delay_seconds
 
 FEATURE_FIELDS = (
     "tempo", "energy", "danceability", "valence",
@@ -37,15 +38,35 @@ class ReccoBeatsClient:
             self.session.headers["Authorization"] = f"Bearer {self.api_key}"
 
     def _get(self, path: str, params: dict) -> dict | None:
-        try:
-            resp = self.session.get(f"{self.base_url}{path}", params=params, timeout=10)
-            if resp.status_code == 404:
+        for attempt in range(DEFAULT_MAX_RETRIES + 1):
+            resp = None
+            try:
+                resp = self.session.get(f"{self.base_url}{path}", params=params, timeout=10)
+                if resp.status_code == 404:
+                    return None
+                resp.raise_for_status()
+                return resp.json()
+            except requests.HTTPError as exc:
+                response = exc.response or resp
+                if (
+                    response is not None
+                    and response.status_code == 429
+                    and attempt < DEFAULT_MAX_RETRIES
+                ):
+                    delay = retry_delay_seconds(
+                        header_value(response.headers, "Retry-After"),
+                        attempt,
+                    )
+                    print(f"[reccobeats] rate limited for {path}; retrying in {delay:.2f}s")
+                    time.sleep(delay)
+                    continue
+                print(f"[reccobeats] request failed for {path}: {exc}")
                 return None
-            resp.raise_for_status()
-            return resp.json()
-        except requests.RequestException as exc:
-            print(f"[reccobeats] request failed for {params}: {exc}")
-            return None
+            except requests.RequestException as exc:
+                print(f"[reccobeats] request failed for {path}: {exc}")
+                return None
+
+        raise RuntimeError(f"unreachable retry loop for {path}")
 
     def fetch_by_spotify_id(self, spotify_id: str) -> dict | None:
         cache_key = f"spotify:{spotify_id}"
