@@ -72,7 +72,7 @@ they're the ones that actually hurt you if skipped.
   you can get access to one — the pagination and rate-limit handling are the
   parts most likely to break under real-world scale that unit tests won't
   catch.
-- [ ] **[Copilot]** Ask Copilot to identify untested edge cases in the
+- [x] **[Copilot]** Ask Copilot to identify untested edge cases in the
   analysis code:
   > "Look at analyze/cluster.py, analyze/outliers.py, and analyze/dedupe.py.
   > What edge cases (empty playlists, single-track playlists, tracks with no
@@ -124,10 +124,10 @@ they're the ones that actually hurt you if skipped.
 
 ## 5. Repository hygiene / GitHub best practices
 
-- [ ] **[Manual]** Add a `CONTRIBUTING.md` — even a short one — covering how
+- [x] **[Manual]** Add a `CONTRIBUTING.md` — even a short one — covering how
   to set up a dev environment, run tests, and the PR process. Reduces
   low-quality first-time contributions.
-- [ ] **[Copilot]** Draft it for you as a starting point:
+- [x] **[Copilot]** Draft it for you as a starting point:
   > "Write a CONTRIBUTING.md for this repo based on the dev setup already
   > described in README.md, including how to run tests and lint checks."
   Then edit it in your own voice — a generic Copilot-drafted CONTRIBUTING.md
@@ -138,7 +138,7 @@ they're the ones that actually hurt you if skipped.
 - [ ] **[Manual]** Add a `SECURITY.md` describing how someone should privately
   report a vulnerability (even just "email me at X" is enough) rather than
   filing a public issue.
-- [ ] **[Copilot]** Generate GitHub issue templates:
+- [x] **[Copilot]** Generate GitHub issue templates:
   > "Create .github/ISSUE_TEMPLATE/bug_report.md and feature_request.md for
   > this CLI tool, following GitHub's standard issue template format."
 - [x] **[Manual]** Set repository settings before going public: branch
@@ -175,7 +175,7 @@ they're the ones that actually hurt you if skipped.
   Spotify account with an unusually large library, or runs multiple commands
   in a tight loop — does the tool respect Spotify's and ReccoBeats' rate
   limits gracefully, or does it hammer the API?
-- [ ] **[Copilot]** Ask Copilot to check this specifically:
+- [x] **[Copilot]** Ask Copilot to check this specifically:
   > "Review spotify_client.py and reccobeats_client.py for rate-limit
   > handling. Does the code respect Retry-After headers on a 429 response? If
   > not, add backoff/retry logic."

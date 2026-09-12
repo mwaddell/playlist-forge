@@ -8,7 +8,7 @@ import spotipy at all.
 from __future__ import annotations
 
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from typing import TypeVar
@@ -26,6 +26,24 @@ from .errors import (
 from .models import Playlist, Track
 
 T = TypeVar("T")
+
+
+def _spotify_status_code(exc: spotipy.exceptions.SpotifyException) -> int | None:
+    for attr in ("http_status", "status_code", "code"):
+        value = getattr(exc, attr, None)
+        if isinstance(value, int):
+            return value
+    return None
+
+
+def _spotify_headers(exc: spotipy.exceptions.SpotifyException) -> Mapping[str, object] | None:
+    for attr in ("headers", "http_headers"):
+        value = getattr(exc, attr, None)
+        if isinstance(value, Mapping):
+            return value
+    return None
+
+
 _SPOTIFY_MAX_RETRIES = 3
 _SPOTIFY_BASE_BACKOFF_SECONDS = 1.0
 
@@ -49,13 +67,34 @@ def _retry_after_seconds(headers: dict | None) -> float | None:
     return max((retry_at - datetime.now(timezone.utc)).total_seconds(), 0.0)
 
 
+def _spotify_request(
+    operation: Callable[[], T],
+    description: str,
+    *,
+    max_retries: int = _SPOTIFY_MAX_RETRIES,
+) -> T:
+    for attempt in range(max_retries + 1):
+        try:
+            return operation()
+        except spotipy.exceptions.SpotifyException as exc:
+            if _spotify_status_code(exc) != 429 or attempt >= max_retries:
+                raise
+            delay = _retry_after_seconds(_spotify_headers(exc)) or (
+                _SPOTIFY_BASE_BACKOFF_SECONDS * (2**attempt)
+            )
+            print(f"[spotify] rate limited during {description}; retrying in {delay:.2f}s")
+            time.sleep(delay)
+
+    raise RuntimeError(f"unreachable retry loop for {description}")
+
+
 def _spotify_call(operation: str, call: Callable[[], T]) -> T:
     for attempt in range(_SPOTIFY_MAX_RETRIES + 1):
         try:
             return call()
         except spotipy.exceptions.SpotifyException as exc:
-            status = getattr(exc, "http_status", None)
-            headers = getattr(exc, "headers", None)
+            status = _spotify_status_code(exc)
+            headers = _spotify_headers(exc)
             if status == 401:
                 raise AuthFailureError(
                     "Spotify authentication failed (401). "
@@ -144,6 +183,7 @@ def pull_playlist_tracks(
                 "duration_ms,popularity,external_ids)),next"
             ),
         ),
+        "pull playlist tracks",
     )
     raw_items = _paginate(spotify, first)
 

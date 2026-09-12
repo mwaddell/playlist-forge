@@ -65,6 +65,7 @@ class ReccoBeatsClient:
 
     def _get(self, path: str, params: dict) -> dict | None:
         for attempt in range(self.max_retries + 1):
+            resp: requests.Response | None = None
             try:
                 resp = self.session.get(f"{self.base_url}{path}", params=params, timeout=10)
                 if resp.status_code == 404:
@@ -96,6 +97,22 @@ class ReccoBeatsClient:
                     ) from exc
                 time.sleep(self.base_backoff_seconds * (2**attempt))
             except requests.HTTPError as exc:
+                response = exc.response or resp
+                if response is not None and response.status_code == 401:
+                    raise AuthFailureError(
+                        "ReccoBeats authentication failed (401). "
+                        "Check RECCOBEATS_API_KEY and retry."
+                    ) from exc
+                if (
+                    response is not None
+                    and response.status_code == 429
+                    and attempt < self.max_retries
+                ):
+                    delay = self._retry_after_seconds(response) or (
+                        self.base_backoff_seconds * (2**attempt)
+                    )
+                    time.sleep(delay)
+                    continue
                 raise ExternalServiceError(
                     f"ReccoBeats request failed for {params}: {exc}"
                 ) from exc
