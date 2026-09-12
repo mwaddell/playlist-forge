@@ -97,13 +97,13 @@ they're the ones that actually hurt you if skipped.
 
 ## 4. Code quality pass
 
-- [ ] **[Copilot]** Request a general code review:
+- [x] **[Copilot]** Request a general code review:
   > "Review this codebase for bugs, unclear error messages, and any place
   > where a Track object's mutable state could be silently overwritten or
   > shared incorrectly across playlists (see analyze/outliers.py for the
   > pattern I was already careful about — check the rest of the codebase for
   > the same class of issue)."
-- [ ] **[Copilot]** Ask Copilot to check type hint consistency and add missing
+- [x] **[Copilot]** Ask Copilot to check type hint consistency and add missing
   docstrings:
   > "Add or improve docstrings for any public function in src/playlist_forge/
   > that doesn't already explain its parameters and return value. Don't
@@ -162,7 +162,7 @@ they're the ones that actually hurt you if skipped.
 - [x] **[Manual]** Enable **Dependabot** (Settings → Code security → Dependabot
   alerts + security updates) so you get notified of vulnerable dependencies
   after publishing.
-- [ ] **[Copilot]** Ask for a dependency audit:
+- [x] **[Copilot]** Ask for a dependency audit:
   > "List every third-party dependency in pyproject.toml and note which ones
   > are runtime-critical vs. dev-only, and whether any have known maintenance
   > concerns (unmaintained, single-maintainer, etc.) as of your knowledge."
