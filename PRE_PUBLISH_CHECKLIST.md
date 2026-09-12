@@ -135,7 +135,7 @@ they're the ones that actually hurt you if skipped.
 - [x] **[Manual]** Add a `CODE_OF_CONDUCT.md` (GitHub has a template you can
   add directly from the repo's Community Standards tab) if you expect or want
   external contributors.
-- [ ] **[Manual]** Add a `SECURITY.md` describing how someone should privately
+- [x] **[Manual]** Add a `SECURITY.md` describing how someone should privately
   report a vulnerability (even just "email me at X" is enough) rather than
   filing a public issue.
 - [x] **[Copilot]** Generate GitHub issue templates:
