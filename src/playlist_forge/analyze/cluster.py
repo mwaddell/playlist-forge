@@ -69,7 +69,7 @@ def cluster_hdbscan(
     except ImportError as exc:
         raise ImportError(
             "HDBSCAN clustering requires the optional dependency: "
-            "pip install 'playlist-forge[hdbscan]'"
+            "poetry install --extras hdbscan"
         ) from exc
 
     matrix, _ = build_feature_matrix(tracks, genre_weight, audio_feature_weight, year_weight)

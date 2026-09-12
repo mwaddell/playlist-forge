@@ -7,7 +7,7 @@ Thanks for contributing.
 ```bash
 git clone https://github.com/mwaddell/playlist-forge
 cd playlist-forge
-pip install -e ".[dev]"
+poetry install --with dev
 cp .env.example .env
 ```
 
@@ -16,7 +16,7 @@ Then set `SPOTIFY_CLIENT_ID` in `.env`.
 If you are working on clustering with HDBSCAN, install the optional extra:
 
 ```bash
-pip install -e ".[dev,hdbscan]"
+poetry install --with dev --extras hdbscan
 ```
 
 ## Run checks before opening a PR
@@ -24,13 +24,13 @@ pip install -e ".[dev,hdbscan]"
 Run unit tests:
 
 ```bash
-pytest
+poetry run pytest
 ```
 
 Run lint checks:
 
 ```bash
-ruff check src tests
+poetry run ruff check src tests
 ```
 
 ## Notes for changes that touch Spotify actions

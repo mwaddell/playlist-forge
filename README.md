@@ -21,7 +21,7 @@ production; their API has changed field names before.
 ```bash
 git clone https://github.com/mwaddell/playlist-forge
 cd playlist-forge
-pip install -e ".[dev]"          # add [hdbscan] too if you want that clusterer
+poetry install                   # add --extras hdbscan if you want that clusterer
 cp .env.example .env             # fill in SPOTIFY_CLIENT_ID
 ```
 
@@ -33,28 +33,28 @@ Create a Spotify app at https://developer.spotify.com/dashboard, add
 
 ```bash
 # 1. Authenticate (opens a browser once, caches the token after)
-playlist-forge auth login
+poetry run playlist-forge auth login
 
 # 2. Pull your whole library to a single file
-playlist-forge pull --output library.json
+poetry run playlist-forge pull --output library.json
 
 # 3. Enrich with ReccoBeats audio features (optional — clustering also
 #    works on genre + year alone if you skip this)
-playlist-forge enrich --input library.json --output library_enriched.json
+poetry run playlist-forge enrich --input library.json --output library_enriched.json
 
 # 4. Cluster everything
-playlist-forge analyze cluster --input library_enriched.json --output clustered.json
+poetry run playlist-forge analyze cluster --input library_enriched.json --output clustered.json
 
 # 5. See what looks out of place in each playlist
-playlist-forge analyze outliers --input clustered.json --top-n 5
+poetry run playlist-forge analyze outliers --input clustered.json --top-n 5
 
 # 6. Find near-duplicate tracks and overlapping playlists
-playlist-forge analyze dedupe --input library_enriched.json --output dedupe_report.json
+poetry run playlist-forge analyze dedupe --input library_enriched.json --output dedupe_report.json
 
 # 7. Review clustered.json / dedupe_report.json by hand, then act:
-playlist-forge act create-from-clusters --input clustered.json --dry-run
-playlist-forge act merge --playlists "Chill 1,Chill 2" --into "Chill (merged)" --dry-run
-playlist-forge act add-from-list --file new_songs.txt --playlist "Discover" --dry-run
+poetry run playlist-forge act create-from-clusters --input clustered.json --dry-run
+poetry run playlist-forge act merge --playlists "Chill 1,Chill 2" --into "Chill (merged)" --dry-run
+poetry run playlist-forge act add-from-list --file new_songs.txt --playlist "Discover" --dry-run
 ```
 
 **Always run with `--dry-run` first.** Every `act` command supports it and
@@ -91,9 +91,9 @@ override. Secrets (`SPOTIFY_CLIENT_ID`, `RECCOBEATS_API_KEY`) come from `.env`
 ## Development
 
 ```bash
-pip install -e ".[dev]"
-pytest
-ruff check src tests
+poetry install --with dev
+poetry run pytest
+poetry run ruff check src tests
 ```
 
 ## License

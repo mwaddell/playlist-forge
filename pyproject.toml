@@ -1,42 +1,39 @@
-[project]
+[tool.poetry]
 name = "playlist-forge"
 version = "0.1.0"
 description = "Export, analyze, and reorganize Spotify playlists from the command line."
+authors = ["Michael J. Waddell"]
+license = "MIT"
 readme = "README.md"
-requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "Michael J. Waddell" }]
-dependencies = [
-    "spotipy>=2.24.0",
-    "typer>=0.12.3",
-    "requests>=2.31.0",
-    "pyyaml>=6.0.1",
-    "python-dotenv>=1.0.1",
-    "scikit-learn>=1.4.0",
-    "numpy>=1.26.0",
-    "rapidfuzz>=3.9.0",
-    "rich>=13.7.0",
-]
+packages = [{ include = "playlist_forge", from = "src" }]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0.0",
-    "ruff>=0.5.0",
-    "mypy>=1.10.0",
-]
-hdbscan = [
-    "hdbscan>=0.8.38",
-]
+[tool.poetry.dependencies]
+python = "^3.10"
+spotipy = ">=2.24.0"
+typer = ">=0.12.3"
+requests = ">=2.31.0"
+pyyaml = ">=6.0.1"
+python-dotenv = ">=1.0.1"
+scikit-learn = ">=1.4.0"
+numpy = ">=1.26.0"
+rapidfuzz = ">=3.9.0"
+rich = ">=13.7.0"
+hdbscan = { version = ">=0.8.38", optional = true }
 
-[project.scripts]
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.0.0"
+ruff = ">=0.5.0"
+mypy = ">=1.10.0"
+
+[tool.poetry.extras]
+hdbscan = ["hdbscan"]
+
+[tool.poetry.scripts]
 playlist-forge = "playlist_forge.cli:app"
 
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["src"]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
 line-length = 100
