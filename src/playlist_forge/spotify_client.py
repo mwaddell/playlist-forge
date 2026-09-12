@@ -8,24 +8,69 @@ import spotipy at all.
 from __future__ import annotations
 
 import time
+from collections.abc import Callable, Mapping
+from typing import TypeVar
 
 import spotipy
 from rich.progress import track as progress_track
 
 from .models import Playlist, Track
+from .rate_limit import DEFAULT_MAX_RETRIES, header_value, retry_delay_seconds
+
+T = TypeVar("T")
+
+
+def _spotify_status_code(exc: spotipy.SpotifyException) -> int | None:
+    for attr in ("http_status", "status_code", "code"):
+        value = getattr(exc, attr, None)
+        if isinstance(value, int):
+            return value
+    return None
+
+
+def _spotify_headers(exc: spotipy.SpotifyException) -> Mapping[str, object] | None:
+    for attr in ("headers", "http_headers"):
+        value = getattr(exc, attr, None)
+        if isinstance(value, Mapping):
+            return value
+    return None
+
+
+def _spotify_request(
+    operation: Callable[[], T],
+    description: str,
+    *,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+) -> T:
+    for attempt in range(max_retries + 1):
+        try:
+            return operation()
+        except spotipy.SpotifyException as exc:
+            if _spotify_status_code(exc) != 429 or attempt >= max_retries:
+                raise
+
+            delay = retry_delay_seconds(
+                header_value(_spotify_headers(exc), "Retry-After"),
+                attempt,
+            )
+            print(f"[spotify] rate limited during {description}; retrying in {delay:.2f}s")
+            time.sleep(delay)
+
+    raise RuntimeError(f"unreachable retry loop for {description}")
 
 
 def _paginate(spotify: spotipy.Spotify, first_page: dict) -> list[dict]:
     items = list(first_page["items"])
     page = first_page
     while page.get("next"):
-        page = spotify.next(page)
+        current_page = page
+        page = _spotify_request(lambda: spotify.next(current_page), "pagination")
         items.extend(page["items"])
     return items
 
 
 def list_playlists(spotify: spotipy.Spotify) -> list[Playlist]:
-    first = spotify.current_user_playlists(limit=50)
+    first = _spotify_request(lambda: spotify.current_user_playlists(limit=50), "list playlists")
     raw = _paginate(spotify, first)
     return [
         Playlist(
@@ -47,7 +92,7 @@ def _artist_genre_map(spotify: spotipy.Spotify, artist_ids: set[str]) -> dict[st
     ids = list(artist_ids)
     for i in range(0, len(ids), 50):
         batch = ids[i : i + 50]
-        resp = spotify.artists(batch)
+        resp = _spotify_request(lambda: spotify.artists(batch), "fetch artist genres")
         for artist in resp["artists"]:
             if artist:
                 genre_map[artist["id"]] = artist.get("genres", [])
@@ -60,13 +105,16 @@ def pull_playlist_tracks(
     playlist: Playlist,
     fetch_genres: bool = True,
 ) -> list[Track]:
-    first = spotify.playlist_items(
-        playlist.spotify_id,
-        additional_types=("track",),
-        fields=(
-            "items(added_at,track(id,name,album(name,release_date),artists(id,name),"
-            "duration_ms,popularity,external_ids)),next"
+    first = _spotify_request(
+        lambda: spotify.playlist_items(
+            playlist.spotify_id,
+            additional_types=("track",),
+            fields=(
+                "items(added_at,track(id,name,album(name,release_date),artists(id,name),"
+                "duration_ms,popularity,external_ids)),next"
+            ),
         ),
+        "pull playlist tracks",
     )
     raw_items = _paginate(spotify, first)
 
@@ -151,12 +199,18 @@ def search_track(
         query_parts.append(f"album:{album}")
     query = " ".join(query_parts)
 
-    results = spotify.search(q=query, type="track", limit=5)
+    results = _spotify_request(
+        lambda: spotify.search(q=query, type="track", limit=5),
+        "search track",
+    )
     items = results.get("tracks", {}).get("items", [])
     if not items:
         # fall back to a looser, unscoped query
         loose_query = " ".join(p for p in (title, artist) if p)
-        results = spotify.search(q=loose_query, type="track", limit=5)
+        results = _spotify_request(
+            lambda: spotify.search(q=loose_query, type="track", limit=5),
+            "search track fallback",
+        )
         items = results.get("tracks", {}).get("items", [])
     if not items:
         return None
@@ -185,12 +239,19 @@ def create_playlist(
         print(f"[dry-run] Would create playlist '{name}' with {len(track_ids)} tracks.")
         return None
 
-    me = spotify.current_user()
-    playlist = spotify.user_playlist_create(
-        me["id"], name, public=public, description=description
+    me = _spotify_request(spotify.current_user, "load current user")
+    playlist = _spotify_request(
+        lambda: spotify.user_playlist_create(
+            me["id"], name, public=public, description=description
+        ),
+        "create playlist",
     )
     for i in range(0, len(track_ids), 100):  # API caps add_items at 100/request
-        spotify.playlist_add_items(playlist["id"], track_ids[i : i + 100])
+        batch = track_ids[i : i + 100]
+        _spotify_request(
+            lambda: spotify.playlist_add_items(playlist["id"], batch),
+            "add tracks to playlist",
+        )
     return playlist["id"]
 
 
@@ -201,4 +262,8 @@ def add_tracks(
         print(f"[dry-run] Would add {len(track_ids)} tracks to playlist {playlist_id}.")
         return
     for i in range(0, len(track_ids), 100):
-        spotify.playlist_add_items(playlist_id, track_ids[i : i + 100])
+        batch = track_ids[i : i + 100]
+        _spotify_request(
+            lambda: spotify.playlist_add_items(playlist_id, batch),
+            "add tracks to playlist",
+        )
