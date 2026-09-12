@@ -12,6 +12,15 @@ MAX_BACKOFF_SECONDS = 60.0
 
 
 def header_value(headers: Mapping[str, object] | None, name: str) -> str | None:
+    """Return a header value using case-insensitive name lookup.
+
+    Args:
+        headers: Response headers mapping, or None when unavailable.
+        name: Header name to resolve.
+
+    Returns:
+        The header value as a string when present, otherwise None.
+    """
     if not headers:
         return None
     if name in headers:
@@ -32,7 +41,17 @@ def retry_delay_seconds(
     default: float = DEFAULT_BACKOFF_SECONDS,
     maximum: float = MAX_BACKOFF_SECONDS,
 ) -> float:
-    """Prefer Retry-After when present; otherwise fall back to exponential backoff."""
+    """Compute a retry delay from Retry-After or exponential backoff.
+
+    Args:
+        retry_after: Retry-After header value as seconds or HTTP-date, if present.
+        attempt: Zero-based retry attempt number.
+        default: Base delay used for exponential backoff.
+        maximum: Maximum allowed delay in seconds.
+
+    Returns:
+        Delay in seconds to wait before retrying.
+    """
     if retry_after:
         value = retry_after.strip()
         try:

@@ -124,6 +124,14 @@ class ReccoBeatsClient:
         raise NetworkFailureError(f"ReccoBeats request failed for {params}.")
 
     def fetch_by_spotify_id(self, spotify_id: str) -> dict | None:
+        """Fetch and cache audio-feature payload for one Spotify track ID.
+
+        Args:
+            spotify_id: Spotify track ID.
+
+        Returns:
+            Audio-feature payload when matched, otherwise None.
+        """
         cache_key = f"spotify:{spotify_id}"
         cached = cache.get(cache_key)
         if cached is not None:
@@ -135,11 +143,13 @@ class ReccoBeatsClient:
         return data
 
     def enrich(self, tracks: list[Track]) -> list[Track]:
-        """Mutates and returns `tracks` with audio-feature fields populated
-        where a match was found. Tracks that don't match are left with
-        feature_source="unmatched" so downstream analysis can filter them
-        out (or weight them down) explicitly rather than silently treating
-        a missing value as a real 0.0.
+        """Populate audio-feature fields on tracks using ReccoBeats matches.
+
+        Args:
+            tracks: Tracks to enrich in place.
+
+        Returns:
+            The same list with feature fields and provenance updated.
         """
         for t in tracks:
             payload = self.fetch_by_spotify_id(t.spotify_id)

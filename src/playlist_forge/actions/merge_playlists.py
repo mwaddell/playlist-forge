@@ -14,6 +14,18 @@ def merge(
     dedupe_by_isrc: bool = True,
     dry_run: bool = False,
 ) -> str | None:
+    """Merge tracks from existing playlists into a new playlist.
+
+    Args:
+        spotify: Authenticated Spotify API client.
+        playlist_names: Source playlist names to merge.
+        into_name: Name for the new merged playlist.
+        dedupe_by_isrc: Whether to drop duplicate ISRC matches.
+        dry_run: Whether to skip API writes and only print actions.
+
+    Returns:
+        Created playlist ID, or None in dry-run mode.
+    """
     all_playlists = spotify_client.list_playlists(spotify)
     targets = [p for p in all_playlists if p.name in playlist_names]
     missing = set(playlist_names) - {p.name for p in targets}

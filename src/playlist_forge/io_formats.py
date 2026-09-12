@@ -18,6 +18,14 @@ _DELIMS = {"csv": ",", "tsv": "\t", "tab": "\t"}
 
 
 def infer_format(path: str | Path) -> str:
+    """Infer the track file format from a path suffix.
+
+    Args:
+        path: Target file path.
+
+    Returns:
+        One of ``json``, ``tsv``, or ``csv``.
+    """
     suffix = Path(path).suffix.lower().lstrip(".")
     if suffix in ("json",):
         return "json"
@@ -27,6 +35,16 @@ def infer_format(path: str | Path) -> str:
 
 
 def write_tracks(tracks: list[Track], path: str | Path, fmt: str | None = None) -> None:
+    """Write tracks to a JSON/CSV/TSV file.
+
+    Args:
+        tracks: Tracks to serialize.
+        path: Output file path.
+        fmt: Optional explicit format override.
+
+    Returns:
+        None.
+    """
     path = Path(path)
     fmt = fmt or infer_format(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -48,6 +66,15 @@ def write_tracks(tracks: list[Track], path: str | Path, fmt: str | None = None) 
 
 
 def read_tracks(path: str | Path, fmt: str | None = None) -> list[Track]:
+    """Read tracks from a JSON/CSV/TSV file.
+
+    Args:
+        path: Input file path.
+        fmt: Optional explicit format override.
+
+    Returns:
+        Parsed track records.
+    """
     path = Path(path)
     fmt = fmt or infer_format(path)
 

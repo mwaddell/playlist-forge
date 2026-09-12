@@ -40,9 +40,14 @@ def _norm(s: str) -> str:
 
 
 def find_duplicate_tracks(tracks: list, threshold: float = 0.90) -> list[DuplicateTrackPair]:
-    """O(n^2) fuzzy match — fine for a few thousand tracks, which covers
-    almost anyone's library. If this becomes a bottleneck, bucket by first
-    letter of normalized title before comparing.
+    """Find likely duplicate songs across different Spotify track IDs.
+
+    Args:
+        tracks: Tracks to compare pairwise.
+        threshold: Minimum weighted similarity score to include.
+
+    Returns:
+        Duplicate track pairs sorted by descending similarity.
     """
     pairs = []
     for a, b in combinations(tracks, 2):
@@ -69,6 +74,15 @@ def find_duplicate_tracks(tracks: list, threshold: float = 0.90) -> list[Duplica
 def find_playlist_overlaps(
     tracks: list, threshold: float = 0.60
 ) -> list[PlaylistOverlap]:
+    """Find playlist pairs with high track overlap.
+
+    Args:
+        tracks: Tracks containing playlist membership fields.
+        threshold: Minimum Jaccard similarity to include.
+
+    Returns:
+        Playlist overlap records sorted by descending similarity.
+    """
     playlist_track_ids: dict[str, set[str]] = {}
     playlist_names: dict[str, str] = {}
     for t in tracks:
