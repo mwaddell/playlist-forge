@@ -20,7 +20,7 @@ import requests
 from . import cache
 from .config import Settings
 from .models import Track
-from .rate_limit import DEFAULT_MAX_RETRIES, retry_delay_seconds
+from .rate_limit import DEFAULT_MAX_RETRIES, header_value, retry_delay_seconds
 
 FEATURE_FIELDS = (
     "tempo", "energy", "danceability", "valence",
@@ -49,7 +49,7 @@ class ReccoBeatsClient:
                 if attempt >= DEFAULT_MAX_RETRIES:
                     resp.raise_for_status()
 
-                delay = retry_delay_seconds(resp.headers.get("Retry-After"), attempt)
+                delay = retry_delay_seconds(header_value(resp.headers, "Retry-After"), attempt)
                 print(f"[reccobeats] rate limited for {params}; retrying in {delay:.2f}s")
                 time.sleep(delay)
         except requests.RequestException as exc:
