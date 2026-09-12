@@ -46,7 +46,7 @@ class ReccoBeatsClient:
 
     @staticmethod
     def _retry_after_seconds(resp: requests.Response) -> float | None:
-        raw = resp.headers.get("Retry-After")
+        raw = resp.headers.get("Retry-After") or resp.headers.get("retry-after")
         if not raw:
             return None
         try:

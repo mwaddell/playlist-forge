@@ -62,6 +62,26 @@ def test_get_raises_after_repeated_rate_limits(monkeypatch):
         client._get("/v1/audio-features", {"ids": "abc"})
 
 
+def test_get_retries_with_lowercase_retry_after_header(monkeypatch):
+    client = ReccoBeatsClient(DummySettings())
+    slept: list[float] = []
+    responses = [
+        FakeResponse(429, headers={"retry-after": "0.25"}),
+        FakeResponse(200, {"tempo": 128}),
+    ]
+
+    def fake_get(*args, **kwargs):
+        return responses.pop(0)
+
+    monkeypatch.setattr(client.session, "get", fake_get)
+    monkeypatch.setattr("playlist_forge.reccobeats_client.time.sleep", lambda seconds: slept.append(seconds))
+
+    payload = client._get("/v1/audio-features", {"ids": "abc"})
+
+    assert payload == {"tempo": 128}
+    assert slept == [0.25]
+
+
 def test_fetch_does_not_cache_transient_failure(monkeypatch):
     client = ReccoBeatsClient(DummySettings())
     cache_writes: list[tuple[str, dict]] = []
