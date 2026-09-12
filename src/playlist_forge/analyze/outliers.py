@@ -63,7 +63,9 @@ def top_outliers_by_playlist(
         **feature_kwargs: Extra keyword args forwarded to :func:`score_outliers`.
 
     Returns:
-        Mapping of playlist ID to ``(track, score)`` tuples.
+        Mapping of playlist ID to ``(track, score)`` tuples. Tuple output
+        avoids clobbering ``track.outlier_score`` when the same Track object
+        appears in multiple playlists.
     """
     by_playlist: dict[str, list] = {}
     for t in tracks:

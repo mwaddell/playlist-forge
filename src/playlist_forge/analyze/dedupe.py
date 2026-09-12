@@ -47,7 +47,8 @@ def find_duplicate_tracks(tracks: list, threshold: float = 0.90) -> list[Duplica
         threshold: Minimum weighted similarity score to include.
 
     Returns:
-        Duplicate track pairs sorted by descending similarity.
+        Duplicate track pairs sorted by descending similarity. This
+        implementation is ``O(n^2)`` and intended for modest library sizes.
     """
     pairs = []
     for a, b in combinations(tracks, 2):

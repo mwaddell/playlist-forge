@@ -27,6 +27,8 @@ def create_from_clusters(
 
     Returns:
         Mapping of cluster ID to created playlist ID, or None for dry-run entries.
+        By default, ``cluster_id == -1`` (HDBSCAN noise) is skipped because
+        those tracks are usually better candidates for manual review.
     """
     by_cluster: dict[int, list[str]] = defaultdict(list)
     for t in tracks:

@@ -149,7 +149,9 @@ class ReccoBeatsClient:
             tracks: Tracks to enrich in place.
 
         Returns:
-            The same list with feature fields and provenance updated.
+            The same list with feature fields and provenance updated. Tracks
+            without a match are marked with ``feature_source="unmatched"`` so
+            downstream analysis can treat missing values explicitly.
         """
         for t in tracks:
             payload = self.fetch_by_spotify_id(t.spotify_id)

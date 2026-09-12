@@ -31,7 +31,9 @@ def build_feature_matrix(
         year_weight: Multiplier for standardized year feature.
 
     Returns:
-        Tuple of ``(matrix, feature_names)`` in input track order.
+        Tuple of ``(matrix, feature_names)`` in input track order. Missing
+        audio features are imputed with each column mean rather than ``0.0``
+        so unmatched values do not bias vectors toward one edge.
     """
     genre_lists = [t.artist_genres or [] for t in tracks]
     mlb = MultiLabelBinarizer()
