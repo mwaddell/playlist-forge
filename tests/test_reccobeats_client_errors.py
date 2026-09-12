@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-import requests
+from datetime import datetime, timedelta, timezone
+from email.utils import format_datetime
+
 import pytest
+import requests
 
 from playlist_forge import cache
 from playlist_forge.errors import NetworkFailureError, RateLimitExceededError
@@ -16,6 +19,10 @@ class DummySettings:
         }
     }
     reccobeats_api_key = None
+
+
+class DummySettingsWithApiKey(DummySettings):
+    reccobeats_api_key = "test-key"
 
 
 class FakeResponse:
@@ -74,7 +81,10 @@ def test_get_retries_with_lowercase_retry_after_header(monkeypatch):
         return responses.pop(0)
 
     monkeypatch.setattr(client.session, "get", fake_get)
-    monkeypatch.setattr("playlist_forge.reccobeats_client.time.sleep", lambda seconds: slept.append(seconds))
+    monkeypatch.setattr(
+        "playlist_forge.reccobeats_client.time.sleep",
+        lambda seconds: slept.append(seconds),
+    )
 
     payload = client._get("/v1/audio-features", {"ids": "abc"})
 
@@ -82,13 +92,40 @@ def test_get_retries_with_lowercase_retry_after_header(monkeypatch):
     assert slept == [0.25]
 
 
+def test_retry_after_parses_http_date_header(monkeypatch):
+    fixed_now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    future = fixed_now + timedelta(seconds=120)
+    resp = FakeResponse(429, headers={"Retry-After": format_datetime(future, usegmt=True)})
+
+    class FixedDatetime:
+        @staticmethod
+        def now(tz):
+            assert tz == timezone.utc
+            return fixed_now
+
+    monkeypatch.setattr("playlist_forge.reccobeats_client.datetime", FixedDatetime)
+    delay = ReccoBeatsClient._retry_after_seconds(resp)
+
+    assert delay == 120.0
+
+
+def test_sets_bearer_auth_header_when_api_key_present():
+    client = ReccoBeatsClient(DummySettingsWithApiKey())
+    assert client.session.headers["Authorization"] == (
+        "Bearer " + DummySettingsWithApiKey.reccobeats_api_key
+    )
+
+
 def test_fetch_does_not_cache_transient_failure(monkeypatch):
     client = ReccoBeatsClient(DummySettings())
     cache_writes: list[tuple[str, dict]] = []
 
+    def raise_network_failure(*_args, **_kwargs):
+        raise NetworkFailureError("boom")
+
     monkeypatch.setattr(cache, "get", lambda key: None)
     monkeypatch.setattr(cache, "set", lambda key, value: cache_writes.append((key, value)))
-    monkeypatch.setattr(client, "_get", lambda _path, _params: (_ for _ in ()).throw(NetworkFailureError("boom")))
+    monkeypatch.setattr(client, "_get", raise_network_failure)
 
     with pytest.raises(NetworkFailureError):
         client.fetch_by_spotify_id("abc")

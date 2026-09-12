@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+from email.utils import format_datetime
+
 import pytest
 
 from playlist_forge import spotify_client
@@ -57,3 +60,20 @@ def test_list_playlists_raises_auth_failure_on_401(patched_spotify_exception):
 
     with pytest.raises(AuthFailureError):
         spotify_client.list_playlists(FakeSpotify())
+
+
+def test_retry_after_parses_http_date_header(monkeypatch):
+    fixed_now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    future = fixed_now + timedelta(seconds=120)
+    headers = {"Retry-After": format_datetime(future, usegmt=True)}
+
+    class FixedDatetime:
+        @staticmethod
+        def now(tz):
+            assert tz == timezone.utc
+            return fixed_now
+
+    monkeypatch.setattr(spotify_client, "datetime", FixedDatetime)
+    delay = spotify_client._retry_after_seconds(headers)
+
+    assert delay == 120.0

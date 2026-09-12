@@ -14,6 +14,8 @@ Docs: https://reccobeats.com/docs/apis/get-audio-features
 from __future__ import annotations
 
 import time
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 import requests
 
@@ -42,7 +44,7 @@ class ReccoBeatsClient:
         self.api_key = settings.reccobeats_api_key  # None is fine; free tier needs no key today
         self.session = requests.Session()
         if self.api_key:
-            self.session.headers["Authorization"] = f"******"
+            self.session.headers["Authorization"] = "Bearer " + self.api_key
 
     @staticmethod
     def _retry_after_seconds(resp: requests.Response) -> float | None:
@@ -52,7 +54,14 @@ class ReccoBeatsClient:
         try:
             return max(float(raw), 0.0)
         except (TypeError, ValueError):
+            pass
+        try:
+            retry_at = parsedate_to_datetime(raw)
+        except (TypeError, ValueError):
             return None
+        if retry_at.tzinfo is None:
+            retry_at = retry_at.replace(tzinfo=timezone.utc)
+        return max((retry_at - datetime.now(timezone.utc)).total_seconds(), 0.0)
 
     def _get(self, path: str, params: dict) -> dict | None:
         for attempt in range(self.max_retries + 1):
@@ -62,14 +71,17 @@ class ReccoBeatsClient:
                     return None
                 if resp.status_code == 401:
                     raise AuthFailureError(
-                        "ReccoBeats authentication failed (401). Check RECCOBEATS_API_KEY and retry."
+                        "ReccoBeats authentication failed (401). "
+                        "Check RECCOBEATS_API_KEY and retry."
                     )
                 if resp.status_code == 429:
                     if attempt >= self.max_retries:
                         raise RateLimitExceededError(
                             "ReccoBeats rate limit persisted after retries. Please wait and retry."
                         )
-                    delay = self._retry_after_seconds(resp) or (self.base_backoff_seconds * (2**attempt))
+                    delay = self._retry_after_seconds(resp) or (
+                        self.base_backoff_seconds * (2**attempt)
+                    )
                     time.sleep(delay)
                     continue
                 if resp.status_code >= 500 and attempt < self.max_retries:
@@ -83,8 +95,14 @@ class ReccoBeatsClient:
                         "ReccoBeats request timed out or lost connection after retries."
                     ) from exc
                 time.sleep(self.base_backoff_seconds * (2**attempt))
+            except requests.HTTPError as exc:
+                raise ExternalServiceError(
+                    f"ReccoBeats request failed for {params}: {exc}"
+                ) from exc
             except requests.RequestException as exc:
-                raise ExternalServiceError(f"ReccoBeats request failed for {params}: {exc}") from exc
+                raise NetworkFailureError(
+                    f"ReccoBeats request failed due to network issue for {params}: {exc}"
+                ) from exc
 
         raise NetworkFailureError(f"ReccoBeats request failed for {params}.")
 

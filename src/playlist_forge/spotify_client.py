@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import TypeVar
 
 import requests
@@ -37,7 +39,14 @@ def _retry_after_seconds(headers: dict | None) -> float | None:
     try:
         return max(float(raw), 0.0)
     except (TypeError, ValueError):
+        pass
+    try:
+        retry_at = parsedate_to_datetime(raw)
+    except (TypeError, ValueError):
         return None
+    if retry_at.tzinfo is None:
+        retry_at = retry_at.replace(tzinfo=timezone.utc)
+    return max((retry_at - datetime.now(timezone.utc)).total_seconds(), 0.0)
 
 
 def _spotify_call(operation: str, call: Callable[[], T]) -> T:
@@ -49,14 +58,17 @@ def _spotify_call(operation: str, call: Callable[[], T]) -> T:
             headers = getattr(exc, "headers", None)
             if status == 401:
                 raise AuthFailureError(
-                    "Spotify authentication failed (401). Run `playlist-forge auth login` and retry."
+                    "Spotify authentication failed (401). "
+                    "Run `playlist-forge auth login` and retry."
                 ) from exc
             if status == 429:
                 if attempt >= _SPOTIFY_MAX_RETRIES:
                     raise RateLimitExceededError(
                         "Spotify rate limit persisted after retries. Please wait and try again."
                     ) from exc
-                delay = _retry_after_seconds(headers) or (_SPOTIFY_BASE_BACKOFF_SECONDS * (2**attempt))
+                delay = _retry_after_seconds(headers) or (
+                    _SPOTIFY_BASE_BACKOFF_SECONDS * (2**attempt)
+                )
                 time.sleep(delay)
                 continue
             if status and status >= 500 and attempt < _SPOTIFY_MAX_RETRIES:
@@ -216,13 +228,16 @@ def search_track(
         query_parts.append(f"album:{album}")
     query = " ".join(query_parts)
 
-    results = _spotify_call("searching for track", lambda: spotify.search(q=query, type="track", limit=5))
+    results = _spotify_call(
+        "searching for track", lambda: spotify.search(q=query, type="track", limit=5)
+    )
     items = results.get("tracks", {}).get("items", [])
     if not items:
         # fall back to a looser, unscoped query
         loose_query = " ".join(p for p in (title, artist) if p)
         results = _spotify_call(
-            "running fallback track search", lambda: spotify.search(q=loose_query, type="track", limit=5)
+            "running fallback track search",
+            lambda: spotify.search(q=loose_query, type="track", limit=5),
         )
         items = results.get("tracks", {}).get("items", [])
     if not items:
@@ -255,7 +270,9 @@ def create_playlist(
     me = _spotify_call("reading current Spotify user", spotify.current_user)
     playlist = _spotify_call(
         f"creating playlist '{name}'",
-        lambda: spotify.user_playlist_create(me["id"], name, public=public, description=description),
+        lambda: spotify.user_playlist_create(
+            me["id"], name, public=public, description=description
+        ),
     )
     for i in range(0, len(track_ids), 100):  # API caps add_items at 100/request
         _spotify_call(
