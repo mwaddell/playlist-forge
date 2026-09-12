@@ -26,6 +26,14 @@ def _connect() -> sqlite3.Connection:
 
 
 def get(key: str) -> dict | None:
+    """Fetch a cached payload for a key.
+
+    Args:
+        key: Cache key to look up.
+
+    Returns:
+        The cached payload dictionary when present, otherwise None.
+    """
     conn = _connect()
     try:
         row = conn.execute(
@@ -37,6 +45,15 @@ def get(key: str) -> dict | None:
 
 
 def set(key: str, payload: dict) -> None:
+    """Store or replace a cached payload by key.
+
+    Args:
+        key: Cache key to write.
+        payload: JSON-serializable payload to persist.
+
+    Returns:
+        None.
+    """
     conn = _connect()
     try:
         conn.execute(
@@ -49,4 +66,13 @@ def set(key: str, payload: dict) -> None:
 
 
 def normalize_key(title: str, artist: str) -> str:
+    """Normalize title and artist into a stable cache key.
+
+    Args:
+        title: Track title text.
+        artist: Artist name text.
+
+    Returns:
+        A lowercased, trimmed cache key string.
+    """
     return f"{title.strip().lower()}::{artist.strip().lower()}"

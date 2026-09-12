@@ -18,6 +18,16 @@ from .features import build_feature_matrix
 
 
 def choose_k(matrix: np.ndarray, k_min: int = 2, k_max: int = 12) -> int:
+    """Select a KMeans cluster count using silhouette score.
+
+    Args:
+        matrix: Feature matrix where each row is a track.
+        k_min: Minimum candidate cluster count.
+        k_max: Maximum candidate cluster count.
+
+    Returns:
+        Selected cluster count.
+    """
     n = matrix.shape[0]
     k_max = min(k_max, n - 1)
     if k_max < k_min:
@@ -41,6 +51,18 @@ def cluster_kmeans(
     audio_feature_weight: float = 1.0,
     year_weight: float = 0.3,
 ) -> list:
+    """Assign ``cluster_id`` values using KMeans.
+
+    Args:
+        tracks: Tracks to cluster in place.
+        k: Cluster count or ``"auto"`` for silhouette-based selection.
+        genre_weight: Multiplier for one-hot genre features.
+        audio_feature_weight: Multiplier for standardized audio features.
+        year_weight: Multiplier for standardized year feature.
+
+    Returns:
+        The input tracks with ``cluster_id`` populated.
+    """
     matrix, _ = build_feature_matrix(tracks, genre_weight, audio_feature_weight, year_weight)
     if matrix.shape[1] == 0:
         raise ValueError(
@@ -64,6 +86,18 @@ def cluster_hdbscan(
     year_weight: float = 0.3,
     min_cluster_size: int = 5,
 ) -> list:
+    """Assign ``cluster_id`` values using HDBSCAN.
+
+    Args:
+        tracks: Tracks to cluster in place.
+        genre_weight: Multiplier for one-hot genre features.
+        audio_feature_weight: Multiplier for standardized audio features.
+        year_weight: Multiplier for standardized year feature.
+        min_cluster_size: Minimum cluster size parameter for HDBSCAN.
+
+    Returns:
+        The input tracks with ``cluster_id`` populated.
+    """
     try:
         import hdbscan
     except ImportError as exc:

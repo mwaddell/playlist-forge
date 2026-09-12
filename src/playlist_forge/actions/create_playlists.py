@@ -16,9 +16,19 @@ def create_from_clusters(
     skip_noise: bool = True,
     dry_run: bool = False,
 ) -> dict[int, str | None]:
-    """One playlist per cluster_id. Skips cluster_id == -1 (HDBSCAN noise /
-    "doesn't belong anywhere") by default — those tracks are candidates for
-    manual review, not a playlist of their own.
+    """Create one playlist per cluster ID from clustered tracks.
+
+    Args:
+        spotify: Authenticated Spotify API client.
+        tracks: Tracks that may contain ``cluster_id`` assignments.
+        name_prefix: Prefix used for generated playlist names.
+        skip_noise: Whether to skip tracks with ``cluster_id == -1``.
+        dry_run: Whether to skip API writes and only print actions.
+
+    Returns:
+        Mapping of cluster ID to created playlist ID, or None for dry-run entries.
+        By default, ``cluster_id == -1`` (HDBSCAN noise) is skipped because
+        those tracks are usually better candidates for manual review.
     """
     by_cluster: dict[int, list[str]] = defaultdict(list)
     for t in tracks:

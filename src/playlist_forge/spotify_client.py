@@ -138,6 +138,14 @@ def _paginate(spotify: spotipy.Spotify, first_page: dict) -> list[dict]:
 
 
 def list_playlists(spotify: spotipy.Spotify) -> list[Playlist]:
+    """List the current user's playlists.
+
+    Args:
+        spotify: Authenticated Spotify API client.
+
+    Returns:
+        Playlist records visible to the current user.
+    """
     first = _spotify_call("listing playlists", lambda: spotify.current_user_playlists(limit=50))
     raw = _paginate(spotify, first)
     return [
@@ -173,6 +181,16 @@ def pull_playlist_tracks(
     playlist: Playlist,
     fetch_genres: bool = True,
 ) -> list[Track]:
+    """Pull all tracks for one playlist.
+
+    Args:
+        spotify: Authenticated Spotify API client.
+        playlist: Playlist metadata to fetch tracks from.
+        fetch_genres: Whether to fetch artist genres for included artists.
+
+    Returns:
+        Track objects for the playlist.
+    """
     first = _spotify_call(
         f"pulling tracks for playlist '{playlist.name}'",
         lambda: spotify.playlist_items(
@@ -236,9 +254,14 @@ def pull_playlist_tracks(
 
 
 def pull_library(spotify: spotipy.Spotify, playlist_name_filter: str | None = None) -> list[Track]:
-    """Pull every playlist (optionally filtered by name substring) and merge
-    tracks that appear in multiple playlists into a single record with a
-    combined playlist_ids / playlist_names list.
+    """Pull playlists and merge duplicate track IDs across playlists.
+
+    Args:
+        spotify: Authenticated Spotify API client.
+        playlist_name_filter: Optional case-insensitive playlist name substring filter.
+
+    Returns:
+        Unique tracks with combined playlist membership fields.
     """
     playlists = list_playlists(spotify)
     if playlist_name_filter:
@@ -260,7 +283,17 @@ def pull_library(spotify: spotipy.Spotify, playlist_name_filter: str | None = No
 def search_track(
     spotify: spotipy.Spotify, title: str, artist: str = "", album: str = ""
 ) -> Track | None:
-    """Best-effort match of a plain-text (title, artist, album) to a Spotify track."""
+    """Best-effort match of plain text fields to a Spotify track.
+
+    Args:
+        spotify: Authenticated Spotify API client.
+        title: Track title query.
+        artist: Optional artist query.
+        album: Optional album query.
+
+    Returns:
+        A matched Track when found, otherwise None.
+    """
     query_parts = [f"track:{title}"]
     if artist:
         query_parts.append(f"artist:{artist}")
@@ -303,6 +336,19 @@ def create_playlist(
     public: bool = False,
     dry_run: bool = False,
 ) -> str | None:
+    """Create a playlist and add the provided tracks.
+
+    Args:
+        spotify: Authenticated Spotify API client.
+        name: Playlist name to create.
+        track_ids: Spotify track IDs to add.
+        description: Playlist description text.
+        public: Whether the playlist should be public.
+        dry_run: Whether to skip API writes and only print actions.
+
+    Returns:
+        The created playlist ID, or None for dry-run mode.
+    """
     if dry_run:
         print(f"[dry-run] Would create playlist '{name}' with {len(track_ids)} tracks.")
         return None
@@ -325,6 +371,17 @@ def create_playlist(
 def add_tracks(
     spotify: spotipy.Spotify, playlist_id: str, track_ids: list[str], dry_run: bool = False
 ) -> None:
+    """Add tracks to an existing playlist in API-sized batches.
+
+    Args:
+        spotify: Authenticated Spotify API client.
+        playlist_id: Spotify playlist ID to update.
+        track_ids: Spotify track IDs to append.
+        dry_run: Whether to skip API writes and only print actions.
+
+    Returns:
+        None.
+    """
     if dry_run:
         print(f"[dry-run] Would add {len(track_ids)} tracks to playlist {playlist_id}.")
         return

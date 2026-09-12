@@ -27,6 +27,15 @@ class MatchResult:
 
 
 def parse_text_list(path: str | Path, field_delimiter: str = ";") -> list[dict]:
+    """Parse a plain-text song list into search rows.
+
+    Args:
+        path: Input text file path.
+        field_delimiter: Delimiter between title/artist/album fields.
+
+    Returns:
+        Parsed search rows with title and optional artist/album values.
+    """
     rows = []
     for line in Path(path).read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -43,6 +52,15 @@ def parse_text_list(path: str | Path, field_delimiter: str = ";") -> list[dict]:
 
 
 def match_all(spotify: spotipy.Spotify, rows: list[dict]) -> list[MatchResult]:
+    """Match parsed rows against Spotify tracks.
+
+    Args:
+        spotify: Authenticated Spotify API client.
+        rows: Parsed rows from :func:`parse_text_list`.
+
+    Returns:
+        Match result objects for each input row.
+    """
     results = []
     for row in rows:
         query_str = " / ".join(v for v in row.values() if v)
@@ -64,6 +82,18 @@ def add_matches_to_playlist(
     create_if_missing: bool = True,
     dry_run: bool = False,
 ) -> None:
+    """Add matched track IDs to an existing or newly created playlist.
+
+    Args:
+        spotify: Authenticated Spotify API client.
+        playlist_name: Target playlist name.
+        results: Match results returned by :func:`match_all`.
+        create_if_missing: Whether to create the playlist when absent.
+        dry_run: Whether to skip API writes and only print actions.
+
+    Returns:
+        None.
+    """
     matched_ids = [r.matched.spotify_id for r in results if r.matched]
     unmatched = [r.query for r in results if not r.matched]
 

@@ -19,8 +19,16 @@ def score_outliers(
     audio_feature_weight: float = 1.0,
     year_weight: float = 0.3,
 ) -> list:
-    """Sets `outlier_score` (higher = more out of place) on each track.
-    Expects `tracks` to already be scoped to a single playlist by the caller.
+    """Score tracks by distance from a playlist centroid.
+
+    Args:
+        tracks: Tracks from a single playlist context.
+        genre_weight: Multiplier for one-hot genre features.
+        audio_feature_weight: Multiplier for standardized audio features.
+        year_weight: Multiplier for standardized year feature.
+
+    Returns:
+        Tracks sorted by descending ``outlier_score``.
     """
     if len(tracks) < 3:
         for t in tracks:
@@ -47,14 +55,17 @@ def score_outliers(
 def top_outliers_by_playlist(
     tracks: list, top_n: int = 5, **feature_kwargs
 ) -> dict[str, list[tuple]]:
-    """Groups tracks by playlist (a track can belong to several) and returns
-    the top_n most-out-of-place tracks per playlist, as (track, score) pairs.
+    """Return top outliers for each playlist represented in the input tracks.
 
-    Returns tuples rather than setting track.outlier_score in place: a track
-    that appears in several playlists needs a different score per playlist,
-    and Track objects are shared references across playlist groups here, so
-    mutating in place would let the last-processed playlist's score clobber
-    the others.
+    Args:
+        tracks: Tracks that may belong to one or more playlists.
+        top_n: Number of top outliers to keep per playlist.
+        **feature_kwargs: Extra keyword args forwarded to :func:`score_outliers`.
+
+    Returns:
+        Mapping of playlist ID to ``(track, score)`` tuples. Tuple output
+        avoids clobbering ``track.outlier_score`` when the same Track object
+        appears in multiple playlists.
     """
     by_playlist: dict[str, list] = {}
     for t in tracks:

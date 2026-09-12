@@ -47,6 +47,11 @@ class Settings:
 
 
 def load_settings() -> Settings:
+    """Load environment and file-backed application settings.
+
+    Returns:
+        Resolved Settings values for authentication and analysis defaults.
+    """
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     load_dotenv()  # loads .env from cwd if present

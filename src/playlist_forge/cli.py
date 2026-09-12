@@ -39,7 +39,11 @@ def _handle_cli_errors(func):
 @auth_app.command("login")
 @_handle_cli_errors
 def auth_login():
-    """Run the Spotify OAuth flow now and cache the token."""
+    """Run Spotify OAuth and cache the token for later commands.
+
+    Returns:
+        None.
+    """
     settings = load_settings()
     auth.login(settings)
 
@@ -56,7 +60,16 @@ def pull(
         None, "--playlist", help="Only pull playlists whose name contains this substring."
     ),
 ):
-    """Pull playlists + track metadata from Spotify into a local file."""
+    """Pull playlists and tracks from Spotify into a local dataset.
+
+    Args:
+        output: Output file path.
+        fmt: Optional output format override.
+        playlist: Optional playlist name substring filter.
+
+    Returns:
+        None.
+    """
     settings = load_settings()
     spotify = auth.get_spotify_client(settings)
     tracks = spotify_client.pull_library(spotify, playlist_name_filter=playlist)
@@ -72,7 +85,16 @@ def enrich(
     output: Path = typer.Option(..., "--output", "-o"),
     fmt: str | None = typer.Option(None, "--format", "-f"),
 ):
-    """Add ReccoBeats audio features to a pulled dataset. Cached — safe to re-run."""
+    """Add ReccoBeats audio features to a pulled dataset file.
+
+    Args:
+        input: Input pulled dataset path.
+        output: Output enriched dataset path.
+        fmt: Optional output format override.
+
+    Returns:
+        None.
+    """
     settings = load_settings()
     tracks = io_formats.read_tracks(input)
     client = ReccoBeatsClient(settings)
@@ -96,7 +118,21 @@ def analyze_cluster(
     audio_feature_weight: float = typer.Option(1.0),
     year_weight: float = typer.Option(0.3),
 ):
-    """Cluster tracks by genre/audio-feature/year similarity."""
+    """Cluster tracks by genre, audio-feature, and year similarity.
+
+    Args:
+        input: Input track dataset path.
+        output: Output clustered dataset path.
+        fmt: Optional output format override.
+        algorithm: Clustering algorithm name.
+        k: KMeans cluster count or ``auto``.
+        genre_weight: Genre feature weight multiplier.
+        audio_feature_weight: Audio feature weight multiplier.
+        year_weight: Year feature weight multiplier.
+
+    Returns:
+        None.
+    """
     tracks = io_formats.read_tracks(input)
     if algorithm == "hdbscan":
         clustered = cluster_mod.cluster_hdbscan(
@@ -119,7 +155,15 @@ def analyze_outliers(
     input: Path = typer.Option(..., "--input", "-i"),
     top_n: int = typer.Option(5, help="Top N outliers per playlist."),
 ):
-    """Print the tracks most out-of-place within each playlist."""
+    """Print the highest outlier tracks for each playlist.
+
+    Args:
+        input: Input track dataset path.
+        top_n: Number of outliers to print per playlist.
+
+    Returns:
+        None.
+    """
     tracks = io_formats.read_tracks(input)
     results = outliers_mod.top_outliers_by_playlist(tracks, top_n=top_n)
     for pid, scored in results.items():
@@ -137,7 +181,17 @@ def analyze_dedupe(
     track_threshold: float = typer.Option(0.90),
     playlist_threshold: float = typer.Option(0.60),
 ):
-    """Find near-duplicate tracks and overlapping playlists. Writes a JSON report."""
+    """Find duplicate tracks and overlapping playlists, then write a JSON report.
+
+    Args:
+        input: Input track dataset path.
+        output: Output JSON report path.
+        track_threshold: Similarity threshold for duplicate track detection.
+        playlist_threshold: Jaccard threshold for playlist overlap detection.
+
+    Returns:
+        None.
+    """
     import json
     from dataclasses import asdict
 
@@ -165,7 +219,17 @@ def act_create_from_clusters(
     skip_noise: bool = typer.Option(True),
     dry_run: bool = typer.Option(False),
 ):
-    """Create one playlist per cluster from `analyze cluster` output."""
+    """Create Spotify playlists from clustered dataset output.
+
+    Args:
+        input: Clustered input dataset path.
+        prefix: Prefix for generated playlist names.
+        skip_noise: Whether to skip noise cluster ``-1``.
+        dry_run: Whether to skip Spotify write operations.
+
+    Returns:
+        None.
+    """
     settings = load_settings()
     spotify = auth.get_spotify_client(settings)
     tracks = io_formats.read_tracks(input)
@@ -185,7 +249,16 @@ def act_split(
     playlist: str = typer.Option(..., help="Name of the source playlist being split."),
     dry_run: bool = typer.Option(False),
 ):
-    """Split a playlist into sub-playlists using existing cluster assignments."""
+    """Split one source playlist into cluster-based parts.
+
+    Args:
+        input: Clustered input dataset path.
+        playlist: Source playlist name to split.
+        dry_run: Whether to skip Spotify write operations.
+
+    Returns:
+        None.
+    """
     settings = load_settings()
     spotify = auth.get_spotify_client(settings)
     tracks = io_formats.read_tracks(input)
@@ -202,7 +275,16 @@ def act_merge(
     into: str = typer.Option(..., help="Name for the new merged playlist."),
     dry_run: bool = typer.Option(False),
 ):
-    """Merge two or more existing playlists into one new playlist, deduped."""
+    """Merge existing playlists into one new deduplicated playlist.
+
+    Args:
+        playlists: Comma-separated source playlist names.
+        into: Name for the merged playlist.
+        dry_run: Whether to skip Spotify write operations.
+
+    Returns:
+        None.
+    """
     settings = load_settings()
     spotify = auth.get_spotify_client(settings)
     names = [p.strip() for p in playlists.split(",")]
@@ -218,7 +300,17 @@ def act_add_from_list(
     delimiter: str = typer.Option(";", help="Field delimiter within each line."),
     dry_run: bool = typer.Option(False),
 ):
-    """Match a plain-text song list against Spotify and add hits to a playlist."""
+    """Match a text list against Spotify and add matched tracks to a playlist.
+
+    Args:
+        file: Plain-text input list path.
+        playlist: Target playlist name.
+        delimiter: Input field delimiter.
+        dry_run: Whether to skip Spotify write operations.
+
+    Returns:
+        None.
+    """
     settings = load_settings()
     spotify = auth.get_spotify_client(settings)
     rows = match_text_list.parse_text_list(file, field_delimiter=delimiter)
