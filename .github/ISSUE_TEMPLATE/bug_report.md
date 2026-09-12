@@ -31,7 +31,7 @@ Include the full error message, traceback, or unexpected output.
 - OS:
 - Python version:
 - playlist-forge version:
-- Installation method (for example `pip install -e ".[dev]"`):
+- Installation method (for example `poetry install --with dev`):
 
 ## Command and input files
 

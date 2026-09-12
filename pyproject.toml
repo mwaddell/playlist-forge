@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Export, analyze, and reorganize Spotify playlists from the command line."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "Michael J. Waddell" }]
 dependencies = [
     "spotipy>=2.24.0",
@@ -19,24 +19,23 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=8.0.0",
-    "ruff>=0.5.0",
-    "mypy>=1.10.0",
-]
-hdbscan = [
-    "hdbscan>=0.8.38",
-]
+hdbscan = ["hdbscan>=0.8.38"]
 
 [project.scripts]
 playlist-forge = "playlist_forge.cli:app"
 
-[build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
+[tool.poetry]
+package-mode = true
+packages = [{ include = "playlist_forge", from = "src" }]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.0.0"
+ruff = ">=0.5.0"
+mypy = ">=1.10.0"
+
+[build-system]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
 line-length = 120
