@@ -15,7 +15,7 @@ they're the ones that actually hurt you if skipped.
 
 ## 1. Secrets & credential hygiene
 
-- [ ] **[Manual]** Confirm `.env` was never committed. Check the full git
+- [x] **[Manual]** Confirm `.env` was never committed. Check the full git
   history, not just the current working tree:
   ```bash
   git log --all --full-history -- .env
@@ -25,14 +25,14 @@ they're the ones that actually hurt you if skipped.
   public — rotate it (regenerate the Spotify app's client ID/secret) and
   scrub history with `git filter-repo` or BFG before proceeding, don't just
   delete the file in a new commit.
-- [ ] **[Manual]** Confirm `token.json` / the OAuth cache path was never
+- [x] **[Manual]** Confirm `token.json` / the OAuth cache path was never
   committed (same git-history check as above, path is
   `~/.config/playlist-forge/token.json` by default so it shouldn't be in the
   repo at all, but verify).
-- [ ] **[Manual]** Double check `.gitignore` actually covers `.env`,
+- [x] **[Manual]** Double check `.gitignore` actually covers `.env`,
   `*.sqlite3` (the ReccoBeats cache), and any local `data/`/output directories
   you used while testing — open the file and read it, don't assume.
-- [ ] **[Copilot]** Ask Copilot to scan for hardcoded secrets or
+- [x] **[Copilot]** Ask Copilot to scan for hardcoded secrets or
   accidentally-committed personal data:
   > "Review this repo for any hardcoded API keys, tokens, personal Spotify
   > playlist IDs, usernames, or file paths that reference my local machine.
@@ -52,7 +52,7 @@ they're the ones that actually hurt you if skipped.
   prominently (the README already flags it, but confirm the wording matches
   their current terms) and whether you're comfortable with users depending on
   a service that could change or disappear.
-- [ ] **[Manual]** Confirm the `LICENSE` file has your real name/entity instead
+- [x] **[Manual]** Confirm the `LICENSE` file has your real name/entity instead
   of the placeholder, and that you're intentionally choosing MIT (vs.
   Apache-2.0, which adds an explicit patent grant — worth 5 minutes of
   reading if you're unsure which you want).
