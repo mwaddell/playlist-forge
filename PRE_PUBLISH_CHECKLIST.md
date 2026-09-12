@@ -37,7 +37,7 @@ they're the ones that actually hurt you if skipped.
   > "Review this repo for any hardcoded API keys, tokens, personal Spotify
   > playlist IDs, usernames, or file paths that reference my local machine.
   > List every match with file and line number."
-- [ ] **[Manual]** Set up **GitHub secret scanning + push protection** (Settings
+- [x] **[Manual]** Set up **GitHub secret scanning + push protection** (Settings
   → Code security) before making the repo public, not after.
 
 ## 2. Legal / ToS / licensing review
@@ -56,7 +56,7 @@ they're the ones that actually hurt you if skipped.
   of the placeholder, and that you're intentionally choosing MIT (vs.
   Apache-2.0, which adds an explicit patent grant — worth 5 minutes of
   reading if you're unsure which you want).
-- [ ] **[Manual]** Decide whether you need a `NOTICE` or disclaimer that this
+- [x] **[Manual]** Decide whether you need a `NOTICE` or disclaimer that this
   is an unofficial, community project not affiliated with or endorsed by
   Spotify — common practice for API client tools, reduces confusion for users
   and lowers your risk if Spotify ever objects to the name/branding.
@@ -159,7 +159,7 @@ they're the ones that actually hurt you if skipped.
   for a library but means a breaking change in `spotipy` or `scikit-learn`
   could silently break the tool for users — decide if you want to cap major
   versions).
-- [ ] **[Manual]** Enable **Dependabot** (Settings → Code security → Dependabot
+- [x] **[Manual]** Enable **Dependabot** (Settings → Code security → Dependabot
   alerts + security updates) so you get notified of vulnerable dependencies
   after publishing.
 - [ ] **[Copilot]** Ask for a dependency audit:

@@ -1,0 +1,25 @@
+NOTICE
+
+playlist-forge is an independent, community-developed project. It is not
+affiliated with, endorsed by, sponsored by, or otherwise officially connected
+to Spotify AB or any of its affiliates or subsidiaries.
+
+"Spotify" and any related trademarks, logos, and brand names are the
+property of Spotify AB. Use of these names in this project is for
+identification and descriptive purposes only, to indicate compatibility with
+the Spotify Web API, and does not imply any endorsement or affiliation.
+
+This project uses the Spotify Web API in accordance with Spotify's Developer
+Terms of Service (https://developer.spotify.com/terms). Use of this software
+requires you to create and authenticate your own Spotify application
+credentials and is subject to Spotify's terms.
+
+This project also integrates with ReccoBeats (https://reccobeats.com), an
+independent third-party service unaffiliated with Spotify, used to provide
+audio-feature data. ReccoBeats is likewise not affiliated with, endorsed by,
+or sponsored by Spotify AB. Use of ReccoBeats through this software is
+subject to ReccoBeats' own terms of service.
+
+All product names, logos, and brands referenced in this project are the
+property of their respective owners. All company, product, and service names
+used are for identification purposes only.
