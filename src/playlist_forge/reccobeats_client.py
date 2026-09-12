@@ -39,6 +39,7 @@ class ReccoBeatsClient:
 
     def _get(self, path: str, params: dict) -> dict | None:
         for attempt in range(DEFAULT_MAX_RETRIES + 1):
+            resp = None
             try:
                 resp = self.session.get(f"{self.base_url}{path}", params=params, timeout=10)
                 if resp.status_code == 404:
@@ -46,7 +47,7 @@ class ReccoBeatsClient:
                 resp.raise_for_status()
                 return resp.json()
             except requests.HTTPError as exc:
-                response = exc.response or locals().get("resp")
+                response = exc.response or resp
                 if (
                     response is not None
                     and response.status_code == 429

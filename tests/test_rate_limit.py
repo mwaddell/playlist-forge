@@ -172,3 +172,18 @@ def test_retry_delay_seconds_supports_http_date_retry_after(monkeypatch):
     assert (
         rate_limit.retry_delay_seconds("Thu, 01 Jan 2026 12:00:05 GMT", attempt=0) == 5.0
     )
+
+
+def test_retry_delay_seconds_falls_back_for_invalid_retry_after():
+    assert rate_limit.retry_delay_seconds("not-a-delay", attempt=2) == 4.0
+
+
+def test_retry_delay_seconds_clamps_past_http_date_to_zero(monkeypatch):
+    class FrozenDateTime:
+        @staticmethod
+        def now(_tz: timezone) -> datetime:
+            return datetime(2026, 1, 1, 12, 0, 10, tzinfo=timezone.utc)
+
+    monkeypatch.setattr(rate_limit, "datetime", FrozenDateTime)
+
+    assert rate_limit.retry_delay_seconds("Thu, 01 Jan 2026 12:00:05 GMT", attempt=0) == 0.0
