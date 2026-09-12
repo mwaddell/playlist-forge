@@ -7,8 +7,8 @@ import spotipy at all.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
 import time
+from collections.abc import Callable, Mapping
 from typing import TypeVar
 
 import spotipy
@@ -198,7 +198,10 @@ def search_track(
         query_parts.append(f"album:{album}")
     query = " ".join(query_parts)
 
-    results = _spotify_request(lambda: spotify.search(q=query, type="track", limit=5), "search track")
+    results = _spotify_request(
+        lambda: spotify.search(q=query, type="track", limit=5),
+        "search track",
+    )
     items = results.get("tracks", {}).get("items", [])
     if not items:
         # fall back to a looser, unscoped query
@@ -237,7 +240,9 @@ def create_playlist(
 
     me = _spotify_request(spotify.current_user, "load current user")
     playlist = _spotify_request(
-        lambda: spotify.user_playlist_create(me["id"], name, public=public, description=description),
+        lambda: spotify.user_playlist_create(
+            me["id"], name, public=public, description=description
+        ),
         f"create playlist {name}",
     )
     for i in range(0, len(track_ids), 100):  # API caps add_items at 100/request
