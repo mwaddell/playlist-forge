@@ -81,7 +81,7 @@ they're the ones that actually hurt you if skipped.
   Review every generated test before merging — Copilot will sometimes write
   a test that passes by asserting whatever the code currently does, not what
   it should do.
-- [ ] **[Copilot]** Ask for a review of API failure handling:
+- [x] **[Copilot]** Ask for a review of API failure handling:
   > "Review spotify_client.py and reccobeats_client.py for how they handle
   > API errors: rate limits (429), auth failures (401), and network timeouts.
   > Flag anywhere a failure would crash the CLI instead of failing gracefully
