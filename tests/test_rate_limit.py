@@ -28,7 +28,10 @@ class FakeSession:
         self._responses = iter(responses)
 
     def get(self, *_args, **_kwargs) -> FakeResponse:
-        return next(self._responses)
+        result = next(self._responses)
+        if isinstance(result, Exception):
+            raise result
+        return result
 
 
 def test_spotify_request_retries_using_retry_after(monkeypatch):
@@ -127,6 +130,35 @@ def test_reccobeats_get_uses_case_insensitive_retry_after(monkeypatch):
 
     assert client._get("/v1/audio-features", {"ids": "spotify-track-id"}) == {"tempo": 98.0}
     assert sleeps == [4.0]
+
+
+def test_reccobeats_get_retries_http_error_rate_limit(monkeypatch):
+    sleeps: list[float] = []
+    monkeypatch.setattr("playlist_forge.reccobeats_client.time.sleep", sleeps.append)
+
+    settings = Settings(
+        spotify_client_id=None,
+        spotify_client_secret=None,
+        spotify_redirect_uri="http://127.0.0.1:8080/callback",
+        reccobeats_api_key=None,
+        config={
+            "reccobeats": {
+                "base_url": "https://api.reccobeats.test",
+                "request_delay_seconds": 0,
+            }
+        },
+    )
+    client = ReccoBeatsClient(settings)
+    rate_limited = FakeResponse(429, headers={"Retry-After": "2"})
+    client.session = FakeSession(
+        [
+            requests.HTTPError("429 error", response=rate_limited),
+            FakeResponse(200, payload={"tempo": 101.0}),
+        ]
+    )
+
+    assert client._get("/v1/audio-features", {"ids": "spotify-track-id"}) == {"tempo": 101.0}
+    assert sleeps == [2.0]
 
 
 def test_retry_delay_seconds_supports_http_date_retry_after(monkeypatch):

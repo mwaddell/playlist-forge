@@ -38,23 +38,28 @@ class ReccoBeatsClient:
             self.session.headers["Authorization"] = f"Bearer {self.api_key}"
 
     def _get(self, path: str, params: dict) -> dict | None:
-        try:
-            for attempt in range(DEFAULT_MAX_RETRIES + 1):
+        for attempt in range(DEFAULT_MAX_RETRIES + 1):
+            try:
                 resp = self.session.get(f"{self.base_url}{path}", params=params, timeout=10)
                 if resp.status_code == 404:
                     return None
-                if resp.status_code != 429:
-                    resp.raise_for_status()
-                    return resp.json()
-                if attempt >= DEFAULT_MAX_RETRIES:
-                    resp.raise_for_status()
-
-                delay = retry_delay_seconds(header_value(resp.headers, "Retry-After"), attempt)
-                print(f"[reccobeats] rate limited for {path}; retrying in {delay:.2f}s")
-                time.sleep(delay)
-        except requests.RequestException as exc:
-            print(f"[reccobeats] request failed for {path}: {exc}")
-            return None
+                resp.raise_for_status()
+                return resp.json()
+            except requests.HTTPError as exc:
+                response = exc.response or locals().get("resp")
+                if response is not None and response.status_code == 429 and attempt < DEFAULT_MAX_RETRIES:
+                    delay = retry_delay_seconds(
+                        header_value(response.headers, "Retry-After"),
+                        attempt,
+                    )
+                    print(f"[reccobeats] rate limited for {path}; retrying in {delay:.2f}s")
+                    time.sleep(delay)
+                    continue
+                print(f"[reccobeats] request failed for {path}: {exc}")
+                return None
+            except requests.RequestException as exc:
+                print(f"[reccobeats] request failed for {path}: {exc}")
+                return None
 
         raise RuntimeError(f"unreachable retry loop for {path}")
 
