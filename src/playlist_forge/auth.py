@@ -18,6 +18,14 @@ SCOPES = [
 
 
 def get_spotify_client(settings: Settings) -> spotipy.Spotify:
+    """Create an authenticated Spotify client.
+
+    Args:
+        settings: Loaded application settings with Spotify OAuth configuration.
+
+    Returns:
+        An authenticated spotipy client instance.
+    """
     if not settings.spotify_client_id:
         raise ConfigurationError(
             "SPOTIFY_CLIENT_ID is not set. Create an app at "
@@ -37,7 +45,14 @@ def get_spotify_client(settings: Settings) -> spotipy.Spotify:
 
 
 def login(settings: Settings) -> None:
-    """Force the OAuth flow to run now, so `pull`/`act` don't block on it later."""
+    """Run OAuth login and cache a Spotify access token.
+
+    Args:
+        settings: Loaded application settings with Spotify OAuth configuration.
+
+    Returns:
+        None.
+    """
     client = get_spotify_client(settings)
     me = client.current_user()
     print(f"Logged in as {me['display_name']} ({me['id']}). Token cached at {TOKEN_PATH}.")

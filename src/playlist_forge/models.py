@@ -48,7 +48,14 @@ class Track:
     LIST_FIELDS = ("playlist_ids", "playlist_names", "artist_genres")
 
     def to_flat_dict(self, delimiter: str = ",") -> dict[str, Any]:
-        """Flatten list fields to delimiter-joined strings, for csv/tsv."""
+        """Flatten a track for CSV/TSV serialization.
+
+        Args:
+            delimiter: Delimiter used to join list-valued fields.
+
+        Returns:
+            Flat dictionary representation of the track.
+        """
         out: dict[str, Any] = {}
         for f in fields(self):
             value = getattr(self, f.name)
@@ -60,7 +67,15 @@ class Track:
 
     @classmethod
     def from_flat_dict(cls, row: dict[str, Any], delimiter: str = ",") -> Track:
-        """Reconstruct a Track from a csv/tsv row (inverse of to_flat_dict)."""
+        """Build a ``Track`` from a flat CSV/TSV row.
+
+        Args:
+            row: Flat dictionary row from CSV/TSV input.
+            delimiter: Delimiter used inside flattened list-valued fields.
+
+        Returns:
+            Reconstructed ``Track`` instance.
+        """
         kwargs: dict[str, Any] = {}
         valid_fields = {f.name for f in fields(cls)}
         for key, value in row.items():

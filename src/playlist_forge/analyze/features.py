@@ -22,12 +22,18 @@ def build_feature_matrix(
     audio_feature_weight: float = 1.0,
     year_weight: float = 0.3,
 ) -> tuple[np.ndarray, list[str]]:
-    """Returns (matrix, feature_names). One row per track, in input order.
+    """Build a weighted numeric feature matrix from tracks.
 
-    Missing audio features are imputed with the column mean rather than 0,
-    since 0.0 is a meaningful value for fields like acousticness/valence and
-    would otherwise silently pull unmatched tracks toward one edge of the
-    distribution.
+    Args:
+        tracks: Tracks to transform.
+        genre_weight: Multiplier for one-hot genre features.
+        audio_feature_weight: Multiplier for standardized audio features.
+        year_weight: Multiplier for standardized year feature.
+
+    Returns:
+        Tuple of ``(matrix, feature_names)`` in input track order. Missing
+        audio features are imputed with each column mean rather than ``0.0``
+        so unmatched values do not bias vectors toward one edge.
     """
     genre_lists = [t.artist_genres or [] for t in tracks]
     mlb = MultiLabelBinarizer()

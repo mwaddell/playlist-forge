@@ -19,6 +19,17 @@ def split(
     clustered_tracks: list,
     dry_run: bool = False,
 ) -> dict[int, str | None]:
+    """Split clustered tracks into one playlist per cluster.
+
+    Args:
+        spotify: Authenticated Spotify API client.
+        source_playlist_name: Source playlist display name.
+        clustered_tracks: Tracks with existing ``cluster_id`` values.
+        dry_run: Whether to skip API writes and only print actions.
+
+    Returns:
+        Mapping of cluster ID to created playlist ID, or None for dry-run entries.
+    """
     by_cluster: dict[int, list[str]] = defaultdict(list)
     for t in clustered_tracks:
         if t.cluster_id is None:
