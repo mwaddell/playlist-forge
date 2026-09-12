@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 from pathlib import Path
 
 import typer
@@ -10,6 +11,7 @@ from .analyze import cluster as cluster_mod
 from .analyze import dedupe as dedupe_mod
 from .analyze import outliers as outliers_mod
 from .config import load_settings
+from .errors import PlaylistForgeError
 from .reccobeats_client import ReccoBeatsClient
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
@@ -21,8 +23,21 @@ app.add_typer(analyze_app, name="analyze")
 app.add_typer(act_app, name="act")
 
 
+def _handle_cli_errors(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except PlaylistForgeError as exc:
+            typer.echo(f"Error: {exc}", err=True)
+            raise typer.Exit(code=1) from exc
+
+    return wrapper
+
+
 # ---------------------------------------------------------------- auth ----
 @auth_app.command("login")
+@_handle_cli_errors
 def auth_login():
     """Run the Spotify OAuth flow now and cache the token."""
     settings = load_settings()
@@ -31,6 +46,7 @@ def auth_login():
 
 # ---------------------------------------------------------------- pull ----
 @app.command()
+@_handle_cli_errors
 def pull(
     output: Path = typer.Option(..., "--output", "-o", help="Output file path."),
     fmt: str | None = typer.Option(
@@ -50,6 +66,7 @@ def pull(
 
 # -------------------------------------------------------------- enrich ----
 @app.command()
+@_handle_cli_errors
 def enrich(
     input: Path = typer.Option(..., "--input", "-i"),
     output: Path = typer.Option(..., "--output", "-o"),
@@ -68,6 +85,7 @@ def enrich(
 
 # ------------------------------------------------------------- analyze ----
 @analyze_app.command("cluster")
+@_handle_cli_errors
 def analyze_cluster(
     input: Path = typer.Option(..., "--input", "-i"),
     output: Path = typer.Option(..., "--output", "-o"),
@@ -96,6 +114,7 @@ def analyze_cluster(
 
 
 @analyze_app.command("outliers")
+@_handle_cli_errors
 def analyze_outliers(
     input: Path = typer.Option(..., "--input", "-i"),
     top_n: int = typer.Option(5, help="Top N outliers per playlist."),
@@ -111,6 +130,7 @@ def analyze_outliers(
 
 
 @analyze_app.command("dedupe")
+@_handle_cli_errors
 def analyze_dedupe(
     input: Path = typer.Option(..., "--input", "-i"),
     output: Path = typer.Option(..., "--output", "-o"),
@@ -138,6 +158,7 @@ def analyze_dedupe(
 
 # ----------------------------------------------------------------- act ----
 @act_app.command("create-from-clusters")
+@_handle_cli_errors
 def act_create_from_clusters(
     input: Path = typer.Option(..., "--input", "-i"),
     prefix: str = typer.Option("Auto-"),
@@ -156,6 +177,7 @@ def act_create_from_clusters(
 
 
 @act_app.command("split")
+@_handle_cli_errors
 def act_split(
     input: Path = typer.Option(
         ..., "--input", "-i", help="Clustered dataset from `analyze cluster`."
@@ -174,6 +196,7 @@ def act_split(
 
 
 @act_app.command("merge")
+@_handle_cli_errors
 def act_merge(
     playlists: str = typer.Option(..., help="Comma-separated playlist names to merge."),
     into: str = typer.Option(..., help="Name for the new merged playlist."),
@@ -188,6 +211,7 @@ def act_merge(
 
 
 @act_app.command("add-from-list")
+@_handle_cli_errors
 def act_add_from_list(
     file: Path = typer.Option(..., help="Plain-text list: title;artist;album per line."),
     playlist: str = typer.Option(..., help="Target playlist name (created if missing)."),

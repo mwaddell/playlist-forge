@@ -14,13 +14,20 @@ Docs: https://reccobeats.com/docs/apis/get-audio-features
 from __future__ import annotations
 
 import time
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 import requests
 
 from . import cache
 from .config import Settings
+from .errors import (
+    AuthFailureError,
+    ExternalServiceError,
+    NetworkFailureError,
+    RateLimitExceededError,
+)
 from .models import Track
-from .rate_limit import DEFAULT_MAX_RETRIES, header_value, retry_delay_seconds
 
 FEATURE_FIELDS = (
     "tempo", "energy", "danceability", "valence",
@@ -32,41 +39,89 @@ class ReccoBeatsClient:
     def __init__(self, settings: Settings):
         self.base_url = settings.config["reccobeats"]["base_url"].rstrip("/")
         self.delay = settings.config["reccobeats"]["request_delay_seconds"]
+        self.max_retries = 3
+        self.base_backoff_seconds = 1.0
         self.api_key = settings.reccobeats_api_key  # None is fine; free tier needs no key today
         self.session = requests.Session()
         if self.api_key:
-            self.session.headers["Authorization"] = f"Bearer {self.api_key}"
+            self.session.headers["Authorization"] = "Bearer " + self.api_key
+
+    @staticmethod
+    def _retry_after_seconds(resp: requests.Response) -> float | None:
+        raw = resp.headers.get("Retry-After") or resp.headers.get("retry-after")
+        if not raw:
+            return None
+        try:
+            return max(float(raw), 0.0)
+        except (TypeError, ValueError):
+            pass
+        try:
+            retry_at = parsedate_to_datetime(raw)
+        except (TypeError, ValueError):
+            return None
+        if retry_at.tzinfo is None:
+            retry_at = retry_at.replace(tzinfo=timezone.utc)
+        return max((retry_at - datetime.now(timezone.utc)).total_seconds(), 0.0)
 
     def _get(self, path: str, params: dict) -> dict | None:
-        for attempt in range(DEFAULT_MAX_RETRIES + 1):
-            resp = None
+        for attempt in range(self.max_retries + 1):
+            resp: requests.Response | None = None
             try:
                 resp = self.session.get(f"{self.base_url}{path}", params=params, timeout=10)
                 if resp.status_code == 404:
                     return None
+                if resp.status_code == 401:
+                    raise AuthFailureError(
+                        "ReccoBeats authentication failed (401). "
+                        "Check RECCOBEATS_API_KEY and retry."
+                    )
+                if resp.status_code == 429:
+                    if attempt >= self.max_retries:
+                        raise RateLimitExceededError(
+                            "ReccoBeats rate limit persisted after retries. Please wait and retry."
+                        )
+                    delay = self._retry_after_seconds(resp) or (
+                        self.base_backoff_seconds * (2**attempt)
+                    )
+                    time.sleep(delay)
+                    continue
+                if resp.status_code >= 500 and attempt < self.max_retries:
+                    time.sleep(self.base_backoff_seconds * (2**attempt))
+                    continue
                 resp.raise_for_status()
                 return resp.json()
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as exc:
+                if attempt >= self.max_retries:
+                    raise NetworkFailureError(
+                        "ReccoBeats request timed out or lost connection after retries."
+                    ) from exc
+                time.sleep(self.base_backoff_seconds * (2**attempt))
             except requests.HTTPError as exc:
                 response = exc.response or resp
+                if response is not None and response.status_code == 401:
+                    raise AuthFailureError(
+                        "ReccoBeats authentication failed (401). "
+                        "Check RECCOBEATS_API_KEY and retry."
+                    ) from exc
                 if (
                     response is not None
                     and response.status_code == 429
-                    and attempt < DEFAULT_MAX_RETRIES
+                    and attempt < self.max_retries
                 ):
-                    delay = retry_delay_seconds(
-                        header_value(response.headers, "Retry-After"),
-                        attempt,
+                    delay = self._retry_after_seconds(response) or (
+                        self.base_backoff_seconds * (2**attempt)
                     )
-                    print(f"[reccobeats] rate limited for {path}; retrying in {delay:.2f}s")
                     time.sleep(delay)
                     continue
-                print(f"[reccobeats] request failed for {path}: {exc}")
-                return None
+                raise ExternalServiceError(
+                    f"ReccoBeats request failed for {params}: {exc}"
+                ) from exc
             except requests.RequestException as exc:
-                print(f"[reccobeats] request failed for {path}: {exc}")
-                return None
+                raise NetworkFailureError(
+                    f"ReccoBeats request failed due to network issue for {params}: {exc}"
+                ) from exc
 
-        raise RuntimeError(f"unreachable retry loop for {path}")
+        raise NetworkFailureError(f"ReccoBeats request failed for {params}.")
 
     def fetch_by_spotify_id(self, spotify_id: str) -> dict | None:
         cache_key = f"spotify:{spotify_id}"
@@ -76,7 +131,7 @@ class ReccoBeatsClient:
 
         data = self._get("/v1/audio-features", params={"ids": spotify_id})
         time.sleep(self.delay)
-        cache.set(cache_key, data or {})
+        cache.set(cache_key, data if data is not None else {})
         return data
 
     def enrich(self, tracks: list[Track]) -> list[Track]:
