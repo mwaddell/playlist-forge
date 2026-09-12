@@ -19,7 +19,7 @@ production; their API has changed field names before.
 ## Install
 
 ```bash
-git clone https://github.com/yourname/playlist-forge
+git clone https://github.com/mwaddell/playlist-forge
 cd playlist-forge
 pip install -e ".[dev]"          # add [hdbscan] too if you want that clusterer
 cp .env.example .env             # fill in SPOTIFY_CLIENT_ID

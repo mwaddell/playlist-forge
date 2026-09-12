@@ -5,7 +5,7 @@ description = "Export, analyze, and reorganize Spotify playlists from the comman
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Your Name" }]
+authors = [{ name = "Michael J. Waddell" }]
 dependencies = [
     "spotipy>=2.24.0",
     "typer>=0.12.3",
