@@ -63,7 +63,8 @@ def _paginate(spotify: spotipy.Spotify, first_page: dict) -> list[dict]:
     items = list(first_page["items"])
     page = first_page
     while page.get("next"):
-        page = _spotify_request(lambda: spotify.next(page), "pagination")
+        current_page = page
+        page = _spotify_request(lambda: spotify.next(current_page), "pagination")
         items.extend(page["items"])
     return items
 
@@ -246,8 +247,9 @@ def create_playlist(
         f"create playlist {name}",
     )
     for i in range(0, len(track_ids), 100):  # API caps add_items at 100/request
+        batch = track_ids[i : i + 100]
         _spotify_request(
-            lambda: spotify.playlist_add_items(playlist["id"], track_ids[i : i + 100]),
+            lambda: spotify.playlist_add_items(playlist["id"], batch),
             f"add tracks to playlist {playlist['id']}",
         )
     return playlist["id"]
@@ -260,7 +262,8 @@ def add_tracks(
         print(f"[dry-run] Would add {len(track_ids)} tracks to playlist {playlist_id}.")
         return
     for i in range(0, len(track_ids), 100):
+        batch = track_ids[i : i + 100]
         _spotify_request(
-            lambda: spotify.playlist_add_items(playlist_id, track_ids[i : i + 100]),
+            lambda: spotify.playlist_add_items(playlist_id, batch),
             f"add tracks to playlist {playlist_id}",
         )

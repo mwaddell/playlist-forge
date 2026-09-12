@@ -6,7 +6,7 @@ from spotipy import SpotifyException
 from playlist_forge import rate_limit
 from playlist_forge.config import Settings
 from playlist_forge.reccobeats_client import ReccoBeatsClient
-from playlist_forge.spotify_client import _spotify_request
+from playlist_forge.spotify_client import _paginate, _spotify_request
 
 
 class FakeResponse:
@@ -47,6 +47,30 @@ def test_spotify_request_retries_using_retry_after(monkeypatch):
     assert _spotify_request(operation, "test request") == {"ok": True}
     assert attempts == 2
     assert sleeps == [2.0]
+
+
+def test_paginate_retries_same_page_after_rate_limit(monkeypatch):
+    sleeps: list[float] = []
+    monkeypatch.setattr("playlist_forge.spotify_client.time.sleep", sleeps.append)
+
+    first_page = {"items": [{"id": "page-1"}], "next": "more"}
+    second_page = {"items": [{"id": "page-2"}], "next": None}
+    calls: list[dict] = []
+
+    class FakeSpotify:
+        def __init__(self):
+            self.attempts = 0
+
+        def next(self, page: dict) -> dict:
+            self.attempts += 1
+            calls.append(page)
+            if self.attempts == 1:
+                raise SpotifyException(429, -1, "rate limited", headers={"Retry-After": "1"})
+            return second_page
+
+    assert _paginate(FakeSpotify(), first_page) == [{"id": "page-1"}, {"id": "page-2"}]
+    assert calls == [first_page, first_page]
+    assert sleeps == [1.0]
 
 
 def test_reccobeats_get_retries_using_retry_after(monkeypatch):
