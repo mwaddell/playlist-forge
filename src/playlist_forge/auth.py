@@ -6,6 +6,7 @@ import spotipy
 from spotipy.oauth2 import SpotifyPKCE
 
 from .config import TOKEN_PATH, Settings
+from .errors import ConfigurationError
 
 SCOPES = [
     "playlist-read-private",
@@ -26,7 +27,7 @@ def get_spotify_client(settings: Settings) -> spotipy.Spotify:
         An authenticated spotipy client instance.
     """
     if not settings.spotify_client_id:
-        raise RuntimeError(
+        raise ConfigurationError(
             "SPOTIFY_CLIENT_ID is not set. Create an app at "
             "https://developer.spotify.com/dashboard, then set "
             "SPOTIFY_CLIENT_ID (and SPOTIFY_REDIRECT_URI if you changed it) "

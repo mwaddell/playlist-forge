@@ -67,13 +67,27 @@ def top_outliers_by_playlist(
         avoids clobbering ``track.outlier_score`` when the same Track object
         appears in multiple playlists.
     """
-    by_playlist: dict[str, list] = {}
+    by_playlist: dict[str, list[tuple]] = {}
     for t in tracks:
-        for pid, pname in zip(t.playlist_ids, t.playlist_names):
-            by_playlist.setdefault(pid, []).append(t)
+        if len(t.playlist_ids) != len(t.playlist_names):
+            raise ValueError(
+                f"Track {t.spotify_id} has mismatched playlist metadata: "
+                f"{len(t.playlist_ids)} playlist_ids vs {len(t.playlist_names)} playlist_names."
+            )
+        for idx, pid in enumerate(t.playlist_ids):
+            by_playlist.setdefault(pid, []).append((t, t.playlist_names[idx]))
 
     results: dict[str, list[tuple]] = {}
-    for pid, playlist_tracks in by_playlist.items():
-        scored = score_outliers(list(playlist_tracks), **feature_kwargs)
-        results[pid] = [(t, t.outlier_score) for t in scored[:top_n]]
+    for pid, playlist_rows in by_playlist.items():
+        playlist_tracks = [row[0] for row in playlist_rows]
+        matrix, _ = build_feature_matrix(playlist_tracks, **feature_kwargs)
+        if len(playlist_tracks) < 3 or matrix.shape[1] == 0:
+            scored = [(t, 0.0) for t in playlist_tracks]
+        else:
+            centroid = matrix.mean(axis=0)
+            distances = np.linalg.norm(matrix - centroid, axis=1)
+            spread = distances.max() - distances.min()
+            normalized = (distances - distances.min()) / spread if spread > 0 else distances * 0
+            scored = [(t, float(score)) for t, score in zip(playlist_tracks, normalized)]
+        results[pid] = sorted(scored, key=lambda pair: pair[1], reverse=True)[:top_n]
     return results

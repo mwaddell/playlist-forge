@@ -5,6 +5,10 @@ class PlaylistForgeError(RuntimeError):
     """Base error for expected, user-facing command failures."""
 
 
+class ConfigurationError(PlaylistForgeError):
+    """Required local configuration is missing or invalid."""
+
+
 class AuthFailureError(PlaylistForgeError):
     """Authentication failed (401/invalid token)."""
 

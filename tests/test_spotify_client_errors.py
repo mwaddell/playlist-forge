@@ -7,6 +7,7 @@ import pytest
 
 from playlist_forge import spotify_client
 from playlist_forge.errors import AuthFailureError
+from playlist_forge.models import Playlist
 
 
 class FakeSpotifyException(Exception):
@@ -77,3 +78,15 @@ def test_retry_after_parses_http_date_header(monkeypatch):
     delay = spotify_client._retry_after_seconds(headers)
 
     assert delay == 120.0
+
+
+def test_pull_playlist_tracks_handles_empty_playlist_response():
+    class FakeSpotify:
+        def playlist_items(self, _playlist_id, additional_types, fields):
+            assert additional_types == ("track",)
+            assert "items(" in fields
+            return {"items": [], "next": None}
+
+    playlist = Playlist(spotify_id="p1", name="Playlist")
+    pulled = spotify_client.pull_playlist_tracks(FakeSpotify(), playlist, fetch_genres=False)
+    assert pulled == []

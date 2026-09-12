@@ -201,7 +201,6 @@ def pull_playlist_tracks(
                 "duration_ms,popularity,external_ids)),next"
             ),
         ),
-        "pull playlist tracks",
     )
     raw_items = _paginate(spotify, first)
 

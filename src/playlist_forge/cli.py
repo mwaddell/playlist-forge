@@ -23,6 +23,13 @@ app.add_typer(analyze_app, name="analyze")
 app.add_typer(act_app, name="act")
 
 
+def _playlist_name_for_id(track, playlist_id: str) -> str:
+    for idx, pid in enumerate(track.playlist_ids):
+        if pid == playlist_id and idx < len(track.playlist_names):
+            return track.playlist_names[idx]
+    return playlist_id
+
+
 def _handle_cli_errors(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -133,6 +140,10 @@ def analyze_cluster(
     Returns:
         None.
     """
+    if algorithm not in {"kmeans", "hdbscan"}:
+        raise PlaylistForgeError(
+            f"Unsupported --algorithm '{algorithm}'. Expected one of: kmeans, hdbscan."
+        )
     tracks = io_formats.read_tracks(input)
     if algorithm == "hdbscan":
         clustered = cluster_mod.cluster_hdbscan(
@@ -167,7 +178,7 @@ def analyze_outliers(
     tracks = io_formats.read_tracks(input)
     results = outliers_mod.top_outliers_by_playlist(tracks, top_n=top_n)
     for pid, scored in results.items():
-        name = scored[0][0].playlist_names[0] if scored else pid
+        name = _playlist_name_for_id(scored[0][0], pid) if scored else pid
         typer.echo(f"\n{name}")
         for t, score in scored:
             typer.echo(f"  {score:.3f}  {t.artist} — {t.title}")
