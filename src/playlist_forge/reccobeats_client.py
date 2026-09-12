@@ -47,7 +47,11 @@ class ReccoBeatsClient:
                 return resp.json()
             except requests.HTTPError as exc:
                 response = exc.response or locals().get("resp")
-                if response is not None and response.status_code == 429 and attempt < DEFAULT_MAX_RETRIES:
+                if (
+                    response is not None
+                    and response.status_code == 429
+                    and attempt < DEFAULT_MAX_RETRIES
+                ):
                     delay = retry_delay_seconds(
                         header_value(response.headers, "Retry-After"),
                         attempt,
