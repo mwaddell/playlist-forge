@@ -25,8 +25,6 @@ hdbscan = ["hdbscan>=0.8.38"]
 playlist-forge = "playlist_forge.cli:app"
 
 [tool.poetry]
-name = "playlist-forge"
-version = "0.1.0"
 packages = [{ include = "playlist_forge", from = "src" }]
 
 [tool.poetry.group.dev.dependencies]

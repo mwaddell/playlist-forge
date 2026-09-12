@@ -21,7 +21,7 @@ production; their API has changed field names before.
 ```bash
 git clone https://github.com/mwaddell/playlist-forge
 cd playlist-forge
-poetry install                   # add --extras hdbscan if you want that clusterer
+poetry install --with dev        # add --extras hdbscan if you want that clusterer
 cp .env.example .env             # fill in SPOTIFY_CLIENT_ID
 ```
 
