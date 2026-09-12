@@ -20,7 +20,7 @@ def header_value(headers: Mapping[str, object] | None, name: str) -> str | None:
 
     target = name.lower()
     for key, value in headers.items():
-        if key.lower() == target:
+        if str(key).lower() == target:
             return None if value is None else str(value)
     return None
 

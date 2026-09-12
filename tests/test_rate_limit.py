@@ -1,6 +1,9 @@
+from datetime import datetime, timezone
+
 import requests
 from spotipy import SpotifyException
 
+from playlist_forge import rate_limit
 from playlist_forge.config import Settings
 from playlist_forge.reccobeats_client import ReccoBeatsClient
 from playlist_forge.spotify_client import _spotify_request
@@ -100,3 +103,16 @@ def test_reccobeats_get_uses_case_insensitive_retry_after(monkeypatch):
 
     assert client._get("/v1/audio-features", {"ids": "spotify-track-id"}) == {"tempo": 98.0}
     assert sleeps == [4.0]
+
+
+def test_retry_delay_seconds_supports_http_date_retry_after(monkeypatch):
+    class FrozenDateTime:
+        @staticmethod
+        def now(_tz: timezone) -> datetime:
+            return datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+    monkeypatch.setattr(rate_limit, "datetime", FrozenDateTime)
+
+    assert (
+        rate_limit.retry_delay_seconds("Thu, 01 Jan 2026 12:00:05 GMT", attempt=0) == 5.0
+    )
