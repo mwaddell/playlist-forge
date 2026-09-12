@@ -1,0 +1,17 @@
+# Copy to ~/.config/playlist-forge/config.yaml to override defaults.
+# (Or set PLAYLIST_FORGE_HOME to point config/cache somewhere else entirely.)
+
+default_format: json
+
+cluster:
+  genre_weight: 1.0
+  audio_feature_weight: 1.0
+  year_weight: 0.3
+
+dedupe:
+  title_artist_threshold: 0.90
+  playlist_overlap_threshold: 0.60
+
+reccobeats:
+  base_url: https://api.reccobeats.com
+  request_delay_seconds: 0.2

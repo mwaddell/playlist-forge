@@ -1,0 +1,49 @@
+[project]
+name = "playlist-forge"
+version = "0.1.0"
+description = "Export, analyze, and reorganize Spotify playlists from the command line."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Your Name" }]
+dependencies = [
+    "spotipy>=2.24.0",
+    "typer>=0.12.3",
+    "requests>=2.31.0",
+    "pyyaml>=6.0.1",
+    "python-dotenv>=1.0.1",
+    "scikit-learn>=1.4.0",
+    "numpy>=1.26.0",
+    "rapidfuzz>=3.9.0",
+    "rich>=13.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.5.0",
+    "mypy>=1.10.0",
+]
+hdbscan = [
+    "hdbscan>=0.8.38",
+]
+
+[project.scripts]
+playlist-forge = "playlist_forge.cli:app"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]  # pyflakes/pycodestyle/isort/pyupgrade — practical, not exhaustive
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
