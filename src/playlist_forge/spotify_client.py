@@ -8,24 +8,86 @@ import spotipy at all.
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
+from typing import TypeVar
 
+import requests
 import spotipy
 from rich.progress import track as progress_track
 
+from .errors import (
+    AuthFailureError,
+    ExternalServiceError,
+    NetworkFailureError,
+    RateLimitExceededError,
+)
 from .models import Playlist, Track
+
+T = TypeVar("T")
+_SPOTIFY_MAX_RETRIES = 3
+_SPOTIFY_BASE_BACKOFF_SECONDS = 1.0
+
+
+def _retry_after_seconds(headers: dict | None) -> float | None:
+    if not headers:
+        return None
+    raw = headers.get("Retry-After") or headers.get("retry-after")
+    if not raw:
+        return None
+    try:
+        return max(float(raw), 0.0)
+    except (TypeError, ValueError):
+        return None
+
+
+def _spotify_call(operation: str, call: Callable[[], T]) -> T:
+    for attempt in range(_SPOTIFY_MAX_RETRIES + 1):
+        try:
+            return call()
+        except spotipy.exceptions.SpotifyException as exc:
+            status = getattr(exc, "http_status", None)
+            headers = getattr(exc, "headers", None)
+            if status == 401:
+                raise AuthFailureError(
+                    "Spotify authentication failed (401). Run `playlist-forge auth login` and retry."
+                ) from exc
+            if status == 429:
+                if attempt >= _SPOTIFY_MAX_RETRIES:
+                    raise RateLimitExceededError(
+                        "Spotify rate limit persisted after retries. Please wait and try again."
+                    ) from exc
+                delay = _retry_after_seconds(headers) or (_SPOTIFY_BASE_BACKOFF_SECONDS * (2**attempt))
+                time.sleep(delay)
+                continue
+            if status and status >= 500 and attempt < _SPOTIFY_MAX_RETRIES:
+                time.sleep(_SPOTIFY_BASE_BACKOFF_SECONDS * (2**attempt))
+                continue
+            raise ExternalServiceError(
+                f"Spotify request failed while {operation} (status={status})."
+            ) from exc
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as exc:
+            if attempt >= _SPOTIFY_MAX_RETRIES:
+                raise NetworkFailureError(
+                    "Spotify request timed out or lost connection after retries."
+                ) from exc
+            time.sleep(_SPOTIFY_BASE_BACKOFF_SECONDS * (2**attempt))
+        except requests.exceptions.RequestException as exc:
+            raise NetworkFailureError(f"Spotify request failed while {operation}: {exc}") from exc
+
+    raise NetworkFailureError(f"Spotify request failed while {operation}.")
 
 
 def _paginate(spotify: spotipy.Spotify, first_page: dict) -> list[dict]:
     items = list(first_page["items"])
     page = first_page
     while page.get("next"):
-        page = spotify.next(page)
+        page = _spotify_call("paginating Spotify response", lambda: spotify.next(page))
         items.extend(page["items"])
     return items
 
 
 def list_playlists(spotify: spotipy.Spotify) -> list[Playlist]:
-    first = spotify.current_user_playlists(limit=50)
+    first = _spotify_call("listing playlists", lambda: spotify.current_user_playlists(limit=50))
     raw = _paginate(spotify, first)
     return [
         Playlist(
@@ -47,7 +109,7 @@ def _artist_genre_map(spotify: spotipy.Spotify, artist_ids: set[str]) -> dict[st
     ids = list(artist_ids)
     for i in range(0, len(ids), 50):
         batch = ids[i : i + 50]
-        resp = spotify.artists(batch)
+        resp = _spotify_call("fetching artist genres", lambda: spotify.artists(batch))
         for artist in resp["artists"]:
             if artist:
                 genre_map[artist["id"]] = artist.get("genres", [])
@@ -60,12 +122,15 @@ def pull_playlist_tracks(
     playlist: Playlist,
     fetch_genres: bool = True,
 ) -> list[Track]:
-    first = spotify.playlist_items(
-        playlist.spotify_id,
-        additional_types=("track",),
-        fields=(
-            "items(added_at,track(id,name,album(name,release_date),artists(id,name),"
-            "duration_ms,popularity,external_ids)),next"
+    first = _spotify_call(
+        f"pulling tracks for playlist '{playlist.name}'",
+        lambda: spotify.playlist_items(
+            playlist.spotify_id,
+            additional_types=("track",),
+            fields=(
+                "items(added_at,track(id,name,album(name,release_date),artists(id,name),"
+                "duration_ms,popularity,external_ids)),next"
+            ),
         ),
     )
     raw_items = _paginate(spotify, first)
@@ -151,12 +216,14 @@ def search_track(
         query_parts.append(f"album:{album}")
     query = " ".join(query_parts)
 
-    results = spotify.search(q=query, type="track", limit=5)
+    results = _spotify_call("searching for track", lambda: spotify.search(q=query, type="track", limit=5))
     items = results.get("tracks", {}).get("items", [])
     if not items:
         # fall back to a looser, unscoped query
         loose_query = " ".join(p for p in (title, artist) if p)
-        results = spotify.search(q=loose_query, type="track", limit=5)
+        results = _spotify_call(
+            "running fallback track search", lambda: spotify.search(q=loose_query, type="track", limit=5)
+        )
         items = results.get("tracks", {}).get("items", [])
     if not items:
         return None
@@ -185,12 +252,16 @@ def create_playlist(
         print(f"[dry-run] Would create playlist '{name}' with {len(track_ids)} tracks.")
         return None
 
-    me = spotify.current_user()
-    playlist = spotify.user_playlist_create(
-        me["id"], name, public=public, description=description
+    me = _spotify_call("reading current Spotify user", spotify.current_user)
+    playlist = _spotify_call(
+        f"creating playlist '{name}'",
+        lambda: spotify.user_playlist_create(me["id"], name, public=public, description=description),
     )
     for i in range(0, len(track_ids), 100):  # API caps add_items at 100/request
-        spotify.playlist_add_items(playlist["id"], track_ids[i : i + 100])
+        _spotify_call(
+            f"adding tracks to playlist '{name}'",
+            lambda: spotify.playlist_add_items(playlist["id"], track_ids[i : i + 100]),
+        )
     return playlist["id"]
 
 
@@ -201,4 +272,7 @@ def add_tracks(
         print(f"[dry-run] Would add {len(track_ids)} tracks to playlist {playlist_id}.")
         return
     for i in range(0, len(track_ids), 100):
-        spotify.playlist_add_items(playlist_id, track_ids[i : i + 100])
+        _spotify_call(
+            f"adding tracks to playlist '{playlist_id}'",
+            lambda: spotify.playlist_add_items(playlist_id, track_ids[i : i + 100]),
+        )
