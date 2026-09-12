@@ -20,6 +20,7 @@ import requests
 from . import cache
 from .config import Settings
 from .models import Track
+from .rate_limit import DEFAULT_MAX_RETRIES, retry_delay_seconds
 
 FEATURE_FIELDS = (
     "tempo", "energy", "danceability", "valence",
@@ -38,14 +39,24 @@ class ReccoBeatsClient:
 
     def _get(self, path: str, params: dict) -> dict | None:
         try:
-            resp = self.session.get(f"{self.base_url}{path}", params=params, timeout=10)
-            if resp.status_code == 404:
-                return None
-            resp.raise_for_status()
-            return resp.json()
+            for attempt in range(DEFAULT_MAX_RETRIES + 1):
+                resp = self.session.get(f"{self.base_url}{path}", params=params, timeout=10)
+                if resp.status_code == 404:
+                    return None
+                if resp.status_code != 429:
+                    resp.raise_for_status()
+                    return resp.json()
+                if attempt >= DEFAULT_MAX_RETRIES:
+                    resp.raise_for_status()
+
+                delay = retry_delay_seconds(resp.headers.get("Retry-After"), attempt)
+                print(f"[reccobeats] rate limited for {params}; retrying in {delay:.2f}s")
+                time.sleep(delay)
         except requests.RequestException as exc:
             print(f"[reccobeats] request failed for {params}: {exc}")
             return None
+
+        raise RuntimeError(f"unreachable retry loop for {path}")
 
     def fetch_by_spotify_id(self, spotify_id: str) -> dict | None:
         cache_key = f"spotify:{spotify_id}"
