@@ -114,7 +114,7 @@ def pull_playlist_tracks(
                 "duration_ms,popularity,external_ids)),next"
             ),
         ),
-        f"pull playlist {playlist.spotify_id}",
+        "pull playlist tracks",
     )
     raw_items = _paginate(spotify, first)
 
@@ -244,13 +244,13 @@ def create_playlist(
         lambda: spotify.user_playlist_create(
             me["id"], name, public=public, description=description
         ),
-        f"create playlist {name}",
+        "create playlist",
     )
     for i in range(0, len(track_ids), 100):  # API caps add_items at 100/request
         batch = track_ids[i : i + 100]
         _spotify_request(
             lambda: spotify.playlist_add_items(playlist["id"], batch),
-            f"add tracks to playlist {playlist['id']}",
+            "add tracks to playlist",
         )
     return playlist["id"]
 
@@ -265,5 +265,5 @@ def add_tracks(
         batch = track_ids[i : i + 100]
         _spotify_request(
             lambda: spotify.playlist_add_items(playlist_id, batch),
-            f"add tracks to playlist {playlist_id}",
+            "add tracks to playlist",
         )

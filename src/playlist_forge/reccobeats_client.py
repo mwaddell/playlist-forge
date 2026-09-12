@@ -50,10 +50,10 @@ class ReccoBeatsClient:
                     resp.raise_for_status()
 
                 delay = retry_delay_seconds(header_value(resp.headers, "Retry-After"), attempt)
-                print(f"[reccobeats] rate limited for {params}; retrying in {delay:.2f}s")
+                print(f"[reccobeats] rate limited for {path}; retrying in {delay:.2f}s")
                 time.sleep(delay)
         except requests.RequestException as exc:
-            print(f"[reccobeats] request failed for {params}: {exc}")
+            print(f"[reccobeats] request failed for {path}: {exc}")
             return None
 
         raise RuntimeError(f"unreachable retry loop for {path}")
