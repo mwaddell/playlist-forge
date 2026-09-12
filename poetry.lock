@@ -1764,4 +1764,4 @@ hdbscan = ["hdbscan"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10"
-content-hash = "aa52c3e98ef785747d918a35c5c27e4b7d9bee1ba7cc19514f3ba24fd70d5bd1"
+content-hash = "d595ead93230e1a260995fce17c978eab5598fd931877dc323995c531088c82b"
