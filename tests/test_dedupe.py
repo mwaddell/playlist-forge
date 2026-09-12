@@ -1,3 +1,5 @@
+import pytest
+
 from playlist_forge.analyze.dedupe import find_duplicate_tracks, find_playlist_overlaps
 from playlist_forge.models import Track
 
@@ -80,3 +82,18 @@ def test_playlist_overlap_with_single_playlist_returns_no_pairs():
         ),
     ]
     assert find_playlist_overlaps(tracks, threshold=0.0) == []
+
+
+def test_playlist_overlap_raises_on_mismatched_playlist_metadata():
+    tracks = [
+        Track(
+            spotify_id="t1",
+            title="A",
+            artist="X",
+            album="",
+            playlist_ids=["p1", "p2"],
+            playlist_names=["Only One"],
+        )
+    ]
+    with pytest.raises(ValueError, match="mismatched playlist metadata"):
+        find_playlist_overlaps(tracks)

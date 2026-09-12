@@ -72,7 +72,13 @@ def find_playlist_overlaps(
     playlist_track_ids: dict[str, set[str]] = {}
     playlist_names: dict[str, str] = {}
     for t in tracks:
-        for pid, pname in zip(t.playlist_ids, t.playlist_names):
+        if len(t.playlist_ids) != len(t.playlist_names):
+            raise ValueError(
+                f"Track {t.spotify_id} has mismatched playlist metadata: "
+                f"{len(t.playlist_ids)} playlist_ids vs {len(t.playlist_names)} playlist_names."
+            )
+        for idx, pid in enumerate(t.playlist_ids):
+            pname = t.playlist_names[idx]
             playlist_track_ids.setdefault(pid, set()).add(t.spotify_id)
             playlist_names[pid] = pname
 
