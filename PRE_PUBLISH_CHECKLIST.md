@@ -42,12 +42,12 @@ they're the ones that actually hurt you if skipped.
 
 ## 2. Legal / ToS / licensing review
 
-- [ ] **[Manual]** Re-read Spotify's
+- [x] **[Manual]** Re-read Spotify's
   [Developer Terms of Service](https://developer.spotify.com/terms) and
   confirm nothing in the tool violates them (bulk scraping, redistributing
   Spotify content, etc.) — this is a judgment call only you can make for your
   specific use of the API.
-- [ ] **[Manual]** Re-read ReccoBeats' terms of service. It's a third-party,
+- [x] **[Manual]** Re-read ReccoBeats' terms of service. It's a third-party,
   unofficial data source — decide whether you want to state that dependency
   prominently (the README already flags it, but confirm the wording matches
   their current terms) and whether you're comfortable with users depending on
@@ -132,7 +132,7 @@ they're the ones that actually hurt you if skipped.
   > described in README.md, including how to run tests and lint checks."
   Then edit it in your own voice — a generic Copilot-drafted CONTRIBUTING.md
   reads as generic.
-- [ ] **[Manual]** Add a `CODE_OF_CONDUCT.md` (GitHub has a template you can
+- [x] **[Manual]** Add a `CODE_OF_CONDUCT.md` (GitHub has a template you can
   add directly from the repo's Community Standards tab) if you expect or want
   external contributors.
 - [ ] **[Manual]** Add a `SECURITY.md` describing how someone should privately
@@ -141,14 +141,14 @@ they're the ones that actually hurt you if skipped.
 - [ ] **[Copilot]** Generate GitHub issue templates:
   > "Create .github/ISSUE_TEMPLATE/bug_report.md and feature_request.md for
   > this CLI tool, following GitHub's standard issue template format."
-- [ ] **[Manual]** Set repository settings before going public: branch
+- [x] **[Manual]** Set repository settings before going public: branch
   protection on `main` (require CI to pass, require PR review if you'll have
   collaborators), disable force-push to `main`, and decide whether to allow
   public forks/issues/discussions.
-- [ ] **[Manual]** Add relevant **topics/tags** to the GitHub repo (e.g.
+- [x] **[Manual]** Add relevant **topics/tags** to the GitHub repo (e.g.
   `spotify`, `cli`, `music`, `playlist-management`, `python`) so it's
   discoverable, and write a one-line repo description.
-- [ ] **[Manual]** Double-check the README's placeholder text — repo URL in
+- [x] **[Manual]** Double-check the README's placeholder text — repo URL in
   the clone command, `yourname` in the GitHub URL, your actual name in
   `pyproject.toml`'s `authors` field and `LICENSE`.
 
