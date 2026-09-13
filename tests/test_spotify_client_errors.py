@@ -6,7 +6,7 @@ from email.utils import format_datetime
 import pytest
 
 from playlist_forge import spotify_client
-from playlist_forge.errors import AuthFailureError
+from playlist_forge.errors import AuthFailureError, PlaylistPermissionError
 from playlist_forge.models import Playlist
 
 
@@ -90,3 +90,52 @@ def test_pull_playlist_tracks_handles_empty_playlist_response():
     playlist = Playlist(spotify_id="p1", name="Playlist")
     pulled = spotify_client.pull_playlist_tracks(FakeSpotify(), playlist, fetch_genres=False)
     assert pulled == []
+
+
+def test_pull_playlist_tracks_raises_playlist_permission_error_on_403(
+    patched_spotify_exception,
+):
+    class FakeSpotify:
+        def playlist_items(self, _playlist_id, additional_types, fields):
+            assert additional_types == ("track",)
+            assert "items(" in fields
+            raise FakeSpotifyException(403)
+
+    playlist = Playlist(spotify_id="p1", name="Shared Private Playlist")
+    with pytest.raises(PlaylistPermissionError, match="Skipping playlist"):
+        spotify_client.pull_playlist_tracks(FakeSpotify(), playlist, fetch_genres=False)
+
+
+def test_pull_library_warns_and_skips_for_playlist_permission_error(capsys, monkeypatch):
+    class FakeSpotify:
+        pass
+
+    accessible = Playlist(spotify_id="p1", name="Accessible")
+    restricted = Playlist(spotify_id="p2", name="Restricted")
+    track = spotify_client.Track(
+        spotify_id="track-1",
+        title="Song",
+        artist="Artist",
+        album="Album",
+        playlist_ids=[accessible.spotify_id],
+        playlist_names=[accessible.name],
+    )
+
+    def fake_list_playlists(_spotify):
+        return [accessible, restricted]
+
+    def fake_pull_playlist_tracks(_spotify, playlist, fetch_genres=True):
+        assert fetch_genres is True
+        if playlist.spotify_id == restricted.spotify_id:
+            raise PlaylistPermissionError(
+                f"Skipping playlist '{playlist.name}' ({playlist.spotify_id}) due to permission error."
+            )
+        return [track]
+
+    monkeypatch.setattr(spotify_client, "list_playlists", fake_list_playlists)
+    monkeypatch.setattr(spotify_client, "pull_playlist_tracks", fake_pull_playlist_tracks)
+    pulled = spotify_client.pull_library(FakeSpotify())
+
+    out = capsys.readouterr().out
+    assert pulled == [track]
+    assert "Warning: Skipping playlist 'Restricted' (p2) due to permission error." in out

@@ -21,6 +21,7 @@ from .errors import (
     AuthFailureError,
     ExternalServiceError,
     NetworkFailureError,
+    PlaylistPermissionError,
     RateLimitExceededError,
 )
 from .models import Playlist, Track
@@ -191,17 +192,28 @@ def pull_playlist_tracks(
     Returns:
         Track objects for the playlist.
     """
-    first = _spotify_call(
-        f"pulling tracks for playlist '{playlist.name}'",
-        lambda: spotify.playlist_items(
-            playlist.spotify_id,
-            additional_types=("track",),
-            fields=(
-                "items(added_at,track(id,name,album(name,release_date),artists(id,name),"
-                "duration_ms,popularity,external_ids)),next"
+    try:
+        first = _spotify_call(
+            f"pulling tracks for playlist '{playlist.name}'",
+            lambda: spotify.playlist_items(
+                playlist.spotify_id,
+                additional_types=("track",),
+                fields=(
+                    "items(added_at,track(id,name,album(name,release_date),artists(id,name),"
+                    "duration_ms,popularity,external_ids)),next"
+                ),
             ),
-        ),
-    )
+        )
+    except ExternalServiceError as exc:
+        cause = exc.__cause__
+        if (
+            isinstance(cause, spotipy.exceptions.SpotifyException)
+            and _spotify_status_code(cause) == 403
+        ):
+            raise PlaylistPermissionError(
+                f"Skipping playlist '{playlist.name}' ({playlist.spotify_id}) due to permission error."
+            ) from exc
+        raise
     raw_items = _paginate(spotify, first)
 
     tracks: list[Track] = []
@@ -268,7 +280,12 @@ def pull_library(spotify: spotipy.Spotify, playlist_name_filter: str | None = No
 
     by_id: dict[str, Track] = {}
     for playlist in progress_track(playlists, description="Pulling playlists..."):
-        for t in pull_playlist_tracks(spotify, playlist):
+        try:
+            playlist_tracks = pull_playlist_tracks(spotify, playlist)
+        except PlaylistPermissionError as exc:
+            print(f"Warning: {exc}")
+            continue
+        for t in playlist_tracks:
             existing = by_id.get(t.spotify_id)
             if existing:
                 existing.playlist_ids.extend(t.playlist_ids)
