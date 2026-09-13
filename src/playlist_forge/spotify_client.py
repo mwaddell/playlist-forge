@@ -22,7 +22,6 @@ from .errors import (
     AuthFailureError,
     ExternalServiceError,
     NetworkFailureError,
-    PlaylistPermissionError,
     RateLimitExceededError,
 )
 from .models import Playlist, Track
@@ -93,8 +92,6 @@ def _spotify_request(
 def _spotify_call(
     operation: str,
     call: Callable[[], T],
-    *,
-    forbidden_message: str | None = None,
 ) -> T:
     for attempt in range(_SPOTIFY_MAX_RETRIES + 1):
         try:
@@ -102,8 +99,6 @@ def _spotify_call(
         except spotipy.exceptions.SpotifyException as exc:
             status = _spotify_status_code(exc)
             headers = _spotify_headers(exc)
-            if status == 403 and forbidden_message is not None:
-                raise PlaylistPermissionError(forbidden_message) from exc
             if status == 401:
                 raise AuthFailureError(
                     "Spotify authentication failed (401). "
@@ -190,7 +185,6 @@ def pull_playlist_tracks(
     spotify: spotipy.Spotify,
     playlist: Playlist,
     fetch_genres: bool = True,
-    skip_permission_errors: bool = False,
 ) -> list[Track]:
     """Pull all tracks for one playlist.
 
@@ -198,8 +192,6 @@ def pull_playlist_tracks(
         spotify: Authenticated Spotify API client.
         playlist: Playlist metadata to fetch tracks from.
         fetch_genres: Whether to fetch artist genres for included artists.
-        skip_permission_errors: Whether to convert playlist-item 403 responses into
-            skip-friendly permission errors.
 
     Returns:
         Track objects for the playlist.
@@ -214,11 +206,6 @@ def pull_playlist_tracks(
                 "duration_ms,popularity,external_ids)),next"
             ),
         ),
-        forbidden_message=(
-            f"Skipping playlist '{playlist.name}' ({playlist.spotify_id}) due to permission error."
-        )
-        if skip_permission_errors
-        else None,
     )
     raw_items = _paginate(spotify, first)
 
@@ -288,26 +275,27 @@ def pull_library(spotify: spotipy.Spotify, playlist_name_filter: str | None = No
     current_user_id: str | None = None
     for playlist in progress_track(playlists, description="Pulling playlists..."):
         try:
-            playlist_tracks = pull_playlist_tracks(
-                spotify,
-                playlist,
-                skip_permission_errors=bool(playlist.owner_id),
-            )
-        except PlaylistPermissionError as exc:
+            playlist_tracks = pull_playlist_tracks(spotify, playlist)
+        except ExternalServiceError as exc:
+            cause = exc.__cause__
+            if not (
+                playlist.owner_id
+                and isinstance(cause, spotipy.exceptions.SpotifyException)
+                and _spotify_status_code(cause) == 403
+            ):
+                raise
             if current_user_id is None:
                 current_user_id = _spotify_call(
                     "loading current Spotify user",
-                    lambda: spotify.me(),
+                    spotify.current_user,
                 ).get("id")
             if playlist.owner_id and current_user_id and playlist.owner_id != current_user_id:
-                print(f"Warning: {exc}", file=sys.stderr)
+                print(
+                    f"Warning: Skipping playlist '{playlist.name}' ({playlist.spotify_id}) due to permission error.",
+                    file=sys.stderr,
+                )
                 continue
-            cause = exc.__cause__
-            status = _spotify_status_code(cause) if isinstance(cause, spotipy.exceptions.SpotifyException) else 403
-            raise ExternalServiceError(
-                f"Spotify request failed while pulling tracks for playlist '{playlist.name}' "
-                f"(status={status})."
-            ) from (cause if isinstance(cause, Exception) else exc)
+            raise
         for t in playlist_tracks:
             existing = by_id.get(t.spotify_id)
             if existing:

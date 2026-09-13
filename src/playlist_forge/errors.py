@@ -23,7 +23,3 @@ class NetworkFailureError(PlaylistForgeError):
 
 class ExternalServiceError(PlaylistForgeError):
     """Non-auth/non-rate-limit upstream API failure."""
-
-
-class PlaylistPermissionError(PlaylistForgeError):
-    """Playlist contents could not be read due to a permission error."""
