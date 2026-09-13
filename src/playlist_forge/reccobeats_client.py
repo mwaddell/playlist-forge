@@ -14,15 +14,21 @@ Docs: https://reccobeats.com/docs/apis/get-audio-features
 from __future__ import annotations
 
 import time
+from collections.abc import Iterable
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
+from typing import TypeVar
 
 import requests
+
+T = TypeVar("T")
 
 try:
     from rich.progress import track as progress_track
 except ImportError:  # pragma: no cover - fallback for minimal installs
-    def progress_track(sequence, description: str):
+    def progress_track(sequence: Iterable[T], description: str) -> Iterable[T]:
+        """Return the input iterable unchanged when Rich is unavailable."""
+        _ = description
         return sequence
 
 from . import cache
