@@ -10,8 +10,10 @@ Secrets stay in `.env` or the process environment.
 
 ## Config file
 
-Copy `config.example.yaml` to `~/.config/playlist-forge/config.yaml` to
-override non-secret defaults.
+By default, copy `config.example.yaml` to
+`~/.config/playlist-forge/config.yaml` to override non-secret defaults.
+If `PLAYLIST_FORGE_HOME` is set, use `$PLAYLIST_FORGE_HOME/config.yaml`
+instead.
 
 ```yaml
 default_format: json
