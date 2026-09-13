@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 from pathlib import Path
+from typing import Annotated
 
 import typer
 
@@ -133,18 +134,26 @@ def analyze_cluster(
     fmt: str | None = typer.Option(None, "--format", "-f"),
     algorithm: str = typer.Option("kmeans", help="kmeans|hdbscan"),
     k: str = typer.Option("auto", help="Number of clusters (kmeans only), or 'auto'."),
-    genre_weight: float | None = typer.Option(None),
-    audio_feature_weight: float | None = typer.Option(None),
-    audio_acousticness_weight: float | None = typer.Option(None),
-    audio_danceability_weight: float | None = typer.Option(None),
-    audio_energy_weight: float | None = typer.Option(None),
-    audio_instrumentalness_weight: float | None = typer.Option(None),
-    audio_liveness_weight: float | None = typer.Option(None),
-    audio_loudness_weight: float | None = typer.Option(None),
-    audio_speechiness_weight: float | None = typer.Option(None),
-    audio_tempo_weight: float | None = typer.Option(None),
-    audio_valence_weight: float | None = typer.Option(None),
-    year_weight: float | None = typer.Option(None),
+    genre_weight: Annotated[float | None, typer.Option("--genre-weight")] = None,
+    audio_feature_weight: Annotated[float | None, typer.Option("--audio-feature-weight")] = None,
+    audio_acousticness_weight: Annotated[
+        float | None, typer.Option("--audio-acousticness-weight")
+    ] = None,
+    audio_danceability_weight: Annotated[
+        float | None, typer.Option("--audio-danceability-weight")
+    ] = None,
+    audio_energy_weight: Annotated[float | None, typer.Option("--audio-energy-weight")] = None,
+    audio_instrumentalness_weight: Annotated[
+        float | None, typer.Option("--audio-instrumentalness-weight")
+    ] = None,
+    audio_liveness_weight: Annotated[float | None, typer.Option("--audio-liveness-weight")] = None,
+    audio_loudness_weight: Annotated[float | None, typer.Option("--audio-loudness-weight")] = None,
+    audio_speechiness_weight: Annotated[
+        float | None, typer.Option("--audio-speechiness-weight")
+    ] = None,
+    audio_tempo_weight: Annotated[float | None, typer.Option("--audio-tempo-weight")] = None,
+    audio_valence_weight: Annotated[float | None, typer.Option("--audio-valence-weight")] = None,
+    year_weight: Annotated[float | None, typer.Option("--year-weight")] = None,
 ):
     """Cluster tracks by genre, audio-feature, and year similarity.
 
@@ -175,8 +184,25 @@ def analyze_cluster(
             f"Unsupported --algorithm '{algorithm}'. Expected one of: kmeans, hdbscan."
         )
 
-    settings = load_settings()
-    cluster_config = settings.config.get("cluster", {})
+    maybe_missing_values = [
+        genre_weight,
+        audio_feature_weight,
+        year_weight,
+        audio_acousticness_weight,
+        audio_danceability_weight,
+        audio_energy_weight,
+        audio_instrumentalness_weight,
+        audio_liveness_weight,
+        audio_loudness_weight,
+        audio_speechiness_weight,
+        audio_tempo_weight,
+        audio_valence_weight,
+    ]
+    if any(value is None for value in maybe_missing_values):
+        settings = load_settings()
+        cluster_config = settings.config.get("cluster", {})
+    else:
+        cluster_config = {}
     resolved_genre_weight = (
         genre_weight if genre_weight is not None else cluster_config.get("genre_weight", 1.0)
     )

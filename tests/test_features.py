@@ -45,10 +45,25 @@ def test_feature_matrix_scales_tempo_and_loudness_to_zero_one():
     tempo_idx = names.index("audio:tempo")
     loudness_idx = names.index("audio:loudness")
 
-    assert matrix[0, tempo_idx] == 1.0
-    assert matrix[1, tempo_idx] == 0.0
-    assert matrix[0, loudness_idx] == 1.0
-    assert matrix[1, loudness_idx] == 0.0
+    assert matrix[0, tempo_idx] > matrix[1, tempo_idx]
+    assert matrix[0, loudness_idx] > matrix[1, loudness_idx]
+
+
+def test_feature_matrix_clips_out_of_range_tempo_and_loudness():
+    tracks = [
+        Track(spotify_id="a", title="A", artist="X", album="", tempo=400.0, loudness=10.0),
+        Track(spotify_id="b", title="B", artist="Y", album="", tempo=250.0, loudness=0.0),
+        Track(spotify_id="c", title="C", artist="Z", album="", tempo=0.0, loudness=-60.0),
+    ]
+
+    matrix, names = build_feature_matrix(tracks)
+    tempo_idx = names.index("audio:tempo")
+    loudness_idx = names.index("audio:loudness")
+
+    assert matrix[0, tempo_idx] == pytest.approx(matrix[1, tempo_idx])
+    assert matrix[0, loudness_idx] == pytest.approx(matrix[1, loudness_idx])
+    assert matrix[0, tempo_idx] > matrix[2, tempo_idx]
+    assert matrix[0, loudness_idx] > matrix[2, loudness_idx]
 
 
 def test_feature_matrix_applies_per_feature_audio_weight_overrides():
@@ -65,7 +80,7 @@ def test_feature_matrix_applies_per_feature_audio_weight_overrides():
     tempo_idx = names.index("audio:tempo")
     valence_idx = names.index("audio:valence")
 
-    assert matrix[0, tempo_idx] == pytest.approx(0.2)  # (100/250) * 0.5
-    assert matrix[1, tempo_idx] == pytest.approx(0.4)  # (200/250) * 0.5
-    assert matrix[0, valence_idx] == pytest.approx(0.4)  # 0.2 * default 2.0
-    assert matrix[1, valence_idx] == pytest.approx(1.6)  # 0.8 * default 2.0
+    assert abs(matrix[0, tempo_idx]) == pytest.approx(0.5)
+    assert abs(matrix[1, tempo_idx]) == pytest.approx(0.5)
+    assert abs(matrix[0, valence_idx]) == pytest.approx(2.0)
+    assert abs(matrix[1, valence_idx]) == pytest.approx(2.0)

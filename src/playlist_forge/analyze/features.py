@@ -16,15 +16,31 @@ AUDIO_FEATURE_FIELDS = (
     "loudness", "speechiness"
 )
 
+# ReccoBeats documents most audio fields as 0..1. Tempo/loudness use broader
+# physical scales, so we normalize them to the same 0..1 baseline before
+# column-wise standardization. The tempo/loudness ranges are heuristics based
+# on common music ranges called out in project requirements (tempo up to ~250
+# BPM and loudness typically -60..0 dB); values outside are clipped.
 _AUDIO_FEATURE_BASE_RANGES = {
+    "acousticness": (0.0, 1.0),
+    "danceability": (0.0, 1.0),
+    "energy": (0.0, 1.0),
+    "instrumentalness": (0.0, 1.0),
+    "liveness": (0.0, 1.0),
     "tempo": (0.0, 250.0),
+    "valence": (0.0, 1.0),
     "loudness": (-60.0, 0.0),
+    "speechiness": (0.0, 1.0),
 }
+
+_MISSING_AUDIO_RANGES = set(AUDIO_FEATURE_FIELDS) - set(_AUDIO_FEATURE_BASE_RANGES)
+if _MISSING_AUDIO_RANGES:
+    missing = ", ".join(sorted(_MISSING_AUDIO_RANGES))
+    raise ValueError(f"Missing normalization range(s) for audio feature(s): {missing}")
 
 
 def _normalize_audio_feature(name: str, col: np.ndarray) -> np.ndarray:
-    if name not in _AUDIO_FEATURE_BASE_RANGES:
-        return col
+    """Map raw audio values to a 0-1 baseline and clip out-of-range values."""
     low, high = _AUDIO_FEATURE_BASE_RANGES[name]
     normalized = (col - low) / (high - low)
     return np.clip(normalized, 0.0, 1.0)
@@ -59,6 +75,7 @@ def build_feature_matrix(
 
     audio_cols = []
     audio_names = []
+    audio_fields = []
     audio_feature_weights = audio_feature_weights or {}
     for field_name in AUDIO_FEATURE_FIELDS:
         col = np.array(
@@ -69,13 +86,18 @@ def build_feature_matrix(
         col_mean = np.nanmean(col)
         col = np.where(np.isnan(col), col_mean, col)
         col = _normalize_audio_feature(field_name, col)
-        col_weight = audio_feature_weights.get(field_name, audio_feature_weight)
-        col = col * col_weight
         audio_cols.append(col)
         audio_names.append(f"audio:{field_name}")
+        audio_fields.append(field_name)
 
     if audio_cols:
         audio_matrix = np.column_stack(audio_cols)
+        audio_matrix = StandardScaler().fit_transform(audio_matrix)
+        column_weights = np.array(
+            [audio_feature_weights.get(name, audio_feature_weight) for name in audio_fields],
+            dtype=float,
+        )
+        audio_matrix = audio_matrix * column_weights
     else:
         audio_matrix = np.zeros((len(tracks), 0))
 
