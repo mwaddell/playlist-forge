@@ -136,6 +136,7 @@ def test_pull_library_warns_and_skips_for_playlist_permission_error(capsys, monk
     monkeypatch.setattr(spotify_client, "pull_playlist_tracks", fake_pull_playlist_tracks)
     pulled = spotify_client.pull_library(FakeSpotify())
 
-    out = capsys.readouterr().out
+    captured = capsys.readouterr()
     assert pulled == [track]
-    assert "Warning: Skipping playlist 'Restricted' (p2) due to permission error." in out
+    assert "Warning: Skipping playlist 'Restricted'" not in captured.out
+    assert "Warning: Skipping playlist 'Restricted' (p2) due to permission error." in captured.err

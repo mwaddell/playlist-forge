@@ -7,6 +7,7 @@ import spotipy at all.
 
 from __future__ import annotations
 
+import sys
 import time
 from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
@@ -283,7 +284,7 @@ def pull_library(spotify: spotipy.Spotify, playlist_name_filter: str | None = No
         try:
             playlist_tracks = pull_playlist_tracks(spotify, playlist)
         except PlaylistPermissionError as exc:
-            print(f"Warning: {exc}")
+            print(f"Warning: {exc}", file=sys.stderr)
             continue
         for t in playlist_tracks:
             existing = by_id.get(t.spotify_id)
