@@ -39,3 +39,14 @@ def test_logout_returns_false_when_no_cached_token(monkeypatch, tmp_path):
     removed = auth.logout()
 
     assert removed is False
+
+
+def test_logout_returns_false_when_token_path_is_directory(monkeypatch, tmp_path):
+    token_path = tmp_path / "token.json"
+    token_path.mkdir()
+    monkeypatch.setattr(auth, "TOKEN_PATH", token_path)
+
+    removed = auth.logout()
+
+    assert removed is False
+    assert token_path.exists()
