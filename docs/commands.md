@@ -30,6 +30,18 @@ Options:
 - `--output`, `-o`: output dataset path
 - `--format`, `-f`: output format override
 
+## `convert`
+
+### `playlist-forge convert`
+
+Copy a dataset to another supported format (or copy as-is when formats match).
+
+Options:
+
+- `--input`, `-i`: input dataset path
+- `--output`, `-o`: output dataset path
+- `--format`, `-f`: output format override
+
 ## `analyze`
 
 ### `playlist-forge analyze cluster`

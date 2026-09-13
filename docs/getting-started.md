@@ -39,6 +39,9 @@ poetry run playlist-forge pull --output library.json
 # Add ReccoBeats audio features
 poetry run playlist-forge enrich --input library.json --output library_enriched.json
 
+# Convert between dataset formats
+poetry run playlist-forge convert --input library_enriched.json --output library_enriched.tsv
+
 # Cluster tracks
 poetry run playlist-forge analyze cluster --input library_enriched.json --output clustered.json
 
@@ -56,10 +59,11 @@ poetry run playlist-forge act add-from-list --file new_songs.txt --playlist "Dis
 
 ## File formats
 
-The dataset conversion commands with file output (`pull`, `enrich`, and
-`analyze cluster`) accept `--format json|csv|tsv`, or infer the format from the
-file extension. `analyze outliers` prints directly to the terminal, and
-`analyze dedupe` writes JSON to the explicit `--output` path that you provide.
+The dataset conversion commands with file output (`pull`, `enrich`, `convert`,
+and `analyze cluster`) accept `--format json|csv|tsv`, or infer input/output
+formats from file extensions. `analyze outliers` prints directly to the
+terminal, and `analyze dedupe` writes JSON to the explicit `--output` path that
+you provide.
 
 - JSON stores list fields as native arrays.
 - CSV and TSV store list fields such as genres and playlist names as `;`-joined

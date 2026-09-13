@@ -125,6 +125,29 @@ def enrich(
     typer.echo(f"Enriched {matched}/{len(enriched)} tracks -> {output}")
 
 
+# ------------------------------------------------------------- convert ----
+@app.command()
+@_handle_cli_errors
+def convert(
+    input: Path = typer.Option(..., "--input", "-i"),
+    output: Path = typer.Option(..., "--output", "-o"),
+    fmt: str | None = typer.Option(None, "--format", "-f"),
+):
+    """Copy a dataset file into another supported format.
+
+    Args:
+        input: Input dataset path.
+        output: Output dataset path.
+        fmt: Optional output format override.
+
+    Returns:
+        None.
+    """
+    tracks = io_formats.read_tracks(input)
+    io_formats.write_tracks(tracks, output, fmt)
+    typer.echo(f"Converted {len(tracks)} tracks -> {output}")
+
+
 # ------------------------------------------------------------- analyze ----
 @analyze_app.command("cluster")
 @_handle_cli_errors
