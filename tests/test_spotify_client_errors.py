@@ -126,8 +126,11 @@ def test_pull_playlist_tracks_keeps_403_as_external_error_without_skip_flag(
 
 
 def test_pull_library_warns_and_skips_for_playlist_permission_error(capsys, monkeypatch):
+    me_calls = {"count": 0}
+
     class FakeSpotify:
         def me(self):
+            me_calls["count"] += 1
             return {"id": "me"}
 
     accessible = Playlist(spotify_id="p1", name="Accessible", owner_id="me")
@@ -147,7 +150,7 @@ def test_pull_library_warns_and_skips_for_playlist_permission_error(capsys, monk
     def fake_pull_playlist_tracks(_spotify, playlist, fetch_genres=True, skip_permission_errors=False):
         assert fetch_genres is True
         assert playlist.owner_id is not None
-        assert skip_permission_errors is (playlist.spotify_id == restricted.spotify_id)
+        assert skip_permission_errors is True
         if playlist.spotify_id == restricted.spotify_id:
             raise PlaylistPermissionError(
                 f"Skipping playlist '{playlist.name}' ({playlist.spotify_id}) due to permission error."
@@ -160,5 +163,37 @@ def test_pull_library_warns_and_skips_for_playlist_permission_error(capsys, monk
 
     captured = capsys.readouterr()
     assert pulled == [track]
+    assert me_calls["count"] == 1
     assert "Warning: Skipping playlist 'Restricted'" not in captured.out
     assert "Warning: Skipping playlist 'Restricted' (p2) due to permission error." in captured.err
+
+
+def test_pull_library_does_not_lookup_current_user_without_permission_error(monkeypatch):
+    me_calls = {"count": 0}
+
+    class FakeSpotify:
+        def me(self):
+            me_calls["count"] += 1
+            return {"id": "me"}
+
+    playlist = Playlist(spotify_id="p1", name="Accessible", owner_id="me")
+    track = spotify_client.Track(
+        spotify_id="track-1",
+        title="Song",
+        artist="Artist",
+        album="Album",
+        playlist_ids=[playlist.spotify_id],
+        playlist_names=[playlist.name],
+    )
+
+    monkeypatch.setattr(spotify_client, "list_playlists", lambda _spotify: [playlist])
+    monkeypatch.setattr(
+        spotify_client,
+        "pull_playlist_tracks",
+        lambda _spotify, _playlist, fetch_genres=True, skip_permission_errors=False: [track],
+    )
+
+    pulled = spotify_client.pull_library(FakeSpotify())
+
+    assert pulled == [track]
+    assert me_calls["count"] == 0
