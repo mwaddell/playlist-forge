@@ -5,6 +5,9 @@ find songs that don't belong, playlists that should be merged or split, and
 bulk-add new tracks from a plain-text list — all backed by scikit-learn
 clustering over your library's genre/audio-feature/year metadata.
 
+Project documentation is published at
+https://mwaddell.github.io/playlist-forge/.
+
 ## Important caveat, up front
 
 Spotify deprecated its per-track audio-features endpoint (tempo, energy,
@@ -91,9 +94,10 @@ override. Secrets (`SPOTIFY_CLIENT_ID`, `RECCOBEATS_API_KEY`) come from `.env`
 ## Development
 
 ```bash
-poetry install --with dev
+poetry install --with dev,docs
 poetry run pytest
 poetry run ruff check src tests
+poetry run mkdocs build --strict
 ```
 
 ## License
