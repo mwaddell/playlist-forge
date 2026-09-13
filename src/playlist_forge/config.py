@@ -24,6 +24,15 @@ _DEFAULTS = {
     "cluster": {
         "genre_weight": 1.0,
         "audio_feature_weight": 1.0,
+        "audio_acousticness_weight": None,
+        "audio_danceability_weight": None,
+        "audio_energy_weight": None,
+        "audio_instrumentalness_weight": None,
+        "audio_liveness_weight": None,
+        "audio_loudness_weight": None,
+        "audio_speechiness_weight": None,
+        "audio_tempo_weight": None,
+        "audio_valence_weight": None,
         "year_weight": 0.3,
     },
     "dedupe": {

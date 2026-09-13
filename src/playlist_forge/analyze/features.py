@@ -16,11 +16,25 @@ AUDIO_FEATURE_FIELDS = (
     "loudness", "speechiness"
 )
 
+_AUDIO_FEATURE_BASE_RANGES = {
+    "tempo": (0.0, 250.0),
+    "loudness": (-60.0, 0.0),
+}
+
+
+def _normalize_audio_feature(name: str, col: np.ndarray) -> np.ndarray:
+    if name not in _AUDIO_FEATURE_BASE_RANGES:
+        return col
+    low, high = _AUDIO_FEATURE_BASE_RANGES[name]
+    normalized = (col - low) / (high - low)
+    return np.clip(normalized, 0.0, 1.0)
+
 
 def build_feature_matrix(
     tracks: list,
     genre_weight: float = 1.0,
     audio_feature_weight: float = 1.0,
+    audio_feature_weights: dict[str, float] | None = None,
     year_weight: float = 0.3,
 ) -> tuple[np.ndarray, list[str]]:
     """Build a weighted numeric feature matrix from tracks.
@@ -28,7 +42,9 @@ def build_feature_matrix(
     Args:
         tracks: Tracks to transform.
         genre_weight: Multiplier for one-hot genre features.
-        audio_feature_weight: Multiplier for standardized audio features.
+        audio_feature_weight: Default multiplier for scaled audio features.
+        audio_feature_weights: Optional per-feature multipliers keyed by audio
+            field name (for example ``tempo`` or ``valence``).
         year_weight: Multiplier for standardized year feature.
 
     Returns:
@@ -43,6 +59,7 @@ def build_feature_matrix(
 
     audio_cols = []
     audio_names = []
+    audio_feature_weights = audio_feature_weights or {}
     for field_name in AUDIO_FEATURE_FIELDS:
         col = np.array(
             [getattr(t, field_name) for t in tracks], dtype=float
@@ -51,12 +68,14 @@ def build_feature_matrix(
             continue  # nobody has this field enriched — skip rather than fabricate
         col_mean = np.nanmean(col)
         col = np.where(np.isnan(col), col_mean, col)
+        col = _normalize_audio_feature(field_name, col)
+        col_weight = audio_feature_weights.get(field_name, audio_feature_weight)
+        col = col * col_weight
         audio_cols.append(col)
         audio_names.append(f"audio:{field_name}")
 
     if audio_cols:
         audio_matrix = np.column_stack(audio_cols)
-        audio_matrix = StandardScaler().fit_transform(audio_matrix) * audio_feature_weight
     else:
         audio_matrix = np.zeros((len(tracks), 0))
 

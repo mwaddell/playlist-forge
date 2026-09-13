@@ -11,7 +11,7 @@ from playlist_forge.models import Track
 
 
 class DummySettings:
-    pass
+    config = {}
 
 
 def test_pull_exits_cleanly_for_expected_api_errors(monkeypatch, capsys, tmp_path):
@@ -58,3 +58,69 @@ def test_playlist_name_for_id_uses_matching_playlist_index():
         playlist_names=["Other", "Target"],
     )
     assert cli._playlist_name_for_id(t, "p-target") == "Target"
+
+
+def test_analyze_cluster_uses_config_defaults_for_audio_weights(monkeypatch, tmp_path):
+    class ConfiguredSettings:
+        config = {
+            "cluster": {
+                "genre_weight": 1.5,
+                "audio_feature_weight": 2.0,
+                "audio_tempo_weight": 0.4,
+                "year_weight": 0.7,
+            }
+        }
+
+    monkeypatch.setattr(cli, "load_settings", lambda: ConfiguredSettings())
+    monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: [])
+    monkeypatch.setattr(cli.io_formats, "write_tracks", lambda *_args, **_kwargs: None)
+    captured_kwargs: dict = {}
+
+    def fake_cluster_kmeans(_tracks, **kwargs):
+        captured_kwargs.update(kwargs)
+        return []
+
+    monkeypatch.setattr(cli.cluster_mod, "cluster_kmeans", fake_cluster_kmeans)
+
+    cli.analyze_cluster(
+        input=Path(tmp_path / "in.json"),
+        output=Path(tmp_path / "out.json"),
+        fmt=None,
+        algorithm="kmeans",
+        k="auto",
+    )
+
+    assert captured_kwargs["genre_weight"] == 1.5
+    assert captured_kwargs["audio_feature_weight"] == 2.0
+    assert captured_kwargs["year_weight"] == 0.7
+    assert captured_kwargs["audio_feature_weights"] == {"tempo": 0.4}
+
+
+def test_analyze_cluster_cli_audio_weight_overrides_config(monkeypatch, tmp_path):
+    class ConfiguredSettings:
+        config = {"cluster": {"audio_feature_weight": 2.0, "audio_tempo_weight": 0.4}}
+
+    monkeypatch.setattr(cli, "load_settings", lambda: ConfiguredSettings())
+    monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: [])
+    monkeypatch.setattr(cli.io_formats, "write_tracks", lambda *_args, **_kwargs: None)
+    captured_kwargs: dict = {}
+
+    def fake_cluster_kmeans(_tracks, **kwargs):
+        captured_kwargs.update(kwargs)
+        return []
+
+    monkeypatch.setattr(cli.cluster_mod, "cluster_kmeans", fake_cluster_kmeans)
+
+    cli.analyze_cluster(
+        input=Path(tmp_path / "in.json"),
+        output=Path(tmp_path / "out.json"),
+        fmt=None,
+        algorithm="kmeans",
+        k="auto",
+        audio_feature_weight=3.0,
+        audio_tempo_weight=0.9,
+        audio_valence_weight=1.2,
+    )
+
+    assert captured_kwargs["audio_feature_weight"] == 3.0
+    assert captured_kwargs["audio_feature_weights"] == {"tempo": 0.9, "valence": 1.2}

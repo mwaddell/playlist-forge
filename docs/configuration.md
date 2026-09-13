@@ -29,6 +29,15 @@ default_format: json
 cluster:
   genre_weight: 1.0
   audio_feature_weight: 1.0
+  audio_acousticness_weight:
+  audio_danceability_weight:
+  audio_energy_weight:
+  audio_instrumentalness_weight:
+  audio_liveness_weight:
+  audio_loudness_weight:
+  audio_speechiness_weight:
+  audio_tempo_weight:
+  audio_valence_weight:
   year_weight: 0.3
 
 dedupe:
@@ -39,6 +48,8 @@ reccobeats:
   base_url: https://api.reccobeats.com
   request_delay_seconds: 0.2
 ```
+
+Leave per-feature `audio_*_weight` values blank to inherit `audio_feature_weight`.
 
 ## Cache and state
 

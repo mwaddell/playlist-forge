@@ -89,7 +89,10 @@ any API.
 Non-secret defaults (clustering weights, dedupe thresholds) live in
 `~/.config/playlist-forge/config.yaml` — copy `config.example.yaml` there to
 override. Secrets (`SPOTIFY_CLIENT_ID`, `RECCOBEATS_API_KEY`) come from `.env`
-/ environment variables only, never from that file.
+/ environment variables only, never from that file. Use
+`audio_feature_weight` as the default audio-feature multiplier and
+`audio_<feature>_weight` values (for example `audio_tempo_weight`) to override
+individual audio features.
 
 ## Development
 
