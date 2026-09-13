@@ -184,14 +184,14 @@ def _artist_genre_map(spotify: spotipy.Spotify, artist_ids: set[str]) -> dict[st
 def pull_playlist_tracks(
     spotify: spotipy.Spotify,
     playlist: Playlist,
-    fetch_genres: bool = True,
+    fetch_genres: bool = False,
 ) -> list[Track]:
     """Pull all tracks for one playlist.
 
     Args:
         spotify: Authenticated Spotify API client.
         playlist: Playlist metadata to fetch tracks from.
-        fetch_genres: Whether to fetch artist genres for included artists.
+        fetch_genres: Whether to fetch artist genres for included artists (Currently Deprected in Spotify API).
 
     Returns:
         Track objects for the playlist.
@@ -202,8 +202,8 @@ def pull_playlist_tracks(
             playlist.spotify_id,
             additional_types=("track",),
             fields=(
-                "items(added_at,track(id,name,album(name,release_date),artists(id,name),"
-                "duration_ms,popularity,external_ids)),next"
+                "items(added_at,item(id,name,album(name,release_date),artists(id,name),"
+                "duration_ms,external_ids)),next"
             ),
         ),
     )
@@ -212,7 +212,7 @@ def pull_playlist_tracks(
     tracks: list[Track] = []
     artist_ids: set[str] = set()
     for item in raw_items:
-        t = item.get("track")
+        t = item.get("item")
         if not t or not t.get("id"):
             continue  # local files / removed tracks have no id
         for a in t.get("artists", []):
@@ -221,7 +221,7 @@ def pull_playlist_tracks(
     genre_map = _artist_genre_map(spotify, artist_ids) if fetch_genres and artist_ids else {}
 
     for item in raw_items:
-        t = item.get("track")
+        t = item.get("item")
         if not t or not t.get("id"):
             continue
         artists = t.get("artists", [])
@@ -248,7 +248,6 @@ def pull_playlist_tracks(
                 playlist_names=[playlist.name],
                 isrc=(t.get("external_ids") or {}).get("isrc"),
                 year=year,
-                popularity=t.get("popularity"),
                 duration_ms=t.get("duration_ms"),
                 added_at=item.get("added_at"),
                 artist_genres=sorted(set(genres)),
@@ -355,7 +354,6 @@ def search_track(
         artist=t["artists"][0]["name"] if t["artists"] else "",
         album=(t.get("album") or {}).get("name", ""),
         isrc=(t.get("external_ids") or {}).get("isrc"),
-        popularity=t.get("popularity"),
         duration_ms=t.get("duration_ms"),
     )
 
