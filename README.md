@@ -46,7 +46,7 @@ poetry run playlist-forge pull --output library.json
 poetry run playlist-forge enrich --input library.json --output library_enriched.json
 
 # 4. Convert between dataset formats
-poetry run playlist-forge convert --input library_enriched.json --output library_enriched.tsv
+poetry run playlist-forge library convert --input library_enriched.json --output library_enriched.tsv
 
 # 5. Cluster everything
 poetry run playlist-forge analyze cluster --input library_enriched.json --output clustered.json
@@ -78,7 +78,7 @@ names, genres) are `;`-joined in csv/tsv and native arrays in json.
 ```
 pull    (Spotify)      → canonical Track dataset
 enrich  (ReccoBeats)   → adds audio-feature columns where matched
-convert (offline)      → copies dataset as json/csv/tsv
+library convert        → copies dataset as json/csv/tsv
 analyze (scikit-learn) → cluster / outliers / dedupe — pure, offline, no API calls
 act     (Spotify)      → create/split/merge playlists, add matched songs
 ```

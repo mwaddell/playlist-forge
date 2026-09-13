@@ -40,7 +40,7 @@ poetry run playlist-forge pull --output library.json
 poetry run playlist-forge enrich --input library.json --output library_enriched.json
 
 # Convert between dataset formats
-poetry run playlist-forge convert --input library_enriched.json --output library_enriched.tsv
+poetry run playlist-forge library convert --input library_enriched.json --output library_enriched.tsv
 
 # Cluster tracks
 poetry run playlist-forge analyze cluster --input library_enriched.json --output clustered.json

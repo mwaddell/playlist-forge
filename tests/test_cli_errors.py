@@ -145,7 +145,7 @@ def test_convert_uses_inferred_formats(monkeypatch, tmp_path):
 
     input_path = Path(tmp_path / "library.json")
     output_path = Path(tmp_path / "library.tsv")
-    cli.convert(input=input_path, output=output_path, fmt=None)
+    cli.library_convert(input=input_path, output=output_path, fmt=None)
 
     assert captured_args["read_path"] == input_path
     assert captured_args["written_tracks"] == tracks
@@ -159,7 +159,7 @@ def test_convert_with_explicit_output_format(tmp_path):
     tracks = [Track(spotify_id="abc", title="Song", artist="Artist", album="Album")]
     write_tracks(tracks, input_path)
 
-    cli.convert(input=input_path, output=output_path, fmt="tsv")
+    cli.library_convert(input=input_path, output=output_path, fmt="tsv")
     output_rows = output_path.read_text(encoding="utf-8").splitlines()
 
     assert output_rows[0].startswith("spotify_id\ttitle\tartist\talbum\t")
@@ -173,7 +173,7 @@ def test_convert_same_format_creates_copy(tmp_path):
     tracks = [Track(spotify_id="abc", title="Song", artist="Artist", album="Album")]
     write_tracks(tracks, input_path)
 
-    cli.convert(input=input_path, output=output_path, fmt=None)
+    cli.library_convert(input=input_path, output=output_path, fmt=None)
 
     copied = read_tracks(output_path)
     assert [t.spotify_id for t in copied] == ["abc"]
