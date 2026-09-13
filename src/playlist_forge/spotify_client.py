@@ -157,7 +157,7 @@ def list_playlists(spotify: spotipy.Spotify) -> list[Playlist]:
             spotify_id=p["id"],
             name=p["name"],
             description=p.get("description") or None,
-            track_count=p["tracks"]["total"],
+            track_count=p["items"]["total"],
             owner=p["owner"]["display_name"],
             owner_id=p["owner"].get("id"),
             is_collaborative=p.get("collaborative", False),
