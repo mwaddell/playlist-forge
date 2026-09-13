@@ -5,8 +5,7 @@ find songs that don't belong, playlists that should be merged or split, and
 bulk-add new tracks from a plain-text list — all backed by scikit-learn
 clustering over your library's genre/audio-feature/year metadata.
 
-Project documentation is published at
-https://mwaddell.github.io/playlist-forge/.
+Project documentation is published at https://www.waddellnet.com/playlist-forge/
 
 ## Important caveat, up front
 
