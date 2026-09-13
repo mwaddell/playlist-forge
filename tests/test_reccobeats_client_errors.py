@@ -8,6 +8,7 @@ import requests
 
 from playlist_forge import cache
 from playlist_forge.errors import NetworkFailureError, RateLimitExceededError
+from playlist_forge.models import Track
 from playlist_forge.reccobeats_client import ReccoBeatsClient
 
 
@@ -131,3 +132,24 @@ def test_fetch_does_not_cache_transient_failure(monkeypatch):
         client.fetch_by_spotify_id("abc")
 
     assert cache_writes == []
+
+
+def test_enrich_uses_progress_indicator(monkeypatch):
+    client = ReccoBeatsClient(DummySettings())
+    descriptions: list[str] = []
+    tracks = [
+        Track(spotify_id="track-1", title="Song 1", artist="Artist 1", album="Album 1"),
+        Track(spotify_id="track-2", title="Song 2", artist="Artist 2", album="Album 2"),
+    ]
+
+    monkeypatch.setattr(
+        "playlist_forge.reccobeats_client.progress_track",
+        lambda items, description: descriptions.append(description) or iter(items),
+    )
+    monkeypatch.setattr(client, "fetch_by_spotify_id", lambda spotify_id: {"tempo": 123.0, "confidence": 0.9})
+
+    enriched = client.enrich(tracks)
+
+    assert descriptions == ["Enriching tracks..."]
+    assert enriched is tracks
+    assert all(track.feature_source == "reccobeats" for track in tracks)

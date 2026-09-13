@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 
 import requests
+from rich.progress import track as progress_track
 
 from . import cache
 from .config import Settings
@@ -154,7 +155,7 @@ class ReccoBeatsClient:
             without a match are marked with ``feature_source="unmatched"`` so
             downstream analysis can treat missing values explicitly.
         """
-        for t in tracks:
+        for t in progress_track(tracks, description="Enriching tracks..."):
             payload = self.fetch_by_spotify_id(t.spotify_id)
             if not payload:
                 t.feature_source = "unmatched"
