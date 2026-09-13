@@ -70,6 +70,21 @@ def auth_login():
     auth.login(settings)
 
 
+@auth_app.command("logout")
+@_handle_cli_errors
+def auth_logout():
+    """Clear the cached Spotify OAuth token file from disk.
+
+    Returns:
+        None.
+    """
+    removed = auth.logout()
+    if removed:
+        typer.echo(f"Logged out. Removed cached token at {auth.TOKEN_PATH}.")
+    else:
+        typer.echo(f"No cached token found at {auth.TOKEN_PATH}.")
+
+
 # ---------------------------------------------------------------- pull ----
 @app.command()
 @_handle_cli_errors

@@ -56,3 +56,29 @@ def login(settings: Settings) -> None:
     client = get_spotify_client(settings)
     me = client.current_user()
     print(f"Logged in as {me['display_name']} ({me['id']}). Token cached at {TOKEN_PATH}.")
+
+
+def logout() -> bool:
+    """Delete the cached Spotify OAuth token.
+
+    Returns:
+        True if a cached token file was removed, otherwise False.
+    """
+    try:
+        TOKEN_PATH.unlink()
+    except FileNotFoundError:
+        return False
+    except IsADirectoryError as exc:
+        raise ConfigurationError(f"Cached token path is not a file: {TOKEN_PATH}") from exc
+    except PermissionError as exc:
+        try:
+            if not TOKEN_PATH.exists():
+                return False
+            if not TOKEN_PATH.is_file():
+                raise ConfigurationError(f"Cached token path is not a file: {TOKEN_PATH}") from exc
+        except OSError:
+            pass
+        raise ConfigurationError(f"Could not remove cached token at {TOKEN_PATH}: {exc}") from exc
+    except OSError as exc:
+        raise ConfigurationError(f"Could not remove cached token at {TOKEN_PATH}: {exc}") from exc
+    return True
