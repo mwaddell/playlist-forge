@@ -109,4 +109,5 @@ class Playlist:
     description: str | None = None
     track_count: int = 0
     owner: str | None = None
+    owner_id: str | None = None
     is_collaborative: bool = False

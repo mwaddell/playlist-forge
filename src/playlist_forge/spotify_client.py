@@ -164,6 +164,7 @@ def list_playlists(spotify: spotipy.Spotify) -> list[Playlist]:
             description=p.get("description") or None,
             track_count=p["tracks"]["total"],
             owner=p["owner"]["display_name"],
+            owner_id=p["owner"].get("id"),
             is_collaborative=p.get("collaborative", False),
         )
         for p in raw
@@ -189,6 +190,7 @@ def pull_playlist_tracks(
     spotify: spotipy.Spotify,
     playlist: Playlist,
     fetch_genres: bool = True,
+    skip_permission_errors: bool = False,
 ) -> list[Track]:
     """Pull all tracks for one playlist.
 
@@ -196,6 +198,8 @@ def pull_playlist_tracks(
         spotify: Authenticated Spotify API client.
         playlist: Playlist metadata to fetch tracks from.
         fetch_genres: Whether to fetch artist genres for included artists.
+        skip_permission_errors: Whether to convert playlist-item 403 responses into
+            skip-friendly permission errors.
 
     Returns:
         Track objects for the playlist.
@@ -212,7 +216,9 @@ def pull_playlist_tracks(
         ),
         forbidden_message=(
             f"Skipping playlist '{playlist.name}' ({playlist.spotify_id}) due to permission error."
-        ),
+        )
+        if skip_permission_errors
+        else None,
     )
     raw_items = _paginate(spotify, first)
 
@@ -275,13 +281,22 @@ def pull_library(spotify: spotipy.Spotify, playlist_name_filter: str | None = No
         Unique tracks with combined playlist membership fields.
     """
     playlists = list_playlists(spotify)
+    current_user_id = _spotify_call("loading current Spotify user", lambda: spotify.me()).get("id")
     if playlist_name_filter:
         playlists = [p for p in playlists if playlist_name_filter.lower() in p.name.lower()]
 
     by_id: dict[str, Track] = {}
     for playlist in progress_track(playlists, description="Pulling playlists..."):
         try:
-            playlist_tracks = pull_playlist_tracks(spotify, playlist)
+            playlist_tracks = pull_playlist_tracks(
+                spotify,
+                playlist,
+                skip_permission_errors=(
+                    bool(playlist.owner_id)
+                    and bool(current_user_id)
+                    and playlist.owner_id != current_user_id
+                ),
+            )
         except PlaylistPermissionError as exc:
             print(f"Warning: {exc}", file=sys.stderr)
             continue
