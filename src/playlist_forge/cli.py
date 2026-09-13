@@ -17,7 +17,7 @@ from .reccobeats_client import ReccoBeatsClient
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 auth_app = typer.Typer(help="Spotify authentication.")
-library_app = typer.Typer(help="Manage local library dataset files.")
+library_app = typer.Typer(help="Manage local library files.")
 analyze_app = typer.Typer(help="Offline analysis over a pulled/enriched dataset.")
 act_app = typer.Typer(help="Write actions back to Spotify.")
 app.add_typer(auth_app, name="auth")

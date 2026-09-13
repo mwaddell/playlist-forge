@@ -20,7 +20,6 @@ TOKEN_PATH = CONFIG_DIR / "token.json"
 DEFAULT_CONFIG_PATH = CONFIG_DIR / "config.yaml"
 
 _DEFAULTS = {
-    "default_format": "json",
     "cluster": {
         "genre_weight": 1.0,
         "audio_feature_weight": 1.0,

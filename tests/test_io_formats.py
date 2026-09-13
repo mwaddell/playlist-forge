@@ -34,7 +34,9 @@ def test_infer_format():
     assert infer_format("out.json") == "json"
     assert infer_format("out.csv") == "csv"
     assert infer_format("out.tsv") == "tsv"
-    assert infer_format("out.txt") == "csv"  # default fallback
+    assert infer_format("out.txt") == "tsv"
+    assert infer_format("out.xyz") == "csv"  # default fallback
+    assert infer_format("txt") == "csv"  # default fallback
 
 
 def test_json_round_trip(tmp_path):

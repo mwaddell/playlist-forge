@@ -24,8 +24,6 @@ Copy `config.example.yaml` there to override non-secret defaults. If
 `$PLAYLIST_FORGE_HOME/config.yaml` instead.
 
 ```yaml
-default_format: json
-
 cluster:
   genre_weight: 1.0
   audio_feature_weight: 1.0
