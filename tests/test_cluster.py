@@ -1,7 +1,10 @@
+import sys
+
 import numpy as np
 import pytest
 
-from playlist_forge.analyze.cluster import choose_k, cluster_kmeans
+from playlist_forge.analyze import cluster as cluster_mod
+from playlist_forge.analyze.cluster import choose_k, cluster_hdbscan, cluster_kmeans
 from playlist_forge.models import Track
 
 
@@ -58,3 +61,60 @@ def test_cluster_kmeans_handles_all_identical_vectors():
 def test_choose_k_returns_one_for_single_row_matrix():
     matrix = np.array([[1.0, 2.0]])
     assert choose_k(matrix) == 1
+
+
+def test_cluster_kmeans_passes_audio_feature_weight_overrides(monkeypatch):
+    tracks = [
+        Track(spotify_id="t1", title="A", artist="X", album="", artist_genres=["rock"]),
+        Track(spotify_id="t2", title="B", artist="Y", album="", artist_genres=["pop"]),
+    ]
+    captured_kwargs: dict = {}
+
+    def fake_build_feature_matrix(_tracks, **kwargs):
+        captured_kwargs.update(kwargs)
+        return np.array([[0.0], [1.0]]), ["audio:tempo"]
+
+    monkeypatch.setattr(cluster_mod, "build_feature_matrix", fake_build_feature_matrix)
+
+    cluster_kmeans(
+        tracks,
+        k=2,
+        audio_feature_weight=1.5,
+        audio_feature_weights={"tempo": 0.7},
+    )
+
+    assert captured_kwargs["audio_feature_weight"] == 1.5
+    assert captured_kwargs["audio_feature_weights"] == {"tempo": 0.7}
+
+
+def test_cluster_hdbscan_passes_audio_feature_weight_overrides(monkeypatch):
+    tracks = [
+        Track(spotify_id="t1", title="A", artist="X", album="", artist_genres=["rock"]),
+        Track(spotify_id="t2", title="B", artist="Y", album="", artist_genres=["pop"]),
+    ]
+    captured_kwargs: dict = {}
+
+    def fake_build_feature_matrix(_tracks, **kwargs):
+        captured_kwargs.update(kwargs)
+        return np.array([[0.0], [1.0]]), ["audio:tempo"]
+
+    class FakeHDBSCAN:
+        def __init__(self, min_cluster_size):
+            self.min_cluster_size = min_cluster_size
+
+        def fit_predict(self, _matrix):
+            return np.array([0, 1])
+
+    monkeypatch.setattr(cluster_mod, "build_feature_matrix", fake_build_feature_matrix)
+    fake_module = type("FakeHDBSCANModule", (), {"HDBSCAN": FakeHDBSCAN})
+    monkeypatch.setitem(sys.modules, "hdbscan", fake_module)
+
+    cluster_hdbscan(
+        tracks,
+        min_cluster_size=2,
+        audio_feature_weight=1.5,
+        audio_feature_weights={"tempo": 0.7},
+    )
+
+    assert captured_kwargs["audio_feature_weight"] == 1.5
+    assert captured_kwargs["audio_feature_weights"] == {"tempo": 0.7}

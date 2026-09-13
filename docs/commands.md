@@ -44,7 +44,16 @@ Options:
 - `--algorithm`: `kmeans` or `hdbscan`
 - `--k`: k-means cluster count or `auto`
 - `--genre-weight`: weight applied to genre features
-- `--audio-feature-weight`: weight applied to audio features
+- `--audio-feature-weight`: default weight applied to all audio features
+- `--audio-acousticness-weight`: optional override for acousticness weight
+- `--audio-danceability-weight`: optional override for danceability weight
+- `--audio-energy-weight`: optional override for energy weight
+- `--audio-instrumentalness-weight`: optional override for instrumentalness weight
+- `--audio-liveness-weight`: optional override for liveness weight
+- `--audio-loudness-weight`: optional override for loudness weight
+- `--audio-speechiness-weight`: optional override for speechiness weight
+- `--audio-tempo-weight`: optional override for tempo weight
+- `--audio-valence-weight`: optional override for valence weight
 - `--year-weight`: weight applied to release year features
 
 ### `playlist-forge analyze outliers`

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 from pathlib import Path
+from typing import Annotated
 
 import typer
 
@@ -21,6 +22,18 @@ act_app = typer.Typer(help="Write actions back to Spotify.")
 app.add_typer(auth_app, name="auth")
 app.add_typer(analyze_app, name="analyze")
 app.add_typer(act_app, name="act")
+
+_AUDIO_FEATURE_FIELDS = (
+    "acousticness",
+    "danceability",
+    "energy",
+    "instrumentalness",
+    "liveness",
+    "loudness",
+    "speechiness",
+    "tempo",
+    "valence",
+)
 
 
 def _playlist_name_for_id(track, playlist_id: str) -> str:
@@ -121,9 +134,26 @@ def analyze_cluster(
     fmt: str | None = typer.Option(None, "--format", "-f"),
     algorithm: str = typer.Option("kmeans", help="kmeans|hdbscan"),
     k: str = typer.Option("auto", help="Number of clusters (kmeans only), or 'auto'."),
-    genre_weight: float = typer.Option(1.0),
-    audio_feature_weight: float = typer.Option(1.0),
-    year_weight: float = typer.Option(0.3),
+    genre_weight: Annotated[float | None, typer.Option("--genre-weight")] = None,
+    audio_feature_weight: Annotated[float | None, typer.Option("--audio-feature-weight")] = None,
+    audio_acousticness_weight: Annotated[
+        float | None, typer.Option("--audio-acousticness-weight")
+    ] = None,
+    audio_danceability_weight: Annotated[
+        float | None, typer.Option("--audio-danceability-weight")
+    ] = None,
+    audio_energy_weight: Annotated[float | None, typer.Option("--audio-energy-weight")] = None,
+    audio_instrumentalness_weight: Annotated[
+        float | None, typer.Option("--audio-instrumentalness-weight")
+    ] = None,
+    audio_liveness_weight: Annotated[float | None, typer.Option("--audio-liveness-weight")] = None,
+    audio_loudness_weight: Annotated[float | None, typer.Option("--audio-loudness-weight")] = None,
+    audio_speechiness_weight: Annotated[
+        float | None, typer.Option("--audio-speechiness-weight")
+    ] = None,
+    audio_tempo_weight: Annotated[float | None, typer.Option("--audio-tempo-weight")] = None,
+    audio_valence_weight: Annotated[float | None, typer.Option("--audio-valence-weight")] = None,
+    year_weight: Annotated[float | None, typer.Option("--year-weight")] = None,
 ):
     """Cluster tracks by genre, audio-feature, and year similarity.
 
@@ -134,7 +164,16 @@ def analyze_cluster(
         algorithm: Clustering algorithm name.
         k: KMeans cluster count or ``auto``.
         genre_weight: Genre feature weight multiplier.
-        audio_feature_weight: Audio feature weight multiplier.
+        audio_feature_weight: Default audio feature weight multiplier.
+        audio_acousticness_weight: Optional per-feature override for acousticness.
+        audio_danceability_weight: Optional per-feature override for danceability.
+        audio_energy_weight: Optional per-feature override for energy.
+        audio_instrumentalness_weight: Optional per-feature override for instrumentalness.
+        audio_liveness_weight: Optional per-feature override for liveness.
+        audio_loudness_weight: Optional per-feature override for loudness.
+        audio_speechiness_weight: Optional per-feature override for speechiness.
+        audio_tempo_weight: Optional per-feature override for tempo.
+        audio_valence_weight: Optional per-feature override for valence.
         year_weight: Year feature weight multiplier.
 
     Returns:
@@ -144,16 +183,76 @@ def analyze_cluster(
         raise PlaylistForgeError(
             f"Unsupported --algorithm '{algorithm}'. Expected one of: kmeans, hdbscan."
         )
+
+    maybe_missing_values = [
+        genre_weight,
+        audio_feature_weight,
+        year_weight,
+        audio_acousticness_weight,
+        audio_danceability_weight,
+        audio_energy_weight,
+        audio_instrumentalness_weight,
+        audio_liveness_weight,
+        audio_loudness_weight,
+        audio_speechiness_weight,
+        audio_tempo_weight,
+        audio_valence_weight,
+    ]
+    if any(value is None for value in maybe_missing_values):
+        settings = load_settings()
+        cluster_config = settings.config.get("cluster", {})
+    else:
+        cluster_config = {}
+    resolved_genre_weight = (
+        genre_weight if genre_weight is not None else cluster_config.get("genre_weight", 1.0)
+    )
+    resolved_audio_feature_weight = (
+        audio_feature_weight
+        if audio_feature_weight is not None
+        else cluster_config.get("audio_feature_weight", 1.0)
+    )
+    resolved_year_weight = (
+        year_weight if year_weight is not None else cluster_config.get("year_weight", 0.3)
+    )
+
+    cli_audio_weight_overrides = {
+        "acousticness": audio_acousticness_weight,
+        "danceability": audio_danceability_weight,
+        "energy": audio_energy_weight,
+        "instrumentalness": audio_instrumentalness_weight,
+        "liveness": audio_liveness_weight,
+        "loudness": audio_loudness_weight,
+        "speechiness": audio_speechiness_weight,
+        "tempo": audio_tempo_weight,
+        "valence": audio_valence_weight,
+    }
+    config_audio_weight_overrides = {
+        field: cluster_config.get(f"audio_{field}_weight")
+        for field in _AUDIO_FEATURE_FIELDS
+        if cluster_config.get(f"audio_{field}_weight") is not None
+    }
+    resolved_audio_weight_overrides = {
+        **config_audio_weight_overrides,
+        **{field: value for field, value in cli_audio_weight_overrides.items() if value is not None},
+    }
+
     tracks = io_formats.read_tracks(input)
     if algorithm == "hdbscan":
         clustered = cluster_mod.cluster_hdbscan(
-            tracks, genre_weight=genre_weight,
-            audio_feature_weight=audio_feature_weight, year_weight=year_weight,
+            tracks,
+            genre_weight=resolved_genre_weight,
+            audio_feature_weight=resolved_audio_feature_weight,
+            audio_feature_weights=resolved_audio_weight_overrides,
+            year_weight=resolved_year_weight,
         )
     else:
         clustered = cluster_mod.cluster_kmeans(
-            tracks, k=k, genre_weight=genre_weight,
-            audio_feature_weight=audio_feature_weight, year_weight=year_weight,
+            tracks,
+            k=k,
+            genre_weight=resolved_genre_weight,
+            audio_feature_weight=resolved_audio_feature_weight,
+            audio_feature_weights=resolved_audio_weight_overrides,
+            year_weight=resolved_year_weight,
         )
     io_formats.write_tracks(clustered, output, fmt)
     n_clusters = len({t.cluster_id for t in clustered if t.cluster_id is not None})

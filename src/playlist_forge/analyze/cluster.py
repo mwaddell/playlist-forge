@@ -49,6 +49,7 @@ def cluster_kmeans(
     k: int | str = "auto",
     genre_weight: float = 1.0,
     audio_feature_weight: float = 1.0,
+    audio_feature_weights: dict[str, float] | None = None,
     year_weight: float = 0.3,
 ) -> list:
     """Assign ``cluster_id`` values using KMeans.
@@ -57,13 +58,21 @@ def cluster_kmeans(
         tracks: Tracks to cluster in place.
         k: Cluster count or ``"auto"`` for silhouette-based selection.
         genre_weight: Multiplier for one-hot genre features.
-        audio_feature_weight: Multiplier for standardized audio features.
+        audio_feature_weight: Default multiplier for scaled audio features.
+        audio_feature_weights: Optional per-feature multipliers keyed by audio
+            field name.
         year_weight: Multiplier for standardized year feature.
 
     Returns:
         The input tracks with ``cluster_id`` populated.
     """
-    matrix, _ = build_feature_matrix(tracks, genre_weight, audio_feature_weight, year_weight)
+    matrix, _ = build_feature_matrix(
+        tracks,
+        genre_weight=genre_weight,
+        audio_feature_weight=audio_feature_weight,
+        audio_feature_weights=audio_feature_weights,
+        year_weight=year_weight,
+    )
     if matrix.shape[1] == 0:
         raise ValueError(
             "No usable features found (no genres and no enriched audio features). "
@@ -83,6 +92,7 @@ def cluster_hdbscan(
     tracks: list,
     genre_weight: float = 1.0,
     audio_feature_weight: float = 1.0,
+    audio_feature_weights: dict[str, float] | None = None,
     year_weight: float = 0.3,
     min_cluster_size: int = 5,
 ) -> list:
@@ -91,7 +101,9 @@ def cluster_hdbscan(
     Args:
         tracks: Tracks to cluster in place.
         genre_weight: Multiplier for one-hot genre features.
-        audio_feature_weight: Multiplier for standardized audio features.
+        audio_feature_weight: Default multiplier for scaled audio features.
+        audio_feature_weights: Optional per-feature multipliers keyed by audio
+            field name.
         year_weight: Multiplier for standardized year feature.
         min_cluster_size: Minimum cluster size parameter for HDBSCAN.
 
@@ -107,7 +119,13 @@ def cluster_hdbscan(
             "or `pip install 'playlist-forge[hdbscan]'` for an installed package"
         ) from exc
 
-    matrix, _ = build_feature_matrix(tracks, genre_weight, audio_feature_weight, year_weight)
+    matrix, _ = build_feature_matrix(
+        tracks,
+        genre_weight=genre_weight,
+        audio_feature_weight=audio_feature_weight,
+        audio_feature_weights=audio_feature_weights,
+        year_weight=year_weight,
+    )
     if matrix.shape[1] == 0:
         raise ValueError("No usable features found — run `playlist-forge enrich` first.")
 

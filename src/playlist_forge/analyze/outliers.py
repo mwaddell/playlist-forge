@@ -17,6 +17,7 @@ def score_outliers(
     tracks: list,
     genre_weight: float = 1.0,
     audio_feature_weight: float = 1.0,
+    audio_feature_weights: dict[str, float] | None = None,
     year_weight: float = 0.3,
 ) -> list:
     """Score tracks by distance from a playlist centroid.
@@ -24,7 +25,9 @@ def score_outliers(
     Args:
         tracks: Tracks from a single playlist context.
         genre_weight: Multiplier for one-hot genre features.
-        audio_feature_weight: Multiplier for standardized audio features.
+        audio_feature_weight: Default multiplier for scaled audio features.
+        audio_feature_weights: Optional per-feature multipliers keyed by audio
+            field name.
         year_weight: Multiplier for standardized year feature.
 
     Returns:
@@ -35,7 +38,13 @@ def score_outliers(
             t.outlier_score = 0.0
         return tracks
 
-    matrix, _ = build_feature_matrix(tracks, genre_weight, audio_feature_weight, year_weight)
+    matrix, _ = build_feature_matrix(
+        tracks,
+        genre_weight=genre_weight,
+        audio_feature_weight=audio_feature_weight,
+        audio_feature_weights=audio_feature_weights,
+        year_weight=year_weight,
+    )
     if matrix.shape[1] == 0:
         for t in tracks:
             t.outlier_score = 0.0
