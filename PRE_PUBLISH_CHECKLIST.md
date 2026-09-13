@@ -171,7 +171,7 @@ they're the ones that actually hurt you if skipped.
 
 ## 7. Rate limiting & abuse consideration
 
-- [ ] **[Manual]** Think through what happens if someone runs this against a
+- [x] **[Manual]** Think through what happens if someone runs this against a
   Spotify account with an unusually large library, or runs multiple commands
   in a tight loop — does the tool respect Spotify's and ReccoBeats' rate
   limits gracefully, or does it hammer the API?
@@ -179,7 +179,7 @@ they're the ones that actually hurt you if skipped.
   > "Review spotify_client.py and reccobeats_client.py for rate-limit
   > handling. Does the code respect Retry-After headers on a 429 response? If
   > not, add backoff/retry logic."
-- [ ] **[Manual]** Test the above change against real rate limits if you can
+- [x] **[Manual]** Test the above change against real rate limits if you can
   reasonably trigger one (e.g. pulling a very large library), since simulated
   429s in a unit test won't catch every real-world quirk.
 
