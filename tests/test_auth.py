@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from playlist_forge import auth
 from playlist_forge.auth import get_spotify_client
 from playlist_forge.config import Settings
 from playlist_forge.errors import ConfigurationError
@@ -18,3 +19,23 @@ def test_get_spotify_client_raises_configuration_error_when_client_id_missing():
 
     with pytest.raises(ConfigurationError, match="SPOTIFY_CLIENT_ID is not set"):
         get_spotify_client(settings)
+
+
+def test_logout_removes_cached_token(monkeypatch, tmp_path):
+    token_path = tmp_path / "token.json"
+    token_path.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(auth, "TOKEN_PATH", token_path)
+
+    removed = auth.logout()
+
+    assert removed is True
+    assert not token_path.exists()
+
+
+def test_logout_returns_false_when_no_cached_token(monkeypatch, tmp_path):
+    token_path = tmp_path / "token.json"
+    monkeypatch.setattr(auth, "TOKEN_PATH", token_path)
+
+    removed = auth.logout()
+
+    assert removed is False

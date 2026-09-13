@@ -56,3 +56,15 @@ def login(settings: Settings) -> None:
     client = get_spotify_client(settings)
     me = client.current_user()
     print(f"Logged in as {me['display_name']} ({me['id']}). Token cached at {TOKEN_PATH}.")
+
+
+def logout() -> bool:
+    """Delete the cached Spotify OAuth token.
+
+    Returns:
+        True if a cached token file was removed, otherwise False.
+    """
+    if not TOKEN_PATH.exists():
+        return False
+    TOKEN_PATH.unlink()
+    return True

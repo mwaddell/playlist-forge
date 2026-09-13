@@ -31,6 +31,26 @@ def test_pull_exits_cleanly_for_expected_api_errors(monkeypatch, capsys, tmp_pat
     assert "Error: Spotify authentication failed (401)." in captured.err
 
 
+def test_auth_logout_reports_when_token_removed(monkeypatch, capsys):
+    monkeypatch.setattr(cli.auth, "logout", lambda: True)
+    monkeypatch.setattr(cli.auth, "TOKEN_PATH", Path("/tmp/token.json"))
+
+    cli.auth_logout()
+
+    captured = capsys.readouterr()
+    assert "Logged out. Removed cached token at /tmp/token.json." in captured.out
+
+
+def test_auth_logout_reports_when_token_missing(monkeypatch, capsys):
+    monkeypatch.setattr(cli.auth, "logout", lambda: False)
+    monkeypatch.setattr(cli.auth, "TOKEN_PATH", Path("/tmp/token.json"))
+
+    cli.auth_logout()
+
+    captured = capsys.readouterr()
+    assert "No cached token found at /tmp/token.json." in captured.out
+
+
 def test_analyze_cluster_rejects_unknown_algorithm(capsys, tmp_path):
     with pytest.raises(typer.Exit) as exc_info:
         cli.analyze_cluster(
