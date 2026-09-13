@@ -8,7 +8,8 @@ import requests
 
 from playlist_forge import cache
 from playlist_forge.errors import NetworkFailureError, RateLimitExceededError
-from playlist_forge.reccobeats_client import ReccoBeatsClient
+from playlist_forge.models import Track
+from playlist_forge.reccobeats_client import ReccoBeatsClient, _fallback_progress_track
 
 
 class DummySettings:
@@ -131,3 +132,74 @@ def test_fetch_does_not_cache_transient_failure(monkeypatch):
         client.fetch_by_spotify_id("abc")
 
     assert cache_writes == []
+
+
+def test_enrich_uses_progress_indicator(monkeypatch):
+    client = ReccoBeatsClient(DummySettings())
+    descriptions: list[str] = []
+    tracks = [
+        Track(spotify_id="track-1", title="Song 1", artist="Artist 1", album="Album 1"),
+        Track(spotify_id="track-2", title="Song 2", artist="Artist 2", album="Album 2"),
+    ]
+
+    monkeypatch.setattr("playlist_forge.reccobeats_client.sys.stdout.isatty", lambda: True)
+    monkeypatch.setattr(
+        "playlist_forge.reccobeats_client.progress_track",
+        lambda items, description: descriptions.append(description) or iter(items),
+    )
+    monkeypatch.setattr(client, "fetch_by_spotify_id", lambda spotify_id: {"tempo": 123.0, "confidence": 0.9})
+
+    enriched = client.enrich(tracks)
+
+    assert descriptions == ["Enriching tracks..."]
+    assert enriched is tracks
+    assert all(track.feature_source == "reccobeats" for track in tracks)
+
+
+def test_enrich_skips_progress_indicator_without_tty(monkeypatch):
+    client = ReccoBeatsClient(DummySettings())
+    tracks = [Track(spotify_id="track-1", title="Song 1", artist="Artist 1", album="Album 1")]
+
+    monkeypatch.setattr("playlist_forge.reccobeats_client.sys.stdout.isatty", lambda: False)
+    monkeypatch.setattr(
+        "playlist_forge.reccobeats_client.progress_track",
+        lambda *_args, **_kwargs: pytest.fail("progress_track should not run without a TTY"),
+    )
+    monkeypatch.setattr(client, "fetch_by_spotify_id", lambda spotify_id: None)
+
+    enriched = client.enrich(tracks)
+
+    assert enriched is tracks
+    assert tracks[0].feature_source == "unmatched"
+
+
+def test_enrich_skips_progress_indicator_when_stdout_has_no_isatty(monkeypatch):
+    client = ReccoBeatsClient(DummySettings())
+    tracks = [Track(spotify_id="track-1", title="Song 1", artist="Artist 1", album="Album 1")]
+
+    class StdoutWithoutIsatty:
+        def write(self, _text):
+            return None
+
+        def flush(self):
+            return None
+
+    monkeypatch.setattr("playlist_forge.reccobeats_client.sys.stdout", StdoutWithoutIsatty())
+    monkeypatch.setattr(
+        "playlist_forge.reccobeats_client.progress_track",
+        lambda *_args, **_kwargs: pytest.fail("progress_track should not run without isatty"),
+    )
+    monkeypatch.setattr(client, "fetch_by_spotify_id", lambda spotify_id: None)
+
+    enriched = client.enrich(tracks)
+
+    assert enriched is tracks
+    assert tracks[0].feature_source == "unmatched"
+
+
+def test_fallback_progress_track_returns_iterator():
+    items = [1, 2, 3]
+
+    progress_iter = _fallback_progress_track(items, description="Enriching tracks...", total=3)
+
+    assert list(progress_iter) == items
