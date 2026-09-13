@@ -13,10 +13,15 @@ Secrets stay in `.env` or the process environment.
 
 The repository ships `config.example.yaml` at the project root.
 
-By default, copy that file to `~/.config/playlist-forge/config.yaml` to
-override non-secret defaults.
-If `PLAYLIST_FORGE_HOME` is set, use `$PLAYLIST_FORGE_HOME/config.yaml`
-instead.
+By default, the app reads `config.yaml` from
+`Path.home() / ".config" / "playlist-forge"`, which is typically:
+
+- macOS and Linux: `~/.config/playlist-forge/config.yaml`
+- Windows: `%USERPROFILE%\\.config\\playlist-forge\\config.yaml`
+
+Copy `config.example.yaml` there to override non-secret defaults. If
+`PLAYLIST_FORGE_HOME` is set, the app reads
+`$PLAYLIST_FORGE_HOME/config.yaml` instead.
 
 ```yaml
 default_format: json

@@ -59,7 +59,7 @@ poetry run playlist-forge act add-from-list --file new_songs.txt --playlist "Dis
 The dataset conversion commands with file output (`pull`, `enrich`, and
 `analyze cluster`) accept `--format json|csv|tsv`, or infer the format from the
 file extension. `analyze outliers` prints directly to the terminal, and
-`analyze dedupe` always writes JSON.
+`analyze dedupe` writes JSON to the explicit `--output` path that you provide.
 
 - JSON stores list fields as native arrays.
 - CSV and TSV store list fields such as genres and playlist names as `;`-joined
