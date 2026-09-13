@@ -9,7 +9,7 @@ import requests
 from playlist_forge import cache
 from playlist_forge.errors import NetworkFailureError, RateLimitExceededError
 from playlist_forge.models import Track
-from playlist_forge.reccobeats_client import ReccoBeatsClient
+from playlist_forge.reccobeats_client import ReccoBeatsClient, _fallback_progress_track
 
 
 class DummySettings:
@@ -195,3 +195,11 @@ def test_enrich_skips_progress_indicator_when_stdout_has_no_isatty(monkeypatch):
 
     assert enriched is tracks
     assert tracks[0].feature_source == "unmatched"
+
+
+def test_fallback_progress_track_returns_iterator():
+    items = [1, 2, 3]
+
+    progress_iter = _fallback_progress_track(items, description="Enriching tracks...", total=3)
+
+    assert list(progress_iter) == items
