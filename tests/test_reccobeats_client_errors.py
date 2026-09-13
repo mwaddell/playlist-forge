@@ -171,3 +171,27 @@ def test_enrich_skips_progress_indicator_without_tty(monkeypatch):
 
     assert enriched is tracks
     assert tracks[0].feature_source == "unmatched"
+
+
+def test_enrich_skips_progress_indicator_when_stdout_has_no_isatty(monkeypatch):
+    client = ReccoBeatsClient(DummySettings())
+    tracks = [Track(spotify_id="track-1", title="Song 1", artist="Artist 1", album="Album 1")]
+
+    class StdoutWithoutIsatty:
+        def write(self, _text):
+            return None
+
+        def flush(self):
+            return None
+
+    monkeypatch.setattr("playlist_forge.reccobeats_client.sys.stdout", StdoutWithoutIsatty())
+    monkeypatch.setattr(
+        "playlist_forge.reccobeats_client.progress_track",
+        lambda *_args, **_kwargs: pytest.fail("progress_track should not run without isatty"),
+    )
+    monkeypatch.setattr(client, "fetch_by_spotify_id", lambda spotify_id: None)
+
+    enriched = client.enrich(tracks)
+
+    assert enriched is tracks
+    assert tracks[0].feature_source == "unmatched"

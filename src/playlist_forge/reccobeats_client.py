@@ -45,7 +45,7 @@ except ImportError:  # pragma: no cover - fallback for minimal installs
 
 def _maybe_progress_track(sequence: Iterable[T], description: str) -> Iterator[T]:
     """Show progress only for interactive terminals."""
-    if not sys.stdout.isatty():
+    if not getattr(sys.stdout, "isatty", lambda: False)():
         return iter(sequence)
     return iter(progress_track(sequence, description=description))
 
