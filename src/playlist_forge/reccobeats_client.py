@@ -21,16 +21,6 @@ from typing import TypeVar
 
 import requests
 
-T = TypeVar("T")
-
-try:
-    from rich.progress import track as progress_track
-except ImportError:  # pragma: no cover - fallback for minimal installs
-    def progress_track(sequence: Iterable[T], description: str) -> Iterable[T]:
-        """Return the input iterable unchanged when Rich is unavailable."""
-        _ = description
-        return sequence
-
 from . import cache
 from .config import Settings
 from .errors import (
@@ -40,6 +30,16 @@ from .errors import (
     RateLimitExceededError,
 )
 from .models import Track
+
+T = TypeVar("T")
+
+try:
+    from rich.progress import track as progress_track
+except ImportError:  # pragma: no cover - fallback for minimal installs
+    def progress_track(sequence: Iterable[T], description: str) -> Iterable[T]:
+        """Return the input iterable unchanged when Rich is unavailable."""
+        _ = description
+        return sequence
 
 FEATURE_FIELDS = (
     "tempo", "energy", "danceability", "valence",
