@@ -73,7 +73,7 @@ def auth_login():
 @auth_app.command("logout")
 @_handle_cli_errors
 def auth_logout():
-    """Clear cached Spotify OAuth token(s) from disk.
+    """Clear the cached Spotify OAuth token file from disk.
 
     Returns:
         None.
