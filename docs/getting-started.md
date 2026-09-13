@@ -59,7 +59,7 @@ poetry run playlist-forge act add-from-list --file new_songs.txt --playlist "Dis
 
 ## File formats
 
-The dataset conversion commands with file output (`pull`, `enrich`, `convert`,
+The dataset conversion commands with file output (`pull`, `enrich`, `library convert`,
 and `analyze cluster`) accept `--format json|csv|tsv`, or infer input/output
 formats from file extensions. `analyze outliers` prints directly to the
 terminal, and `analyze dedupe` writes JSON to the explicit `--output` path that
