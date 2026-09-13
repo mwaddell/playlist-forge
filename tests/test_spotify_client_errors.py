@@ -198,5 +198,5 @@ def test_pull_library_raises_external_error_when_current_user_id_is_unavailable(
 
     monkeypatch.setattr(spotify_client, "pull_playlist_tracks", fake_pull_playlist_tracks)
 
-    with pytest.raises(ExternalServiceError, match="status=403"):
+    with pytest.raises(ExternalServiceError, match="could not determine the current Spotify user id"):
         spotify_client.pull_library(FakeSpotify())

@@ -289,6 +289,11 @@ def pull_library(spotify: spotipy.Spotify, playlist_name_filter: str | None = No
                     "loading current Spotify user",
                     spotify.current_user,
                 ).get("id")
+                if not current_user_id:
+                    raise ExternalServiceError(
+                        "Spotify request failed while checking shared-playlist permissions: "
+                        "could not determine the current Spotify user id."
+                    ) from exc
             if playlist.owner_id and current_user_id and playlist.owner_id != current_user_id:
                 print(
                     f"Warning: Skipping playlist '{playlist.name}' ({playlist.spotify_id}) due to permission error.",
