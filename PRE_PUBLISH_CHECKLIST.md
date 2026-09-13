@@ -108,7 +108,7 @@ they're the ones that actually hurt you if skipped.
   > "Add or improve docstrings for any public function in src/playlist_forge/
   > that doesn't already explain its parameters and return value. Don't
   > change behavior, only add documentation."
-- [ ] **[Manual]** Read every Copilot-suggested change before committing —
+- [x] **[Manual]** Read every Copilot-suggested change before committing —
   especially anything touching `spotify_client.py`'s write operations
   (`create_playlist`, `add_tracks`) or the OAuth flow in `auth.py`. Those are
   the places where a subtly wrong suggestion could modify a user's real
@@ -119,7 +119,7 @@ they're the ones that actually hurt you if skipped.
   Ask Copilot to scaffold the mocks, then verify they reflect the *actual*
   Spotify/ReccoBeats response shapes (check against current docs, not just
   what Copilot assumes).
-- [ ] **[Manual]** Re-run `ruff check` and `pytest` one final time after all
+- [x] **[Manual]** Re-run `ruff check` and `pytest` one final time after all
   the above changes, and confirm CI passes on a fresh push, not just locally.
 
 ## 5. Repository hygiene / GitHub best practices
@@ -154,7 +154,7 @@ they're the ones that actually hurt you if skipped.
 
 ## 6. Dependency & supply-chain hygiene
 
-- [ ] **[Manual]** Pin or at least floor-pin dependency versions in
+- [x] **[Manual]** Pin or at least floor-pin dependency versions in
   `pyproject.toml` deliberately (they're currently `>=`, which is reasonable
   for a library but means a breaking change in `spotipy` or `scikit-learn`
   could silently break the tool for users — decide if you want to cap major
@@ -188,13 +188,13 @@ they're the ones that actually hurt you if skipped.
 - [ ] **[Manual]** Fresh clone into a **new directory** and follow your own
   README's Quickstart section verbatim, as if you'd never seen the code
   before — this catches missing setup steps that muscle memory papers over.
-- [ ] **[Manual]** Confirm the GitHub Actions CI badge (if you add one) and
+- [x] **[Manual]** Confirm the GitHub Actions CI badge (if you add one) and
   workflow actually run and pass on the public repo, not just in your local
   clone.
 - [ ] **[Manual]** Decide on a version tag (`v0.1.0`) and whether to cut a
   GitHub Release with notes, so early users have a stable point to install
   against instead of tracking `main`.
-- [ ] **[Manual]** Take one more look through git history for anything
+- [x] **[Manual]** Take one more look through git history for anything
   personal you don't want public — commit messages referencing your specific
   Spotify library, playlist names, debugging notes, etc.
 

@@ -31,7 +31,8 @@ from .models import Track
 
 FEATURE_FIELDS = (
     "tempo", "energy", "danceability", "valence",
-    "acousticness", "instrumentalness",
+    "acousticness", "instrumentalness", "liveness",
+    "loudness", "speechiness"
 )
 
 
@@ -159,9 +160,6 @@ class ReccoBeatsClient:
                 t.feature_source = "unmatched"
                 continue
 
-            # NOTE: verify these keys against the current ReccoBeats response
-            # shape (reccobeats.com/docs/apis/get-audio-features) — response
-            # field names are not guaranteed to be stable across their versions.
             for field_name in FEATURE_FIELDS:
                 if field_name in payload:
                     setattr(t, field_name, payload[field_name])

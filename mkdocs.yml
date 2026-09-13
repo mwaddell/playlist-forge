@@ -1,0 +1,25 @@
+site_name: playlist-forge
+site_description: Export, analyze, and reorganize Spotify playlists from the command line.
+site_url: https://mwaddell.github.io/playlist-forge/
+repo_url: https://github.com/mwaddell/playlist-forge
+repo_name: mwaddell/playlist-forge
+docs_dir: docs
+site_dir: site
+strict: true
+
+theme:
+  name: mkdocs
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Commands: commands.md
+  - Configuration: configuration.md
+  - Development: development.md
+
+markdown_extensions:
+  - admonition
+  - sane_lists
+  - tables
+  - toc:
+      permalink: true
