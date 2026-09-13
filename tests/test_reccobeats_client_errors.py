@@ -147,7 +147,8 @@ def test_enrich_uses_progress_indicator(monkeypatch):
         "playlist_forge.reccobeats_client.progress_track",
         lambda items, description: descriptions.append(description) or iter(items),
     )
-    monkeypatch.setattr(client, "fetch_by_spotify_id", lambda spotify_id: {"content": [{"tempo": 123.0, "confidence": 0.9}]})
+    monkeypatch.setattr(client, "fetch_by_spotify_id", 
+        lambda spotify_id: {"content": [{"tempo": 123.0, "confidence": 0.9}]})
 
     enriched = client.enrich(tracks)
 
