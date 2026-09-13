@@ -30,7 +30,7 @@ from the command line.
 ```text
 pull    (Spotify)      → canonical Track dataset
 enrich  (ReccoBeats)   → adds audio-feature columns where matched
-library                → copies dataset as json/csv/tsv
+library                → manages local library dataset files
 analyze (scikit-learn) → cluster / outliers / dedupe — pure, offline, no API calls
 act     (Spotify)      → create/split/merge playlists, add matched songs
 ```
