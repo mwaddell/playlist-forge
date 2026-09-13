@@ -65,7 +65,9 @@ Options:
 - `--input`, `-i`: input dataset path
 - `--output`, `-o`: output JSON report path
 - `--track-threshold`: similarity threshold for duplicate-track detection
+  (matches `dedupe.title_artist_threshold` in `config.yaml`)
 - `--playlist-threshold`: Jaccard threshold for playlist overlap detection
+  (matches `dedupe.playlist_overlap_threshold` in `config.yaml`)
 
 ## `act`
 

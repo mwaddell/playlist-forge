@@ -5,13 +5,16 @@
 Secrets stay in `.env` or the process environment.
 
 - `SPOTIFY_CLIENT_ID`: required for Spotify OAuth
+- `SPOTIFY_REDIRECT_URI`: optional override for the OAuth callback URL
 - `RECCOBEATS_API_KEY`: required for `enrich`
 - `PLAYLIST_FORGE_HOME`: optional override for the config and cache root
 
 ## Config file
 
-By default, copy `config.example.yaml` to
-`~/.config/playlist-forge/config.yaml` to override non-secret defaults.
+The repository ships `config.example.yaml` at the project root.
+
+By default, copy that file to `~/.config/playlist-forge/config.yaml` to
+override non-secret defaults.
 If `PLAYLIST_FORGE_HOME` is set, use `$PLAYLIST_FORGE_HOME/config.yaml`
 instead.
 
@@ -24,8 +27,8 @@ cluster:
   year_weight: 0.3
 
 dedupe:
-  title_artist_threshold: 0.90
-  playlist_overlap_threshold: 0.60
+  title_artist_threshold: 0.90      # same behavior as --track-threshold
+  playlist_overlap_threshold: 0.60  # same behavior as --playlist-threshold
 
 reccobeats:
   base_url: https://api.reccobeats.com
@@ -35,5 +38,6 @@ reccobeats:
 ## Cache and state
 
 - Spotify authentication tokens are cached locally after `auth login`.
+- Tokens are stored in `token.json` under the active config directory.
 - Analyze commands operate on local dataset files and do not call Spotify.
 - Write actions call Spotify only after you explicitly run an `act` command.
