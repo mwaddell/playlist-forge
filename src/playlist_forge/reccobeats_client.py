@@ -178,7 +178,9 @@ class ReccoBeatsClient:
             downstream analysis can treat missing values explicitly.
         """
         for t in _maybe_progress_track(tracks, description="Enriching tracks..."):
-            payload = self.fetch_by_spotify_id(t.spotify_id)
+            response = self.fetch_by_spotify_id(t.spotify_id)
+            content = response.get("content", []) if response else []
+            payload = content[0] if content else {}
             if not payload:
                 t.feature_source = "unmatched"
                 continue
@@ -187,5 +189,5 @@ class ReccoBeatsClient:
                 if field_name in payload:
                     setattr(t, field_name, payload[field_name])
             t.feature_source = "reccobeats"
-            t.feature_match_confidence = payload.get("confidence")
+            t.feature_match_confidence = 1.0 / len(content)
         return tracks
