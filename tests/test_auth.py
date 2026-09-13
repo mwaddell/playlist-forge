@@ -46,14 +46,18 @@ def test_logout_returns_false_when_token_path_is_directory(monkeypatch, tmp_path
     token_path.mkdir()
     monkeypatch.setattr(auth, "TOKEN_PATH", token_path)
 
-    removed = auth.logout()
-
-    assert removed is False
-    assert token_path.exists()
+    with pytest.raises(ConfigurationError, match="Cached token path is not a file"):
+        auth.logout()
 
 
 def test_logout_raises_configuration_error_on_permission_error(monkeypatch):
     class NonDeletablePath:
+        def exists(self):
+            return True
+
+        def is_file(self):
+            return True
+
         def unlink(self):
             raise PermissionError("permission denied")
 
