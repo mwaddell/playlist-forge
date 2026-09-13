@@ -18,7 +18,12 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 
 import requests
-from rich.progress import track as progress_track
+
+try:
+    from rich.progress import track as progress_track
+except ImportError:  # pragma: no cover - fallback for minimal installs
+    def progress_track(sequence, description: str):
+        return sequence
 
 from . import cache
 from .config import Settings
