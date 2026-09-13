@@ -50,3 +50,17 @@ def test_logout_returns_false_when_token_path_is_directory(monkeypatch, tmp_path
 
     assert removed is False
     assert token_path.exists()
+
+
+def test_logout_raises_configuration_error_on_permission_error(monkeypatch):
+    class NonDeletablePath:
+        def unlink(self):
+            raise PermissionError("permission denied")
+
+        def __str__(self):
+            return "/fake/token.json"
+
+    monkeypatch.setattr(auth, "TOKEN_PATH", NonDeletablePath())
+
+    with pytest.raises(ConfigurationError, match="Could not remove cached token at /fake/token.json"):
+        auth.logout()

@@ -70,4 +70,6 @@ def logout() -> bool:
         return False
     except IsADirectoryError:
         return False
+    except PermissionError as exc:
+        raise ConfigurationError(f"Could not remove cached token at {TOKEN_PATH}: {exc}") from exc
     return True
