@@ -17,8 +17,9 @@ poetry install
 cp .env.example .env
 ```
 
-Set `SPOTIFY_CLIENT_ID` in `.env`. No Spotify client secret is required because
-the tool uses PKCE.
+The repository includes `.env.example` in the project root. Copy it to `.env`
+and set `SPOTIFY_CLIENT_ID`. No Spotify client secret is required because the
+tool uses PKCE.
 
 ## Authenticate
 
@@ -55,8 +56,10 @@ poetry run playlist-forge act add-from-list --file new_songs.txt --playlist "Dis
 
 ## File formats
 
-Commands that read or write track datasets accept `--format json|csv|tsv`, or
-infer the format from the file extension.
+The dataset conversion commands with file output (`pull`, `enrich`, and
+`analyze cluster`) accept `--format json|csv|tsv`, or infer the format from the
+file extension. `analyze outliers` prints directly to the terminal, and
+`analyze dedupe` always writes JSON.
 
 - JSON stores list fields as native arrays.
 - CSV and TSV store list fields such as genres and playlist names as `;`-joined
