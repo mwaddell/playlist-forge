@@ -35,6 +35,9 @@ class Track:
     valence: float | None = None
     acousticness: float | None = None
     instrumentalness: float | None = None
+    liveness: float | None = None
+    loudness: float | None = None
+    speechiness: float | None = None
 
     # Provenance: be honest about where enrichment data came from, since
     # Spotify's own audio-features endpoint is deprecated for new apps.
@@ -89,7 +92,8 @@ class Track:
                 kwargs[key] = int(value)
             elif key in (
                 "tempo", "energy", "danceability", "valence",
-                "acousticness", "instrumentalness", "feature_match_confidence",
+                "acousticness", "instrumentalness", "liveness", 
+                "loudness", "speechiness", "feature_match_confidence",
                 "outlier_score",
             ):
                 kwargs[key] = float(value)

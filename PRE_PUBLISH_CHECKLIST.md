@@ -154,7 +154,7 @@ they're the ones that actually hurt you if skipped.
 
 ## 6. Dependency & supply-chain hygiene
 
-- [ ] **[Manual]** Pin or at least floor-pin dependency versions in
+- [x] **[Manual]** Pin or at least floor-pin dependency versions in
   `pyproject.toml` deliberately (they're currently `>=`, which is reasonable
   for a library but means a breaking change in `spotipy` or `scikit-learn`
   could silently break the tool for users — decide if you want to cap major

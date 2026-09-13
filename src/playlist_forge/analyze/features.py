@@ -12,7 +12,8 @@ from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler
 
 AUDIO_FEATURE_FIELDS = (
     "tempo", "energy", "danceability", "valence",
-    "acousticness", "instrumentalness",
+    "acousticness", "instrumentalness", "liveness",
+    "loudness", "speechiness"
 )
 
 
