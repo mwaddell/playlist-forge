@@ -31,7 +31,7 @@ def test_search_track_retries_after_rate_limit(monkeypatch, patched_spotify_exce
             if calls["count"] == 1:
                 raise FakeSpotifyException(429, headers={"Retry-After": "0"})
             return {
-                "items": {
+                "tracks": {
                     "items": [
                         {
                             "id": "track-1",

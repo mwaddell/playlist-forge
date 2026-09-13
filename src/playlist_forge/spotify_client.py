@@ -303,7 +303,7 @@ def search_track(
     results = _spotify_call(
         "searching for track", lambda: spotify.search(q=query, type="track", limit=5)
     )
-    items = results.get("items", {}).get("items", [])
+    items = results.get("tracks", {}).get("items", [])
     if not items:
         # fall back to a looser, unscoped query
         loose_query = " ".join(p for p in (title, artist) if p)
@@ -311,7 +311,7 @@ def search_track(
             "running fallback track search",
             lambda: spotify.search(q=loose_query, type="track", limit=5),
         )
-        items = results.get("items", {}).get("items", [])
+        items = results.get("tracks", {}).get("items", [])
     if not items:
         return None
 
