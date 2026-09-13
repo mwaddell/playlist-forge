@@ -22,7 +22,6 @@ class Track:
 
     isrc: str | None = None
     year: int | None = None
-    popularity: int | None = None
     duration_ms: int | None = None
     added_at: str | None = None
     artist_genres: list[str] = field(default_factory=list)
@@ -88,7 +87,7 @@ class Track:
                 kwargs[key] = [v for v in (value or "").split(delimiter) if v]
             elif value in ("", None):
                 kwargs[key] = None
-            elif key in ("year", "popularity", "duration_ms", "cluster_id"):
+            elif key in ("year", "duration_ms", "cluster_id"):
                 kwargs[key] = int(value)
             elif key in (
                 "tempo", "energy", "danceability", "valence",

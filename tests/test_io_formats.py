@@ -13,7 +13,6 @@ def sample_tracks():
             playlist_names=["Chill", "Focus"],
             isrc="GBUM71029601",
             year=2000,
-            popularity=71,
             duration_ms=249000,
             artist_genres=["art rock", "alternative rock"],
             tempo=122.5,

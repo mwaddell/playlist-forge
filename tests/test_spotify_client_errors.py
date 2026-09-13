@@ -39,7 +39,6 @@ def test_search_track_retries_after_rate_limit(monkeypatch, patched_spotify_exce
                             "artists": [{"name": "Artist"}],
                             "album": {"name": "Album"},
                             "external_ids": {"isrc": "isrc-1"},
-                            "popularity": 50,
                             "duration_ms": 200000,
                         }
                     ]
