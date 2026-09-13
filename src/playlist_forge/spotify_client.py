@@ -7,6 +7,7 @@ import spotipy at all.
 
 from __future__ import annotations
 
+import sys
 import time
 from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
@@ -88,7 +89,10 @@ def _spotify_request(
     raise RuntimeError(f"unreachable retry loop for {description}")
 
 
-def _spotify_call(operation: str, call: Callable[[], T]) -> T:
+def _spotify_call(
+    operation: str,
+    call: Callable[[], T],
+) -> T:
     for attempt in range(_SPOTIFY_MAX_RETRIES + 1):
         try:
             return call()
@@ -155,6 +159,7 @@ def list_playlists(spotify: spotipy.Spotify) -> list[Playlist]:
             description=p.get("description") or None,
             track_count=p["items"]["total"],
             owner=p["owner"]["display_name"],
+            owner_id=p["owner"].get("id"),
             is_collaborative=p.get("collaborative", False),
         )
         for p in raw
@@ -267,8 +272,36 @@ def pull_library(spotify: spotipy.Spotify, playlist_name_filter: str | None = No
         playlists = [p for p in playlists if playlist_name_filter.lower() in p.name.lower()]
 
     by_id: dict[str, Track] = {}
+    current_user_id: str | None = None
     for playlist in progress_track(playlists, description="Pulling playlists..."):
-        for t in pull_playlist_tracks(spotify, playlist):
+        try:
+            playlist_tracks = pull_playlist_tracks(spotify, playlist)
+        except ExternalServiceError as exc:
+            cause = exc.__cause__
+            if not (
+                playlist.owner_id
+                and isinstance(cause, spotipy.exceptions.SpotifyException)
+                and _spotify_status_code(cause) == 403
+            ):
+                raise
+            if current_user_id is None:
+                current_user_id = _spotify_call(
+                    "loading current Spotify user",
+                    spotify.current_user,
+                ).get("id")
+                if not current_user_id:
+                    raise ExternalServiceError(
+                        "Spotify request failed while checking shared-playlist permissions: "
+                        "could not determine the current Spotify user id."
+                    ) from exc
+            if playlist.owner_id and current_user_id and playlist.owner_id != current_user_id:
+                print(
+                    f"Warning: Skipping playlist '{playlist.name}' ({playlist.spotify_id}) due to permission error.",
+                    file=sys.stderr,
+                )
+                continue
+            raise
+        for t in playlist_tracks:
             existing = by_id.get(t.spotify_id)
             if existing:
                 existing.playlist_ids.extend(t.playlist_ids)
