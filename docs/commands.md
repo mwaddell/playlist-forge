@@ -69,6 +69,9 @@ Options:
 - `--playlist-threshold`: Jaccard threshold for playlist overlap detection
   (matches `dedupe.playlist_overlap_threshold` in `config.yaml`)
 
+Use a `.json` output path for this command; unlike the track-dataset commands,
+it does not support CSV or TSV output.
+
 ## `act`
 
 All write commands support `--dry-run`. Use it before changing Spotify data.
