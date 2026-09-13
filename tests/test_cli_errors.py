@@ -163,7 +163,7 @@ def test_convert_with_explicit_output_format(tmp_path):
     output_rows = output_path.read_text(encoding="utf-8").splitlines()
 
     assert output_rows[0].startswith("spotify_id\ttitle\tartist\talbum\t")
-    loaded = read_tracks(output_path)
+    loaded = read_tracks(output_path, fmt="tsv")
     assert loaded[0].spotify_id == "abc"
 
 
