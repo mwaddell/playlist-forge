@@ -32,6 +32,5 @@ jobs:
         with:
           python-version: "3.12"
       - uses: abatilo/actions-poetry@v4
-      - run: poetry install --only docs --no-root --no-interaction
-      - run: poetry run python -m pip install --no-deps -e .
+      - run: poetry install --with docs --without dev --no-interaction
       - run: poetry run mkdocs build --strict
