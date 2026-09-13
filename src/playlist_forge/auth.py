@@ -64,7 +64,10 @@ def logout() -> bool:
     Returns:
         True if a cached token file was removed, otherwise False.
     """
-    if not TOKEN_PATH.is_file():
+    try:
+        TOKEN_PATH.unlink()
+    except FileNotFoundError:
         return False
-    TOKEN_PATH.unlink()
+    except IsADirectoryError:
+        return False
     return True
