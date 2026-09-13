@@ -6,6 +6,10 @@
 
 Authenticate with Spotify and cache a token for later commands.
 
+### `playlist-forge auth logout`
+
+Delete cached Spotify token.
+
 ## `pull`
 
 ### `playlist-forge pull`
