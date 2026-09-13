@@ -13,6 +13,7 @@ Docs: https://reccobeats.com/docs/apis/get-audio-features
 
 from __future__ import annotations
 
+import sys
 import time
 from collections.abc import Iterable, Iterator
 from datetime import datetime, timezone
@@ -40,6 +41,13 @@ except ImportError:  # pragma: no cover - fallback for minimal installs
         """Return an iterator over the input when Rich is unavailable."""
         _ = (args, kwargs)
         return iter(sequence)
+
+
+def _maybe_progress_track(sequence: Iterable[T], description: str) -> Iterator[T]:
+    """Show progress only for interactive terminals."""
+    if not sys.stdout.isatty():
+        return iter(sequence)
+    return iter(progress_track(sequence, description=description))
 
 FEATURE_FIELDS = (
     "tempo", "energy", "danceability", "valence",
@@ -166,7 +174,7 @@ class ReccoBeatsClient:
             without a match are marked with ``feature_source="unmatched"`` so
             downstream analysis can treat missing values explicitly.
         """
-        for t in progress_track(tracks, description="Enriching tracks..."):
+        for t in _maybe_progress_track(tracks, description="Enriching tracks..."):
             payload = self.fetch_by_spotify_id(t.spotify_id)
             if not payload:
                 t.feature_source = "unmatched"
