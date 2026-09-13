@@ -36,9 +36,9 @@ T = TypeVar("T")
 try:
     from rich.progress import track as progress_track
 except ImportError:  # pragma: no cover - fallback for minimal installs
-    def progress_track(sequence: Iterable[T], description: str) -> Iterator[T]:
+    def progress_track(sequence: Iterable[T], *args: object, **kwargs: object) -> Iterator[T]:
         """Return an iterator over the input when Rich is unavailable."""
-        _ = description
+        _ = (args, kwargs)
         return iter(sequence)
 
 FEATURE_FIELDS = (
