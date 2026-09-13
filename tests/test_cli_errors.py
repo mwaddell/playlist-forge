@@ -7,6 +7,7 @@ import typer
 
 from playlist_forge import cli
 from playlist_forge.errors import AuthFailureError
+from playlist_forge.io_formats import read_tracks, write_tracks
 from playlist_forge.models import Track
 
 
@@ -124,3 +125,55 @@ def test_analyze_cluster_cli_audio_weight_overrides_config(monkeypatch, tmp_path
 
     assert captured_kwargs["audio_feature_weight"] == 3.0
     assert captured_kwargs["audio_feature_weights"] == {"tempo": 0.9, "valence": 1.2}
+
+
+def test_convert_uses_inferred_formats(monkeypatch, tmp_path):
+    tracks = [Track(spotify_id="abc", title="Song", artist="Artist", album="Album")]
+    captured_args: dict = {}
+
+    def fake_read(path):
+        captured_args["read_path"] = path
+        return tracks
+
+    def fake_write(written_tracks, path, fmt):
+        captured_args["written_tracks"] = written_tracks
+        captured_args["write_path"] = path
+        captured_args["fmt"] = fmt
+
+    monkeypatch.setattr(cli.io_formats, "read_tracks", fake_read)
+    monkeypatch.setattr(cli.io_formats, "write_tracks", fake_write)
+
+    input_path = Path(tmp_path / "library.json")
+    output_path = Path(tmp_path / "library.tsv")
+    cli.library_convert(input=input_path, output=output_path, fmt=None)
+
+    assert captured_args["read_path"] == input_path
+    assert captured_args["written_tracks"] == tracks
+    assert captured_args["write_path"] == output_path
+    assert captured_args["fmt"] is None
+
+
+def test_convert_with_explicit_output_format(tmp_path):
+    input_path = Path(tmp_path / "library.json")
+    output_path = Path(tmp_path / "library_copy.json")
+    tracks = [Track(spotify_id="abc", title="Song", artist="Artist", album="Album")]
+    write_tracks(tracks, input_path)
+
+    cli.library_convert(input=input_path, output=output_path, fmt="tsv")
+    output_rows = output_path.read_text(encoding="utf-8").splitlines()
+
+    assert output_rows[0].startswith("spotify_id\ttitle\tartist\talbum\t")
+    loaded = read_tracks(output_path, fmt="tsv")
+    assert loaded[0].spotify_id == "abc"
+
+
+def test_convert_same_format_creates_copy(tmp_path):
+    input_path = Path(tmp_path / "library.json")
+    output_path = Path(tmp_path / "library_copy.json")
+    tracks = [Track(spotify_id="abc", title="Song", artist="Artist", album="Album")]
+    write_tracks(tracks, input_path)
+
+    cli.library_convert(input=input_path, output=output_path, fmt=None)
+
+    copied = read_tracks(output_path)
+    assert [t.spotify_id for t in copied] == ["abc"]

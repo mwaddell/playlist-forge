@@ -14,7 +14,7 @@ from pathlib import Path
 
 from .models import Track
 
-_DELIMS = {"csv": ",", "tsv": "\t", "tab": "\t"}
+_DELIMS = {"csv": ",", "tsv": "\t", "tab": "\t", "txt": "\t"}
 
 
 def infer_format(path: str | Path) -> str:
@@ -29,7 +29,7 @@ def infer_format(path: str | Path) -> str:
     suffix = Path(path).suffix.lower().lstrip(".")
     if suffix in ("json",):
         return "json"
-    if suffix in ("tsv", "tab"):
+    if suffix in ("tsv", "tab", "txt"):
         return "tsv"
     return "csv"
 

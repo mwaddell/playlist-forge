@@ -13,10 +13,11 @@ from the command line.
 ## Workflow
 
 1. Authenticate with Spotify.
-2. Pull playlist data to a local file.
+2. Pull playlist data to a local library file.
 3. Optionally enrich the dataset with audio features.
-4. Run offline analysis commands.
-5. Review the outputs and apply write actions with `--dry-run` first.
+4. Optionally manipulate the local library file.
+5. Run offline analysis commands.
+6. Review the outputs and apply write actions with `--dry-run` first.
 
 ## Quick links
 
@@ -30,6 +31,7 @@ from the command line.
 ```text
 pull    (Spotify)      → canonical Track dataset
 enrich  (ReccoBeats)   → adds audio-feature columns where matched
+library                → manages local library files
 analyze (scikit-learn) → cluster / outliers / dedupe — pure, offline, no API calls
 act     (Spotify)      → create/split/merge playlists, add matched songs
 ```

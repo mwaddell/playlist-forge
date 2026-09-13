@@ -45,16 +45,19 @@ poetry run playlist-forge pull --output library.json
 #    works on genre + year alone if you skip this)
 poetry run playlist-forge enrich --input library.json --output library_enriched.json
 
-# 4. Cluster everything
+# 4. Convert between dataset formats
+poetry run playlist-forge library convert --input library_enriched.json --output library_enriched.tsv
+
+# 5. Cluster everything
 poetry run playlist-forge analyze cluster --input library_enriched.json --output clustered.json
 
-# 5. See what looks out of place in each playlist
+# 6. See what looks out of place in each playlist
 poetry run playlist-forge analyze outliers --input clustered.json --top-n 5
 
-# 6. Find near-duplicate tracks and overlapping playlists
+# 7. Find near-duplicate tracks and overlapping playlists
 poetry run playlist-forge analyze dedupe --input library_enriched.json --output dedupe_report.json
 
-# 7. Review clustered.json / dedupe_report.json by hand, then act:
+# 8. Review clustered.json / dedupe_report.json by hand, then act:
 poetry run playlist-forge act create-from-clusters --input clustered.json --dry-run
 poetry run playlist-forge act merge --playlists "Chill 1,Chill 2" --into "Chill (merged)" --dry-run
 poetry run playlist-forge act add-from-list --file new_songs.txt --playlist "Discover" --dry-run
@@ -66,15 +69,16 @@ will print what it would do without touching your account.
 ## File formats
 
 Every command that reads or writes a track dataset accepts `--format
-json|csv|tsv` (or infers it from the file extension). All three are
-lossless round-trips of the same schema — list fields (playlist names,
-genres) are `;`-joined in csv/tsv and native arrays in json.
+json|csv|tsv` (or infers input/output formats from file extensions). All
+three are lossless round-trips of the same schema — list fields (playlist
+names, genres) are `;`-joined in csv/tsv and native arrays in json.
 
 ## Architecture
 
 ```
 pull    (Spotify)      → canonical Track dataset
 enrich  (ReccoBeats)   → adds audio-feature columns where matched
+library                → manages local library files
 analyze (scikit-learn) → cluster / outliers / dedupe — pure, offline, no API calls
 act     (Spotify)      → create/split/merge playlists, add matched songs
 ```

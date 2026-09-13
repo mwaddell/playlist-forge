@@ -24,8 +24,6 @@ Copy `config.example.yaml` there to override non-secret defaults. If
 `$PLAYLIST_FORGE_HOME/config.yaml` instead.
 
 ```yaml
-default_format: json
-
 cluster:
   genre_weight: 1.0
   audio_feature_weight: 1.0
@@ -41,8 +39,8 @@ cluster:
   year_weight: 0.3
 
 dedupe:
-  title_artist_threshold: 0.90      # same behavior as --track-threshold
-  playlist_overlap_threshold: 0.60  # same behavior as --playlist-threshold
+  title_artist_threshold: 0.90 # same behavior as --track-threshold
+  playlist_overlap_threshold: 0.60 # same behavior as --playlist-threshold
 
 reccobeats:
   base_url: https://api.reccobeats.com

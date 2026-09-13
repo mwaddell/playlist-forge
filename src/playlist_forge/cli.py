@@ -17,9 +17,11 @@ from .reccobeats_client import ReccoBeatsClient
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 auth_app = typer.Typer(help="Spotify authentication.")
+library_app = typer.Typer(help="Manage local library files.")
 analyze_app = typer.Typer(help="Offline analysis over a pulled/enriched dataset.")
 act_app = typer.Typer(help="Write actions back to Spotify.")
 app.add_typer(auth_app, name="auth")
+app.add_typer(library_app, name="library")
 app.add_typer(analyze_app, name="analyze")
 app.add_typer(act_app, name="act")
 
@@ -123,6 +125,29 @@ def enrich(
 
     matched = sum(1 for t in enriched if t.feature_source == "reccobeats")
     typer.echo(f"Enriched {matched}/{len(enriched)} tracks -> {output}")
+
+
+# ---------------------------------------------- library: convert ----
+@library_app.command("convert")
+@_handle_cli_errors
+def library_convert(
+    input: Path = typer.Option(..., "--input", "-i"),
+    output: Path = typer.Option(..., "--output", "-o"),
+    fmt: str | None = typer.Option(None, "--format", "-f"),
+):
+    """Copy a dataset file into another supported format.
+
+    Args:
+        input: Input dataset path.
+        output: Output dataset path.
+        fmt: Optional output format override.
+
+    Returns:
+        None.
+    """
+    tracks = io_formats.read_tracks(input)
+    io_formats.write_tracks(tracks, output, fmt)
+    typer.echo(f"Converted {len(tracks)} tracks -> {output}")
 
 
 # ------------------------------------------------------------- analyze ----
