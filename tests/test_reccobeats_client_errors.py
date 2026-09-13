@@ -42,7 +42,7 @@ class FakeResponse:
 
 def test_get_retries_timeout_then_succeeds(monkeypatch):
     client = ReccoBeatsClient(DummySettings())
-    responses = [requests.exceptions.Timeout("timeout"), FakeResponse(200, {"tempo": 128})]
+    responses = [requests.exceptions.Timeout("timeout"), FakeResponse(200, {"content":[{"tempo": 128}]})]
 
     def fake_get(*args, **kwargs):
         result = responses.pop(0)
@@ -54,7 +54,7 @@ def test_get_retries_timeout_then_succeeds(monkeypatch):
     monkeypatch.setattr("playlist_forge.reccobeats_client.time.sleep", lambda _seconds: None)
 
     payload = client._get("/v1/audio-features", {"ids": "abc"})
-    assert payload == {"tempo": 128}
+    assert payload == {"content": [{"tempo": 128}]}
 
 
 def test_get_raises_after_repeated_rate_limits(monkeypatch):
@@ -75,7 +75,7 @@ def test_get_retries_with_lowercase_retry_after_header(monkeypatch):
     slept: list[float] = []
     responses = [
         FakeResponse(429, headers={"retry-after": "0.25"}),
-        FakeResponse(200, {"tempo": 128}),
+        FakeResponse(200, {"content":[{"tempo": 128}]}),
     ]
 
     def fake_get(*args, **kwargs):
@@ -89,7 +89,7 @@ def test_get_retries_with_lowercase_retry_after_header(monkeypatch):
 
     payload = client._get("/v1/audio-features", {"ids": "abc"})
 
-    assert payload == {"tempo": 128}
+    assert payload == {"content":[{"tempo": 128}]}
     assert slept == [0.25]
 
 
@@ -147,7 +147,7 @@ def test_enrich_uses_progress_indicator(monkeypatch):
         "playlist_forge.reccobeats_client.progress_track",
         lambda items, description: descriptions.append(description) or iter(items),
     )
-    monkeypatch.setattr(client, "fetch_by_spotify_id", lambda spotify_id: {"tempo": 123.0, "confidence": 0.9})
+    monkeypatch.setattr(client, "fetch_by_spotify_id", lambda spotify_id: {"content": [{"tempo": 123.0, "confidence": 0.9}]})
 
     enriched = client.enrich(tracks)
 
