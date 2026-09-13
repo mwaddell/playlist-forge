@@ -90,13 +90,20 @@ def _spotify_request(
     raise RuntimeError(f"unreachable retry loop for {description}")
 
 
-def _spotify_call(operation: str, call: Callable[[], T]) -> T:
+def _spotify_call(
+    operation: str,
+    call: Callable[[], T],
+    *,
+    forbidden_message: str | None = None,
+) -> T:
     for attempt in range(_SPOTIFY_MAX_RETRIES + 1):
         try:
             return call()
         except spotipy.exceptions.SpotifyException as exc:
             status = _spotify_status_code(exc)
             headers = _spotify_headers(exc)
+            if status == 403 and forbidden_message is not None:
+                raise PlaylistPermissionError(forbidden_message) from exc
             if status == 401:
                 raise AuthFailureError(
                     "Spotify authentication failed (401). "
@@ -193,28 +200,20 @@ def pull_playlist_tracks(
     Returns:
         Track objects for the playlist.
     """
-    try:
-        first = _spotify_call(
-            f"pulling tracks for playlist '{playlist.name}'",
-            lambda: spotify.playlist_items(
-                playlist.spotify_id,
-                additional_types=("track",),
-                fields=(
-                    "items(added_at,track(id,name,album(name,release_date),artists(id,name),"
-                    "duration_ms,popularity,external_ids)),next"
-                ),
+    first = _spotify_call(
+        f"pulling tracks for playlist '{playlist.name}'",
+        lambda: spotify.playlist_items(
+            playlist.spotify_id,
+            additional_types=("track",),
+            fields=(
+                "items(added_at,track(id,name,album(name,release_date),artists(id,name),"
+                "duration_ms,popularity,external_ids)),next"
             ),
-        )
-    except ExternalServiceError as exc:
-        cause = exc.__cause__
-        if (
-            isinstance(cause, spotipy.exceptions.SpotifyException)
-            and _spotify_status_code(cause) == 403
-        ):
-            raise PlaylistPermissionError(
-                f"Skipping playlist '{playlist.name}' ({playlist.spotify_id}) due to permission error."
-            ) from exc
-        raise
+        ),
+        forbidden_message=(
+            f"Skipping playlist '{playlist.name}' ({playlist.spotify_id}) due to permission error."
+        ),
+    )
     raw_items = _paginate(spotify, first)
 
     tracks: list[Track] = []
