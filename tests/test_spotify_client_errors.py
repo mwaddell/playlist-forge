@@ -197,3 +197,25 @@ def test_pull_library_does_not_lookup_current_user_without_permission_error(monk
 
     assert pulled == [track]
     assert me_calls["count"] == 0
+
+
+def test_pull_library_raises_external_error_when_current_user_id_is_unavailable(monkeypatch):
+    class FakeSpotify:
+        def me(self):
+            return {}
+
+    playlist = Playlist(spotify_id="p1", name="Restricted", owner_id="other-user")
+
+    monkeypatch.setattr(spotify_client, "list_playlists", lambda _spotify: [playlist])
+    monkeypatch.setattr(
+        spotify_client,
+        "pull_playlist_tracks",
+        lambda _spotify, _playlist, fetch_genres=True, skip_permission_errors=False: (_ for _ in ()).throw(
+            PlaylistPermissionError(
+                f"Skipping playlist '{playlist.name}' ({playlist.spotify_id}) due to permission error."
+            )
+        ),
+    )
+
+    with pytest.raises(ExternalServiceError, match="status=403"):
+        spotify_client.pull_library(FakeSpotify())

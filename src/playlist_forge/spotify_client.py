@@ -303,13 +303,11 @@ def pull_library(spotify: spotipy.Spotify, playlist_name_filter: str | None = No
                 print(f"Warning: {exc}", file=sys.stderr)
                 continue
             cause = exc.__cause__
-            if isinstance(cause, spotipy.exceptions.SpotifyException):
-                status = _spotify_status_code(cause)
-                raise ExternalServiceError(
-                    f"Spotify request failed while pulling tracks for playlist '{playlist.name}' "
-                    f"(status={status})."
-                ) from cause
-            raise
+            status = _spotify_status_code(cause) if isinstance(cause, spotipy.exceptions.SpotifyException) else 403
+            raise ExternalServiceError(
+                f"Spotify request failed while pulling tracks for playlist '{playlist.name}' "
+                f"(status={status})."
+            ) from (cause if isinstance(cause, Exception) else exc)
         for t in playlist_tracks:
             existing = by_id.get(t.spotify_id)
             if existing:
