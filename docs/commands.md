@@ -112,16 +112,6 @@ Options:
 - `--skip-noise`: skip cluster `-1`
 - `--dry-run`: print actions without writing to Spotify
 
-### `playlist-forge act split`
-
-Split one existing playlist into cluster-based parts.
-
-Options:
-
-- `--input`, `-i`: clustered dataset path
-- `--playlist`: source playlist name
-- `--dry-run`: print actions without writing to Spotify
-
 ### `playlist-forge act merge`
 
 Merge multiple playlists into one deduplicated playlist.

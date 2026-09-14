@@ -7,7 +7,7 @@ from typing import Annotated
 import typer
 
 from . import auth, io_formats, spotify_client
-from .actions import create_playlists, merge_playlists, split_playlist
+from .actions import create_playlists, merge_playlists
 from .analyze import cluster as cluster_mod
 from .analyze import dedupe as dedupe_mod
 from .analyze import outliers as outliers_mod
@@ -364,7 +364,9 @@ def analyze_dedupe(
 @act_app.command("create-from-clusters")
 @_handle_cli_errors
 def act_create_from_clusters(
-    input: Path = typer.Option(..., "--input", "-i"),
+    input: Path = typer.Option(
+        ..., "--input", "-i", help="Clustered dataset from `analyze cluster`."
+    ),
     prefix: str = typer.Option("Auto-"),
     skip_noise: bool = typer.Option(True),
     dry_run: bool = typer.Option(False),
@@ -388,34 +390,6 @@ def act_create_from_clusters(
     )
     for cluster_id, playlist_id in created.items():
         typer.echo(f"cluster {cluster_id} -> {playlist_id or '(dry-run)'}")
-
-
-@act_app.command("split")
-@_handle_cli_errors
-def act_split(
-    input: Path = typer.Option(
-        ..., "--input", "-i", help="Clustered dataset from `analyze cluster`."
-    ),
-    playlist: str = typer.Option(..., help="Name of the source playlist being split."),
-    dry_run: bool = typer.Option(False),
-):
-    """Split one source playlist into cluster-based parts.
-
-    Args:
-        input: Clustered input dataset path.
-        playlist: Source playlist name to split.
-        dry_run: Whether to skip Spotify write operations.
-
-    Returns:
-        None.
-    """
-    settings = load_settings()
-    spotify = auth.get_spotify_client(settings)
-    tracks = io_formats.read_tracks(input)
-    scoped = [t for t in tracks if playlist in t.playlist_names]
-    created = split_playlist.split(spotify, playlist, scoped, dry_run=dry_run)
-    for cluster_id, playlist_id in created.items():
-        typer.echo(f"part {cluster_id} -> {playlist_id or '(dry-run)'}")
 
 
 @act_app.command("merge")

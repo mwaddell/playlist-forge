@@ -78,7 +78,7 @@ pull    (Spotify)      → canonical Track dataset
 enrich  (ReccoBeats)   → adds audio-feature columns where matched
 library                → manages local library files
 analyze (scikit-learn) → cluster / outliers / dedupe — pure, offline, no API calls
-act     (Spotify)      → create/split/merge playlists, add matched songs
+act     (Spotify)      → create new playlists based on analysis
 ```
 
 `analyze/*` never imports spotipy — it only operates on `Track` objects, so
