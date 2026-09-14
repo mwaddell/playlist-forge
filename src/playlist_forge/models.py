@@ -8,8 +8,8 @@ and keeps the analysis code completely decoupled from the Spotify API.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
-from typing import Any
 import math
+from typing import Any
 
 
 @dataclass
