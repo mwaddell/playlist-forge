@@ -32,7 +32,7 @@
   into the destination playlist INSTEAD of requiring a single comma-separated
   list of playlists.
 
-## 3. API Support
+## 3. API Updates
 
 - [ ] Add an `--api` argument to the `enrich` command which defaults to
   `reccobeats` but can be set to `getgenre` to use the GetGenre API instead.
@@ -45,6 +45,8 @@
       addition of other APIs.
     - Add a separate cache sqlite file for GetGenre API results, so that the
       cache is not shared with the ReccoBeats API.
+    - Cache not-found results just like ReccoBeats, so that we don't hammer 
+      the API with repeated requests for tracks/artists that are not in the database.
 - [ ] Pull the `snapshot_id` for each playlist when using the Spotify API and 
       cache the tracks for that snapshot.  The next time we get all of the
       playlists, we can compare the snapshot_id to see if the playlist has
@@ -54,6 +56,13 @@
         - Add a `--force` argument to the `pull` command to force pulling all playlists
           regardless of snapshot_id, in case the user wants to refresh their
           library even if nothing has changed.
+- [ ] Add a `--recheck` argument to the `enrich` command to force rechecking
+      any tracks that were cached as "not found" in the ReccoBeats/GetGenre API, in case
+      they have been added to the API since the last time they were checked.
+- [ ] Add a `--force` argument to the `enrich` command to force rechecking 
+      every track with the ReccoBeats/GetGenre API even if it already has a cached
+      result and updating the cache with the new result.
+
 
 ## 4. Additional Library Commands
 
