@@ -51,6 +51,31 @@ def test_auth_logout_reports_when_token_missing(monkeypatch, capsys):
     assert "No cached token found at /tmp/token.json." in captured.out
 
 
+def test_config_init_reports_written_path(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "initialize_config", lambda: Path("/tmp/config.json"))
+
+    cli.config_init()
+
+    captured = capsys.readouterr()
+    assert "Wrote default configuration to /tmp/config.json." in captured.out
+
+
+def test_config_clientid_reports_written_path(monkeypatch, capsys):
+    captured_args: dict = {}
+
+    def fake_set_spotify_client_id(client_id: str) -> Path:
+        captured_args["client_id"] = client_id
+        return Path("/tmp/config.json")
+
+    monkeypatch.setattr(cli, "set_spotify_client_id", fake_set_spotify_client_id)
+
+    cli.config_clientid("spotify-client-id")
+
+    captured = capsys.readouterr()
+    assert captured_args["client_id"] == "spotify-client-id"
+    assert "Updated Spotify client ID in /tmp/config.json." in captured.out
+
+
 def test_analyze_cluster_rejects_unknown_algorithm(capsys, tmp_path):
     with pytest.raises(typer.Exit) as exc_info:
         cli.analyze_cluster(

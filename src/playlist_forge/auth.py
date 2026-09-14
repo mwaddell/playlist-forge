@@ -31,7 +31,7 @@ def get_spotify_client(settings: Settings) -> spotipy.Spotify:
             "SPOTIFY_CLIENT_ID is not set. Create an app at "
             "https://developer.spotify.com/dashboard, then set "
             "SPOTIFY_CLIENT_ID (and SPOTIFY_REDIRECT_URI if you changed it) "
-            "in your environment or .env file."
+            f"in {TOKEN_PATH.parent / 'config.json'}."
         )
 
     auth_manager = SpotifyPKCE(

@@ -10,7 +10,6 @@ dist/
 venv/
 site/
 
-.env
 *.sqlite3
 /data/
 *.token.json
