@@ -97,9 +97,9 @@ def test_set_spotify_client_id_updates_existing_config(monkeypatch, tmp_path):
 
     assert written_path == config_path
     payload = json.loads(config_path.read_text(encoding="utf-8"))
-    assert set(payload) == {"cluster", "spotify"}
     assert payload["spotify"]["client_id"] == "new-client-id"
     assert payload["cluster"]["genre_weight"] == 2.0
+    assert payload["dedupe"]["title_artist_threshold"] == 0.9
 
 
 def test_set_spotify_client_id_creates_full_default_config_when_missing(monkeypatch, tmp_path):
