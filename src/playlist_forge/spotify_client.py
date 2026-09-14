@@ -247,7 +247,7 @@ def pull_playlist_tracks(
                 playlist_ids=[playlist.spotify_id],
                 playlist_names=[playlist.name],
                 isrc=(t.get("external_ids") or {}).get("isrc"),
-                year=year,
+                year=year if year > 1900 else None,
                 duration_ms=t.get("duration_ms"),
                 added_at=item.get("added_at"),
                 artist_genres=sorted(set(genres)),

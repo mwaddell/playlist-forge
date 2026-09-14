@@ -62,7 +62,10 @@
 - [ ] Add a `--force` argument to the `enrich` command to force rechecking 
       every track with the ReccoBeats/GetGenre API even if it already has a cached
       result and updating the cache with the new result.
-
+- [ ] Determine how to handle songs with multiple artists
+        - Store all of them in the `artist` field as a semicolon-separated string?
+        - Convert `artist` to an array?
+        - Use `artist` as the primary artist, but store additional ones in a separate field?
 
 ## 4. Additional Library Commands
 
@@ -103,6 +106,11 @@
       CLI's ability to read/write files correctly.
 - [ ] Update CI to enforce code coverage thresholds (e.g. 80% or 90%) and fail
       the build if coverage drops below that.
+- [ ] Handle scientific notation better (e.g. 1.23e-4) in the CSV/TSV
+      export formats, since those are likely to break the CLI's ability to
+      read/write files correctly.
+        - Convert all scientific notation into decimal notation when
+          writing to CSV/TSV, and convert back to float when reading from CSV/TSV.
 
 ## 6. Manual Testing
 
@@ -126,9 +134,13 @@
 - [ ] Fresh clone into a **new directory** and follow your own
       README's Quickstart section verbatim, as if you'd never seen the code
       before — this catches missing setup steps that muscle memory papers over.
+- [ ] Determine what happens if a playlist name contains a semi-colon, does
+      that break anything in csv/tsv exports or conversions?
 
 ## 7. Release and Distribution
 
+- [ ] Update documentation to note that tsv/csv use UTF-8 encoding (confirm
+      this in code)
 - [ ] Tag as v1.0.0 and create a GitHub Release with notes, so early users have
       a stable point to install against instead of tracking `main`.
 - [ ] Create a `CHANGELOG.md` file and document all changes since the last release, 
