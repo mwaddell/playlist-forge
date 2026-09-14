@@ -7,7 +7,7 @@ from typing import Annotated
 import typer
 
 from . import auth, io_formats, spotify_client
-from .actions import create_playlists, match_text_list, merge_playlists, split_playlist
+from .actions import create_playlists, merge_playlists
 from .analyze import cluster as cluster_mod
 from .analyze import dedupe as dedupe_mod
 from .analyze import outliers as outliers_mod
@@ -361,10 +361,12 @@ def analyze_dedupe(
 
 
 # ----------------------------------------------------------------- act ----
-@act_app.command("create-from-clusters")
+@act_app.command("split")
 @_handle_cli_errors
-def act_create_from_clusters(
-    input: Path = typer.Option(..., "--input", "-i"),
+def act_split(
+    input: Path = typer.Option(
+        ..., "--input", "-i", help="Clustered dataset from `analyze cluster`."
+    ),
     prefix: str = typer.Option("Auto-"),
     skip_noise: bool = typer.Option(True),
     dry_run: bool = typer.Option(False),
@@ -390,34 +392,6 @@ def act_create_from_clusters(
         typer.echo(f"cluster {cluster_id} -> {playlist_id or '(dry-run)'}")
 
 
-@act_app.command("split")
-@_handle_cli_errors
-def act_split(
-    input: Path = typer.Option(
-        ..., "--input", "-i", help="Clustered dataset from `analyze cluster`."
-    ),
-    playlist: str = typer.Option(..., help="Name of the source playlist being split."),
-    dry_run: bool = typer.Option(False),
-):
-    """Split one source playlist into cluster-based parts.
-
-    Args:
-        input: Clustered input dataset path.
-        playlist: Source playlist name to split.
-        dry_run: Whether to skip Spotify write operations.
-
-    Returns:
-        None.
-    """
-    settings = load_settings()
-    spotify = auth.get_spotify_client(settings)
-    tracks = io_formats.read_tracks(input)
-    scoped = [t for t in tracks if playlist in t.playlist_names]
-    created = split_playlist.split(spotify, playlist, scoped, dry_run=dry_run)
-    for cluster_id, playlist_id in created.items():
-        typer.echo(f"part {cluster_id} -> {playlist_id or '(dry-run)'}")
-
-
 @act_app.command("merge")
 @_handle_cli_errors
 def act_merge(
@@ -440,32 +414,6 @@ def act_merge(
     names = [p.strip() for p in playlists.split(",")]
     new_id = merge_playlists.merge(spotify, names, into, dry_run=dry_run)
     typer.echo(f"Merged into '{into}' -> {new_id or '(dry-run)'}")
-
-
-@act_app.command("add-from-list")
-@_handle_cli_errors
-def act_add_from_list(
-    file: Path = typer.Option(..., help="Plain-text list: title;artist;album per line."),
-    playlist: str = typer.Option(..., help="Target playlist name (created if missing)."),
-    delimiter: str = typer.Option(";", help="Field delimiter within each line."),
-    dry_run: bool = typer.Option(False),
-):
-    """Match a text list against Spotify and add matched tracks to a playlist.
-
-    Args:
-        file: Plain-text input list path.
-        playlist: Target playlist name.
-        delimiter: Input field delimiter.
-        dry_run: Whether to skip Spotify write operations.
-
-    Returns:
-        None.
-    """
-    settings = load_settings()
-    spotify = auth.get_spotify_client(settings)
-    rows = match_text_list.parse_text_list(file, field_delimiter=delimiter)
-    results = match_text_list.match_all(spotify, rows)
-    match_text_list.add_matches_to_playlist(spotify, playlist, results, dry_run=dry_run)
 
 
 if __name__ == "__main__":

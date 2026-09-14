@@ -101,7 +101,7 @@ it does not support CSV or TSV output.
 
 All write commands support `--dry-run`. Use it before changing Spotify data.
 
-### `playlist-forge act create-from-clusters`
+### `playlist-forge act split`
 
 Create playlists from clustered dataset output.
 
@@ -112,16 +112,6 @@ Options:
 - `--skip-noise`: skip cluster `-1`
 - `--dry-run`: print actions without writing to Spotify
 
-### `playlist-forge act split`
-
-Split one existing playlist into cluster-based parts.
-
-Options:
-
-- `--input`, `-i`: clustered dataset path
-- `--playlist`: source playlist name
-- `--dry-run`: print actions without writing to Spotify
-
 ### `playlist-forge act merge`
 
 Merge multiple playlists into one deduplicated playlist.
@@ -130,15 +120,4 @@ Options:
 
 - `--playlists`: comma-separated source playlist names
 - `--into`: name for the merged playlist
-- `--dry-run`: print actions without writing to Spotify
-
-### `playlist-forge act add-from-list`
-
-Match tracks from a plain-text file and add successful matches to a playlist.
-
-Options:
-
-- `--file`: plain-text input file containing `title;artist;album` rows
-- `--playlist`: target playlist name
-- `--delimiter`: field delimiter used in the input file
 - `--dry-run`: print actions without writing to Spotify

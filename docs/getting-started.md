@@ -52,9 +52,8 @@ poetry run playlist-forge analyze outliers --input clustered.json --top-n 5
 poetry run playlist-forge analyze dedupe --input library_enriched.json --output dedupe_report.json
 
 # Review outputs, then apply actions with dry runs first
-poetry run playlist-forge act create-from-clusters --input clustered.json --dry-run
+poetry run playlist-forge act split --input clustered.json --dry-run
 poetry run playlist-forge act merge --playlists "Chill 1,Chill 2" --into "Chill (merged)" --dry-run
-poetry run playlist-forge act add-from-list --file new_songs.txt --playlist "Discover" --dry-run
 ```
 
 ## File formats
