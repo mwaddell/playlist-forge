@@ -17,7 +17,8 @@ By default, the app reads `config.json` from
 
 Use `playlist-forge config clientid YOUR_SPOTIFY_CLIENT_ID` to update the
 Spotify client ID without editing the file manually. If `PLAYLIST_FORGE_HOME`
-is set, the app reads `$PLAYLIST_FORGE_HOME/config.json` instead.
+is set, the app reads, creates, and updates `$PLAYLIST_FORGE_HOME/config.json`
+instead.
 
 Edit `spotify.redirect_uri` in `config.json` if you change the Spotify callback
 URL. Edit `reccobeats.api_key` there manually if you need to provide a

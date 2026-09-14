@@ -127,6 +127,14 @@ def _set_nested_config_value(config: dict, path: tuple[str, ...], value: object)
     return config
 
 
+def _get_config_section(config: dict, section_name: str) -> dict:
+    """Return a config section and validate that it is a JSON object."""
+    section = config.get(section_name, {})
+    if not isinstance(section, dict):
+        raise ConfigurationError(f"The {section_name} config section must be a JSON object.")
+    return section
+
+
 def set_spotify_client_id(client_id: str) -> Path:
     """Persist the Spotify client ID in config.json."""
     normalized = client_id.strip()
@@ -145,8 +153,8 @@ def load_settings() -> Settings:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     merged = load_config()
-    spotify_config = merged.get("spotify", {})
-    reccobeats_config = merged.get("reccobeats", {})
+    spotify_config = _get_config_section(merged, "spotify")
+    reccobeats_config = _get_config_section(merged, "reccobeats")
 
     return Settings(
         spotify_client_id=spotify_config.get("client_id"),

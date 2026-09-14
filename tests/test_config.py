@@ -130,6 +130,22 @@ def test_set_spotify_client_id_rejects_non_object_spotify_section(monkeypatch, t
         config.set_spotify_client_id("client-id")
 
 
+def test_load_settings_rejects_non_object_spotify_section(monkeypatch, tmp_path):
+    config_dir = tmp_path / "config-home"
+    config_path = config_dir / "config.json"
+    cache_dir = config_dir / "cache"
+    token_path = config_dir / "token.json"
+    monkeypatch.setattr(config, "CONFIG_DIR", config_dir)
+    monkeypatch.setattr(config, "CONFIG_PATH", config_path)
+    monkeypatch.setattr(config, "CACHE_DIR", cache_dir)
+    monkeypatch.setattr(config, "TOKEN_PATH", token_path)
+    config_dir.mkdir(parents=True, exist_ok=True)
+    config_path.write_text('{"spotify":"broken"}', encoding="utf-8")
+
+    with pytest.raises(ConfigurationError, match="spotify config section must be a JSON object"):
+        config.load_settings()
+
+
 def test_set_spotify_client_id_creates_full_default_config_when_missing(monkeypatch, tmp_path):
     config_dir = tmp_path / "config-home"
     config_path = config_dir / "config.json"
