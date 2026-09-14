@@ -43,6 +43,8 @@
     - Rename `artist_genres` as `genres`
     - Add `genre_source` and `genre_match_confidence` to support future
       addition of other APIs.
+    - Add a separate cache sqlite file for GetGenre API results, so that the
+      cache is not shared with the ReccoBeats API.
 
 ## 4. Additional Library Commands
 
