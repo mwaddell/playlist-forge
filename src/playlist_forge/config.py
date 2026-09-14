@@ -74,7 +74,10 @@ def default_config() -> dict:
 def write_config(config: dict) -> Path:
     """Write config data to the active config.json path."""
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    CONFIG_PATH.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+    try:
+        CONFIG_PATH.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+    except OSError as exc:
+        raise ConfigurationError(f"Could not write config file {CONFIG_PATH}: {exc}") from exc
     return CONFIG_PATH
 
 
@@ -87,6 +90,8 @@ def _read_user_config() -> dict:
         user_config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ConfigurationError(f"Invalid JSON in config file {CONFIG_PATH}: {exc}") from exc
+    except OSError as exc:
+        raise ConfigurationError(f"Could not read config file {CONFIG_PATH}: {exc}") from exc
 
     if user_config is None:
         return {}

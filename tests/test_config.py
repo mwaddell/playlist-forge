@@ -78,6 +78,22 @@ def test_load_settings_reads_spotify_values_from_config_json(monkeypatch, tmp_pa
     assert settings.config["cluster"]["year_weight"] == 0.3
 
 
+def test_load_settings_rejects_directory_config_path(monkeypatch, tmp_path):
+    config_dir = tmp_path / "config-home"
+    config_path = config_dir / "config.json"
+    cache_dir = config_dir / "cache"
+    token_path = config_dir / "token.json"
+    monkeypatch.setattr(config, "CONFIG_DIR", config_dir)
+    monkeypatch.setattr(config, "CONFIG_PATH", config_path)
+    monkeypatch.setattr(config, "CACHE_DIR", cache_dir)
+    monkeypatch.setattr(config, "TOKEN_PATH", token_path)
+    config_dir.mkdir(parents=True, exist_ok=True)
+    config_path.mkdir()
+
+    with pytest.raises(ConfigurationError, match="Could not read config file"):
+        config.load_settings()
+
+
 def test_set_spotify_client_id_updates_existing_config(monkeypatch, tmp_path):
     config_dir = tmp_path / "config-home"
     config_path = config_dir / "config.json"
@@ -100,6 +116,18 @@ def test_set_spotify_client_id_updates_existing_config(monkeypatch, tmp_path):
     assert payload["spotify"]["client_id"] == "new-client-id"
     assert payload["cluster"]["genre_weight"] == 2.0
     assert payload["dedupe"]["title_artist_threshold"] == 0.9
+
+
+def test_set_spotify_client_id_rejects_non_object_spotify_section(monkeypatch, tmp_path):
+    config_dir = tmp_path / "config-home"
+    config_path = config_dir / "config.json"
+    monkeypatch.setattr(config, "CONFIG_DIR", config_dir)
+    monkeypatch.setattr(config, "CONFIG_PATH", config_path)
+    config_dir.mkdir(parents=True, exist_ok=True)
+    config_path.write_text('{"spotify":"broken"}', encoding="utf-8")
+
+    with pytest.raises(ConfigurationError, match="spotify config section must be a JSON object"):
+        config.set_spotify_client_id("client-id")
 
 
 def test_set_spotify_client_id_creates_full_default_config_when_missing(monkeypatch, tmp_path):
