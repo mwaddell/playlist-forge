@@ -22,13 +22,8 @@
   multiple `--from` arguments to specify multiple source playlists to merge
   into the destination playlist INSTEAD of requiring a single comma-separated
   list of playlists.
-- [ ] Rename the `--playlist` argument in `act add-from-list` to `--into` as
-  the "name of the target playlist"
 - [ ] Remove `act split` command.  Instead, users should do clustering on a
      single playlist and then use `act create-from-clusters`
-- [ ] Remove the `act add-from-list` command.  This one is very different from 
-    everything else and doesn't really fit.  Also there are better tools for
-    this.
 
 ## 3. Genre API
 
