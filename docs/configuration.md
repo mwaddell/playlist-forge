@@ -63,4 +63,4 @@ Leave per-feature `audio_*_weight` values as `null` to inherit `audio_feature_we
 - Spotify authentication tokens are cached locally after `auth login`.
 - Tokens are stored in `token.json` under the active config directory.
 - Analyze commands operate on local dataset files and do not call Spotify.
-- Write actions call Spotify only after you explicitly run an `act` command.
+- Write actions call Spotify only after you explicitly run an `push` command.

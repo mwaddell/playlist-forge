@@ -1,6 +1,6 @@
 """Canonical data model shared by every pipeline stage.
 
-Every module in playlist_forge (pull, enrich, analyze, act) reads and writes
+Every module in playlist_forge (pull, enrich, analyze, push) reads and writes
 Track / Playlist objects. This is what keeps json/csv/tsv interchangeable
 and keeps the analysis code completely decoupled from the Spotify API.
 """

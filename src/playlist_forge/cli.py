@@ -25,7 +25,7 @@ app.add_typer(config_app, name="config")
 app.add_typer(auth_app, name="auth")
 app.add_typer(library_app, name="library")
 app.add_typer(analyze_app, name="analyze")
-app.add_typer(act_app, name="act")
+app.add_typer(act_app, name="push")
 
 _AUDIO_FEATURE_FIELDS = (
     "acousticness",
@@ -397,7 +397,7 @@ def analyze_dedupe(
     )
 
 
-# ----------------------------------------------------------------- act ----
+# ----------------------------------------------------------------- push ----
 @act_app.command("split")
 @_handle_cli_errors
 def act_split(

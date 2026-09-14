@@ -111,11 +111,11 @@ Options:
 Use a `.json` output path for this command; unlike the track-dataset commands,
 it does not support CSV or TSV output.
 
-## `act`
+## `push`
 
 All write commands support `--dry-run`. Use it before changing Spotify data.
 
-### `playlist-forge act split`
+### `playlist-forge push split`
 
 Create playlists from clustered dataset output.
 
@@ -126,7 +126,7 @@ Options:
 - `--skip-noise`: skip cluster `-1`
 - `--dry-run`: print actions without writing to Spotify
 
-### `playlist-forge act merge`
+### `playlist-forge push merge`
 
 Merge multiple playlists into one deduplicated playlist.
 

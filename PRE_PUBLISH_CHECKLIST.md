@@ -27,7 +27,7 @@
       others untouched, so if `--playlist` is specified, then only tracks in
       the specified playlists should be enriched, and any others should be left
       as-is.
-- [ ] Rename the `--playlists` argument in `act merge` to `--from` and allow
+- [ ] Rename the `--playlists` argument in `push merge` to `--from` and allow
   multiple `--from` arguments to specify multiple source playlists to merge
   into the destination playlist INSTEAD of requiring a single comma-separated
   list of playlists.
@@ -115,7 +115,7 @@
 ## 6. Manual Testing
 
 - [ ] Run the full pipeline against your **real Spotify account**
-      end to end at least once, using `--dry-run` on every `act` command first,
+      end to end at least once, using `--dry-run` on every `push` command first,
       then without it on a **throwaway test playlist** — not your actual library —
       to confirm writes behave as expected before you trust it near real data.
 - [ ] Test against an account with **zero playlists** and one with
@@ -127,7 +127,7 @@
       browser profile** (no cached Spotify login) — the happy path you've been
       testing with is your own already-authenticated browser, which can hide
       first-run bugs.
-- [ ] Confirm what happens if someone runs `act` commands
+- [ ] Confirm what happens if someone runs `push` commands
       _before_ `pull`/`enrich` (missing input file, empty dataset) — CLI tools
       get run out of order constantly; check the error messages are
       understandable rather than raw stack traces.
