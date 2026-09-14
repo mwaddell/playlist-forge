@@ -27,10 +27,13 @@
       others untouched, so if `--playlist` is specified, then only tracks in
       the specified playlists should be enriched, and any others should be left
       as-is.
-- [ ] Rename the `--playlists` argument in `push merge` to `--from` and allow
-  multiple `--from` arguments to specify multiple source playlists to merge
+- [ ] Rename the `--playlists` argument in `push merge` to `--playlist` and allow
+  multiple `--playlist` arguments to specify multiple source playlists to merge
   into the destination playlist INSTEAD of requiring a single comma-separated
   list of playlists.
+    - Note that if no `--playlist` arguments are specified, a new empty
+      playlist is created.  If only a single `--playlist` argument is
+      specified, the source playlist is copied to the destination playlist.
 
 ## 3. API Updates
 
@@ -106,11 +109,6 @@
       CLI's ability to read/write files correctly.
 - [ ] Update CI to enforce code coverage thresholds (e.g. 80% or 90%) and fail
       the build if coverage drops below that.
-- [ ] Handle scientific notation better (e.g. 1.23e-4) in the CSV/TSV
-      export formats, since those are likely to break the CLI's ability to
-      read/write files correctly.
-        - Convert all scientific notation into decimal notation when
-          writing to CSV/TSV, and convert back to float when reading from CSV/TSV.
 
 ## 6. Manual Testing
 

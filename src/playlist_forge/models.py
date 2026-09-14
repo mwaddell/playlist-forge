@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field, fields
 from typing import Any
+import math
 
 
 @dataclass
@@ -63,6 +64,8 @@ class Track:
             value = getattr(self, f.name)
             if f.name in self.LIST_FIELDS:
                 out[f.name] = delimiter.join(value) if value else ""
+            elif isinstance(value, float):
+                out[f.name] = f"{value:.8f}" if value is not None and not math.isnan(value) else ""
             else:
                 out[f.name] = value if value is not None else ""
         return out
