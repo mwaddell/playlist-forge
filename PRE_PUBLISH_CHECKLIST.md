@@ -18,6 +18,15 @@
 - [ ] Add the `--playlist` argument (which supports multiple playlists and
   name/id matching) to the `enrich` and `analyze` commands, so users can operate on only specific
   playlists instead of the entire library.
+    - Note that `analyze cluster` always updates the cluster_id for the entire
+      library, so if `--playlist` is specified, then any tracks not in the
+      specified playlists should have their cluster_id set to null, and only
+      tracks in the specified playlists should be clustered and assigned a
+      cluster for tracks in.
+    - Note that `enrich` only updates the matching items, but it leaves any
+      others untouched, so if `--playlist` is specified, then only tracks in
+      the specified playlists should be enriched, and any others should be left
+      as-is.
 - [ ] Rename the `--playlists` argument in `act merge` to `--from` and allow
   multiple `--from` arguments to specify multiple source playlists to merge
   into the destination playlist INSTEAD of requiring a single comma-separated
