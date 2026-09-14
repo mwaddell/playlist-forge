@@ -139,8 +139,6 @@
 
 ## 7. Release and Distribution
 
-- [ ] Update documentation to note that tsv/csv use UTF-8 encoding (confirm
-      this in code)
 - [ ] Tag as v1.0.0 and create a GitHub Release with notes, so early users have
       a stable point to install against instead of tracking `main`.
 - [ ] Create a `CHANGELOG.md` file and document all changes since the last release, 

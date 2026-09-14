@@ -73,3 +73,5 @@ you provide.
   strings.
 
 All three formats round-trip the same track schema.
+
+All three formats use UTF-8 encoding.
