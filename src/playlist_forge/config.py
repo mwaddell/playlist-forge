@@ -49,7 +49,6 @@ _DEFAULTS = {
 @dataclass
 class Settings:
     spotify_client_id: str | None
-    spotify_client_secret: str | None
     spotify_redirect_uri: str
     reccobeats_api_key: str | None
     config: dict
@@ -79,10 +78,10 @@ def write_config(config: dict) -> Path:
     return CONFIG_PATH
 
 
-def load_config() -> dict:
-    """Load config.json and merge it over the built-in defaults."""
+def _read_user_config() -> dict:
+    """Read the raw user config JSON object from disk."""
     if not CONFIG_PATH.exists():
-        return default_config()
+        return {}
 
     try:
         user_config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
@@ -90,10 +89,15 @@ def load_config() -> dict:
         raise ConfigurationError(f"Invalid JSON in config file {CONFIG_PATH}: {exc}") from exc
 
     if user_config is None:
-        user_config = {}
+        return {}
     if not isinstance(user_config, dict):
         raise ConfigurationError(f"Config file {CONFIG_PATH} must contain a JSON object.")
-    return _merge_dicts(_DEFAULTS, user_config)
+    return user_config
+
+
+def load_config() -> dict:
+    """Load config.json and merge it over the built-in defaults."""
+    return _merge_dicts(_DEFAULTS, _read_user_config())
 
 
 def initialize_config() -> Path:
@@ -107,16 +111,16 @@ def set_spotify_client_id(client_id: str) -> Path:
     if not normalized:
         raise ConfigurationError("Spotify client ID cannot be empty.")
 
-    config = load_config()
-    spotify_config = config.setdefault("spotify", {})
+    user_config = _read_user_config()
+    spotify_config = user_config.setdefault("spotify", {})
     if not isinstance(spotify_config, dict):
         raise ConfigurationError("The spotify config section must be a JSON object.")
     spotify_config["client_id"] = normalized
-    return write_config(config)
+    return write_config(user_config)
 
 
 def load_settings() -> Settings:
-    """Load environment and file-backed application settings.
+    """Load application settings from config.json.
 
     Returns:
         Resolved Settings values for authentication and analysis defaults.
@@ -129,7 +133,6 @@ def load_settings() -> Settings:
 
     return Settings(
         spotify_client_id=spotify_config.get("client_id"),
-        spotify_client_secret=spotify_config.get("client_secret"),
         spotify_redirect_uri=spotify_config.get("redirect_uri", DEFAULT_REDIRECT_URI)
         or DEFAULT_REDIRECT_URI,
         reccobeats_api_key=reccobeats_config.get("api_key"),

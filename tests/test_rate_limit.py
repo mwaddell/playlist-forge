@@ -82,7 +82,6 @@ def test_reccobeats_get_retries_using_retry_after(monkeypatch):
 
     settings = Settings(
         spotify_client_id=None,
-        spotify_client_secret=None,
         spotify_redirect_uri="http://127.0.0.1:8080/callback",
         reccobeats_api_key=None,
         config={
@@ -110,7 +109,6 @@ def test_reccobeats_get_uses_case_insensitive_retry_after(monkeypatch):
 
     settings = Settings(
         spotify_client_id=None,
-        spotify_client_secret=None,
         spotify_redirect_uri="http://127.0.0.1:8080/callback",
         reccobeats_api_key=None,
         config={
@@ -138,7 +136,6 @@ def test_reccobeats_get_retries_http_error_rate_limit(monkeypatch):
 
     settings = Settings(
         spotify_client_id=None,
-        spotify_client_secret=None,
         spotify_redirect_uri="http://127.0.0.1:8080/callback",
         reccobeats_api_key=None,
         config={
