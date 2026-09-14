@@ -6,7 +6,8 @@
 
 ## Config file
 
-Run `playlist-forge config init` to create or replace the default config file.
+Run `playlist-forge config init` to create the default config file, or
+`playlist-forge config init --force` to replace it.
 
 By default, the app reads `config.json` from
 `Path.home() / ".config" / "playlist-forge"`, which is typically:

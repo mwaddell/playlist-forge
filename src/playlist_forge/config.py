@@ -100,9 +100,26 @@ def load_config() -> dict:
     return _merge_dicts(_DEFAULTS, _read_user_config())
 
 
-def initialize_config() -> Path:
-    """Create or replace config.json with the default values."""
+def initialize_config(*, force: bool = False) -> Path:
+    """Create config.json, or replace it when ``force`` is true."""
+    if CONFIG_PATH.exists() and not force:
+        raise ConfigurationError(
+            f"Config file already exists at {CONFIG_PATH}. Re-run with --force to replace it."
+        )
     return write_config(default_config())
+
+
+def _set_nested_config_value(config: dict, path: tuple[str, ...], value: object) -> dict:
+    """Return config with one nested path updated."""
+    current = config
+    for key in path[:-1]:
+        next_value = current.setdefault(key, {})
+        if not isinstance(next_value, dict):
+            dotted_path = ".".join(path[:-1])
+            raise ConfigurationError(f"The {dotted_path} config section must be a JSON object.")
+        current = next_value
+    current[path[-1]] = value
+    return config
 
 
 def set_spotify_client_id(client_id: str) -> Path:
@@ -111,12 +128,7 @@ def set_spotify_client_id(client_id: str) -> Path:
     if not normalized:
         raise ConfigurationError("Spotify client ID cannot be empty.")
 
-    user_config = _read_user_config()
-    spotify_config = user_config.setdefault("spotify", {})
-    if not isinstance(spotify_config, dict):
-        raise ConfigurationError("The spotify config section must be a JSON object.")
-    spotify_config["client_id"] = normalized
-    return write_config(user_config)
+    return write_config(_set_nested_config_value(_read_user_config(), ("spotify", "client_id"), normalized))
 
 
 def load_settings() -> Settings:

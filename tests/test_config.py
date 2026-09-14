@@ -27,6 +27,24 @@ def test_initialize_config_writes_default_json(monkeypatch, tmp_path):
     assert payload["cluster"]["genre_weight"] == 1.0
 
 
+def test_initialize_config_requires_force_to_replace(monkeypatch, tmp_path):
+    config_dir = tmp_path / "config-home"
+    config_path = config_dir / "config.json"
+    monkeypatch.setattr(config, "CONFIG_DIR", config_dir)
+    monkeypatch.setattr(config, "CONFIG_PATH", config_path)
+    config_dir.mkdir(parents=True, exist_ok=True)
+    config_path.write_text('{"spotify":{"client_id":"existing"}}', encoding="utf-8")
+
+    with pytest.raises(ConfigurationError, match="Re-run with --force"):
+        config.initialize_config()
+
+    written_path = config.initialize_config(force=True)
+
+    assert written_path == config_path
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
+    assert payload["spotify"]["client_id"] is None
+
+
 def test_load_settings_reads_spotify_values_from_config_json(monkeypatch, tmp_path):
     config_dir = tmp_path / "config-home"
     config_path = config_dir / "config.json"

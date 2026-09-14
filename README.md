@@ -96,8 +96,9 @@ any API.
 
 All configuration lives in `~/.config/playlist-forge/config.json` (or
 `$PLAYLIST_FORGE_HOME/config.json` if you override the config root). Create or
-reset it with `playlist-forge config init`, then set your Spotify client ID
-with `playlist-forge config clientid YOUR_SPOTIFY_CLIENT_ID`. Use
+create it with `playlist-forge config init`, reset it with
+`playlist-forge config init --force`, then set your Spotify client ID with
+`playlist-forge config clientid YOUR_SPOTIFY_CLIENT_ID`. Use
 `audio_feature_weight` as the default audio-feature multiplier and
 `audio_<feature>_weight` values (for example `audio_tempo_weight`) to override
 individual audio features.

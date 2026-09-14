@@ -28,10 +28,12 @@ def get_spotify_client(settings: Settings) -> spotipy.Spotify:
     """
     if not settings.spotify_client_id:
         raise ConfigurationError(
-            "SPOTIFY_CLIENT_ID is not set. Create an app at "
-            "https://developer.spotify.com/dashboard, then set "
-            "SPOTIFY_CLIENT_ID (and SPOTIFY_REDIRECT_URI if you changed it) "
-            f"in {TOKEN_PATH.parent / 'config.json'}."
+            "Spotify client ID is not set. Create an app at "
+            "https://developer.spotify.com/dashboard, then run "
+            "`playlist-forge config clientid YOUR_SPOTIFY_CLIENT_ID` "
+            "or set `spotify.client_id` in "
+            f"{TOKEN_PATH.parent / 'config.json'}. If you changed the callback URL, "
+            "also update `spotify.redirect_uri` there."
         )
 
     auth_manager = SpotifyPKCE(

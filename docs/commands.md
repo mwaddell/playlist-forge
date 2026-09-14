@@ -4,7 +4,11 @@
 
 ### `playlist-forge config init`
 
-Create or replace `config.json` with default values.
+Create `config.json` with default values.
+
+Options:
+
+- `--force`: replace an existing config file with defaults
 
 ### `playlist-forge config clientid`
 

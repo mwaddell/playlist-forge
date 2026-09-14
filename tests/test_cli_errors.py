@@ -52,12 +52,26 @@ def test_auth_logout_reports_when_token_missing(monkeypatch, capsys):
 
 
 def test_config_init_reports_written_path(monkeypatch, capsys):
-    monkeypatch.setattr(cli, "initialize_config", lambda: Path("/tmp/config.json"))
+    monkeypatch.setattr(cli, "initialize_config", lambda force=False: Path("/tmp/config.json"))
 
     cli.config_init()
 
     captured = capsys.readouterr()
     assert "Wrote default configuration to /tmp/config.json." in captured.out
+
+
+def test_config_init_passes_force_flag(monkeypatch):
+    captured_args: dict = {}
+
+    def fake_initialize_config(force=False) -> Path:
+        captured_args["force"] = force
+        return Path("/tmp/config.json")
+
+    monkeypatch.setattr(cli, "initialize_config", fake_initialize_config)
+
+    cli.config_init(force=True)
+
+    assert captured_args["force"] is True
 
 
 def test_config_clientid_reports_written_path(monkeypatch, capsys):

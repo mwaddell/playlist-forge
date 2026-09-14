@@ -16,7 +16,7 @@ def test_get_spotify_client_raises_configuration_error_when_client_id_missing():
         config={},
     )
 
-    with pytest.raises(ConfigurationError, match="SPOTIFY_CLIENT_ID is not set"):
+    with pytest.raises(ConfigurationError, match="Spotify client ID is not set"):
         get_spotify_client(settings)
 
 

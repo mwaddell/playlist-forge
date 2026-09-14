@@ -62,13 +62,18 @@ def _handle_cli_errors(func):
 # -------------------------------------------------------------- config ----
 @config_app.command("init")
 @_handle_cli_errors
-def config_init():
-    """Create or replace the local config.json file with defaults.
+def config_init(
+    force: bool = typer.Option(False, "--force", help="Replace an existing config.json file."),
+):
+    """Create the local config.json file, or replace it with ``--force``.
+
+    Args:
+        force: Whether to overwrite an existing config file.
 
     Returns:
         None.
     """
-    config_path = initialize_config()
+    config_path = initialize_config(force=force)
     typer.echo(f"Wrote default configuration to {config_path}.")
 
 
