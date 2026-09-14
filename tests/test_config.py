@@ -90,8 +90,22 @@ def test_load_settings_rejects_directory_config_path(monkeypatch, tmp_path):
     config_dir.mkdir(parents=True, exist_ok=True)
     config_path.mkdir()
 
-    with pytest.raises(ConfigurationError, match="Could not read config file"):
+    with pytest.raises(ConfigurationError, match="Config path is not a regular file"):
         config.load_settings()
+
+
+def test_initialize_config_rejects_symlink_path(monkeypatch, tmp_path):
+    config_dir = tmp_path / "config-home"
+    real_path = tmp_path / "real-config.json"
+    config_path = config_dir / "config.json"
+    monkeypatch.setattr(config, "CONFIG_DIR", config_dir)
+    monkeypatch.setattr(config, "CONFIG_PATH", config_path)
+    config_dir.mkdir(parents=True, exist_ok=True)
+    real_path.write_text("{}", encoding="utf-8")
+    config_path.symlink_to(real_path)
+
+    with pytest.raises(ConfigurationError, match="Config path is not a regular file"):
+        config.initialize_config(force=True)
 
 
 def test_set_spotify_client_id_updates_existing_config(monkeypatch, tmp_path):
@@ -113,9 +127,9 @@ def test_set_spotify_client_id_updates_existing_config(monkeypatch, tmp_path):
 
     assert written_path == config_path
     payload = json.loads(config_path.read_text(encoding="utf-8"))
+    assert set(payload) == {"cluster", "spotify"}
     assert payload["spotify"]["client_id"] == "new-client-id"
     assert payload["cluster"]["genre_weight"] == 2.0
-    assert payload["dedupe"]["title_artist_threshold"] == 0.9
 
 
 def test_set_spotify_client_id_rejects_non_object_spotify_section(monkeypatch, tmp_path):

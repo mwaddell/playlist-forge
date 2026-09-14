@@ -74,6 +74,7 @@ def default_config() -> dict:
 def write_config(config: dict) -> Path:
     """Write config data to the active config.json path."""
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    _ensure_config_path_is_regular_file()
     try:
         CONFIG_PATH.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     except OSError as exc:
@@ -81,8 +82,18 @@ def write_config(config: dict) -> Path:
     return CONFIG_PATH
 
 
+def _ensure_config_path_is_regular_file() -> None:
+    """Require config.json to be missing or a regular file owned directly at that path."""
+    try:
+        if CONFIG_PATH.exists() and (CONFIG_PATH.is_symlink() or not CONFIG_PATH.is_file()):
+            raise ConfigurationError(f"Config path is not a regular file: {CONFIG_PATH}")
+    except OSError as exc:
+        raise ConfigurationError(f"Could not inspect config path {CONFIG_PATH}: {exc}") from exc
+
+
 def _read_user_config() -> dict:
     """Read the raw user config JSON object from disk."""
+    _ensure_config_path_is_regular_file()
     if not CONFIG_PATH.exists():
         return {}
 
@@ -107,6 +118,7 @@ def load_config() -> dict:
 
 def initialize_config(*, force: bool = False) -> Path:
     """Create config.json, or replace it when ``force`` is true."""
+    _ensure_config_path_is_regular_file()
     if CONFIG_PATH.exists() and not force:
         raise ConfigurationError(
             f"Config file already exists at {CONFIG_PATH}. Re-run with --force to replace it."
@@ -141,7 +153,8 @@ def set_spotify_client_id(client_id: str) -> Path:
     if not normalized:
         raise ConfigurationError("Spotify client ID cannot be empty.")
 
-    return write_config(_set_nested_config_value(load_config(), ("spotify", "client_id"), normalized))
+    base_config = _read_user_config() if CONFIG_PATH.exists() else default_config()
+    return write_config(_set_nested_config_value(base_config, ("spotify", "client_id"), normalized))
 
 
 def load_settings() -> Settings:
