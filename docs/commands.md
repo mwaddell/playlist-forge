@@ -1,5 +1,19 @@
 # Command reference
 
+## `config`
+
+### `playlist-forge config init`
+
+Create `config.json` with default values.
+
+Options:
+
+- `--force`: replace an existing config file with defaults
+
+### `playlist-forge config clientid`
+
+Store the Spotify client ID in `config.json`.
+
 ## `auth`
 
 ### `playlist-forge auth login`
@@ -90,9 +104,9 @@ Options:
 - `--input`, `-i`: input dataset path
 - `--output`, `-o`: output JSON report path
 - `--track-threshold`: similarity threshold for duplicate-track detection
-  (matches `dedupe.title_artist_threshold` in `config.yaml`)
+  (matches `dedupe.title_artist_threshold` in `config.json`)
 - `--playlist-threshold`: Jaccard threshold for playlist overlap detection
-  (matches `dedupe.playlist_overlap_threshold` in `config.yaml`)
+  (matches `dedupe.playlist_overlap_threshold` in `config.json`)
 
 Use a `.json` output path for this command; unlike the track-dataset commands,
 it does not support CSV or TSV output.

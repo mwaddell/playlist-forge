@@ -2,11 +2,11 @@
 
 ## 1. Consolidate Configuration
 
-- [ ] Remove use of ".env" and move all configuration into `config.json`
-- [ ] Add a "config init" command to create/recreate the `config.json` file
+- [x] Remove use of ".env" and move all configuration into `config.json`
+- [x] Add a "config init" command to create/recreate the `config.json` file
   with default values, so users can easily reset their configuration if they
   break it.
-- [ ] Add a "config clientid" command to set the Spotify client ID in `config.json`, so users can
+- [x] Add a "config clientid" command to set the Spotify client ID in `config.json`, so users can
   easily update it without editing the file manually.
 
 ## 2. Argument Standardization
@@ -43,6 +43,8 @@
     - Rename `artist_genres` as `genres`
     - Add `genre_source` and `genre_match_confidence` to support future
       addition of other APIs.
+    - Add a separate cache sqlite file for GetGenre API results, so that the
+      cache is not shared with the ReccoBeats API.
 
 ## 4. Additional Library Commands
 

@@ -14,12 +14,16 @@
 git clone https://github.com/mwaddell/playlist-forge
 cd playlist-forge
 poetry install
-cp .env.example .env
+poetry run playlist-forge config init
 ```
 
-The repository includes `.env.example` in the project root. Copy it to `.env`
-and set `SPOTIFY_CLIENT_ID`. No Spotify client secret is required because the
-tool uses PKCE.
+Then set your Spotify client ID:
+
+```bash
+poetry run playlist-forge config clientid YOUR_SPOTIFY_CLIENT_ID
+```
+
+No Spotify client secret is required because the tool uses PKCE.
 
 ## Authenticate
 

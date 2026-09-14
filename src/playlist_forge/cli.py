@@ -11,15 +11,17 @@ from .actions import create_playlists, merge_playlists
 from .analyze import cluster as cluster_mod
 from .analyze import dedupe as dedupe_mod
 from .analyze import outliers as outliers_mod
-from .config import load_settings
+from .config import initialize_config, load_settings, set_spotify_client_id
 from .errors import PlaylistForgeError
 from .reccobeats_client import ReccoBeatsClient
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
+config_app = typer.Typer(help="Manage local configuration.")
 auth_app = typer.Typer(help="Spotify authentication.")
 library_app = typer.Typer(help="Manage local library files.")
 analyze_app = typer.Typer(help="Offline analysis over a pulled/enriched dataset.")
 act_app = typer.Typer(help="Write actions back to Spotify.")
+app.add_typer(config_app, name="config")
 app.add_typer(auth_app, name="auth")
 app.add_typer(library_app, name="library")
 app.add_typer(analyze_app, name="analyze")
@@ -55,6 +57,41 @@ def _handle_cli_errors(func):
             raise typer.Exit(code=1) from exc
 
     return wrapper
+
+
+# -------------------------------------------------------------- config ----
+@config_app.command("init")
+@_handle_cli_errors
+def config_init(
+    force: bool = typer.Option(False, "--force", help="Replace an existing config.json file."),
+):
+    """Create the local config.json file, or replace it with ``--force``.
+
+    Args:
+        force: Whether to overwrite an existing config file.
+
+    Returns:
+        None.
+    """
+    config_path = initialize_config(force=force)
+    typer.echo(f"Wrote default configuration to {config_path}.")
+
+
+@config_app.command("clientid")
+@_handle_cli_errors
+def config_clientid(
+    client_id: Annotated[str, typer.Argument(help="Spotify client ID to store in config.json.")],
+):
+    """Store a Spotify client ID in the local config.json file.
+
+    Args:
+        client_id: Spotify client ID value.
+
+    Returns:
+        None.
+    """
+    config_path = set_spotify_client_id(client_id)
+    typer.echo(f"Updated Spotify client ID in {config_path}.")
 
 
 # ---------------------------------------------------------------- auth ----

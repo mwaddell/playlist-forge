@@ -24,12 +24,17 @@ production; their API has changed field names before.
 git clone https://github.com/mwaddell/playlist-forge
 cd playlist-forge
 poetry install --with dev        # add --extras hdbscan if you want that clusterer
-cp .env.example .env             # fill in SPOTIFY_CLIENT_ID
+poetry run playlist-forge config init
 ```
 
 Create a Spotify app at https://developer.spotify.com/dashboard, add
-`http://127.0.0.1:8080/callback` as a Redirect URI, and put the Client ID in
-`.env`. No client secret is needed — this uses PKCE.
+`http://127.0.0.1:8080/callback` as a Redirect URI, then save the Client ID:
+
+```bash
+poetry run playlist-forge config clientid YOUR_SPOTIFY_CLIENT_ID
+```
+
+No client secret is needed — this uses PKCE.
 
 ## Quickstart
 
@@ -88,10 +93,11 @@ any API.
 
 ## Config
 
-Non-secret defaults (clustering weights, dedupe thresholds) live in
-`~/.config/playlist-forge/config.yaml` — copy `config.example.yaml` there to
-override. Secrets (`SPOTIFY_CLIENT_ID`, `RECCOBEATS_API_KEY`) come from `.env`
-/ environment variables only, never from that file. Use
+All configuration lives in `~/.config/playlist-forge/config.json` (or
+`$PLAYLIST_FORGE_HOME/config.json` if you override the config root). Create it
+with `playlist-forge config init`, reset it with
+`playlist-forge config init --force`, then set your Spotify client ID with
+`playlist-forge config clientid YOUR_SPOTIFY_CLIENT_ID`. Use
 `audio_feature_weight` as the default audio-feature multiplier and
 `audio_<feature>_weight` values (for example `audio_tempo_weight`) to override
 individual audio features.

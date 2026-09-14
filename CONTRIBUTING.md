@@ -8,10 +8,14 @@ Thanks for contributing.
 git clone https://github.com/mwaddell/playlist-forge
 cd playlist-forge
 poetry install --with dev
-cp .env.example .env
+poetry run playlist-forge config init
 ```
 
-Then set `SPOTIFY_CLIENT_ID` in `.env`.
+Then set `SPOTIFY_CLIENT_ID` with:
+
+```bash
+poetry run playlist-forge config clientid YOUR_SPOTIFY_CLIENT_ID
+```
 
 If you are working on clustering with HDBSCAN, install the optional extra:
 
