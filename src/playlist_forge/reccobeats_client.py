@@ -157,13 +157,13 @@ class ReccoBeatsClient:
             Audio-feature payload when matched, otherwise None.
         """
         cache_key = f"spotify:{spotify_id}"
-        cached = cache.get(cache_key)
+        cached = cache.get(cache.CacheType.RECCOBEATS, cache_key)
         if cached is not None:
             return cached or None  # cache.get returns {} for a cached "no match"
 
         data = self._get("/v1/audio-features", params={"ids": spotify_id})
         time.sleep(self.delay)
-        cache.set(cache_key, data if data is not None else {})
+        cache.set(cache.CacheType.RECCOBEATS, cache_key, data if data is not None else {})
         return data
 
     def enrich(self, tracks: list[Track]) -> list[Track]:
