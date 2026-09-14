@@ -128,7 +128,8 @@ def set_spotify_client_id(client_id: str) -> Path:
     if not normalized:
         raise ConfigurationError("Spotify client ID cannot be empty.")
 
-    return write_config(_set_nested_config_value(_read_user_config(), ("spotify", "client_id"), normalized))
+    base_config = _read_user_config() if CONFIG_PATH.exists() else default_config()
+    return write_config(_set_nested_config_value(base_config, ("spotify", "client_id"), normalized))
 
 
 def load_settings() -> Settings:

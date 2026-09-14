@@ -102,6 +102,20 @@ def test_set_spotify_client_id_updates_existing_config(monkeypatch, tmp_path):
     assert payload["cluster"]["genre_weight"] == 2.0
 
 
+def test_set_spotify_client_id_creates_full_default_config_when_missing(monkeypatch, tmp_path):
+    config_dir = tmp_path / "config-home"
+    config_path = config_dir / "config.json"
+    monkeypatch.setattr(config, "CONFIG_DIR", config_dir)
+    monkeypatch.setattr(config, "CONFIG_PATH", config_path)
+
+    config.set_spotify_client_id("client-id")
+
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
+    assert payload["spotify"]["client_id"] == "client-id"
+    assert payload["cluster"]["genre_weight"] == 1.0
+    assert payload["reccobeats"]["base_url"] == "https://api.reccobeats.com"
+
+
 def test_set_spotify_client_id_rejects_blank_values():
     with pytest.raises(ConfigurationError, match="cannot be empty"):
         config.set_spotify_client_id("   ")
