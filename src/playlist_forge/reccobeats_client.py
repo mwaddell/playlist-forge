@@ -187,7 +187,9 @@ class ReccoBeatsClient:
 
             for field_name in FEATURE_FIELDS:
                 if field_name in payload:
-                    setattr(t, field_name, payload[field_name])
+                    val = payload[field_name]
+                    if val:
+                        setattr(t, field_name, payload[field_name])
             t.feature_source = "reccobeats"
             t.feature_match_confidence = 1.0 / len(content)
         return tracks

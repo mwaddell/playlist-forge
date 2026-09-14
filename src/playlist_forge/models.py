@@ -1,12 +1,13 @@
 """Canonical data model shared by every pipeline stage.
 
-Every module in playlist_forge (pull, enrich, analyze, act) reads and writes
+Every module in playlist_forge (pull, enrich, analyze, push) reads and writes
 Track / Playlist objects. This is what keeps json/csv/tsv interchangeable
 and keeps the analysis code completely decoupled from the Spotify API.
 """
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field, fields
 from typing import Any
 
@@ -63,6 +64,8 @@ class Track:
             value = getattr(self, f.name)
             if f.name in self.LIST_FIELDS:
                 out[f.name] = delimiter.join(value) if value else ""
+            elif isinstance(value, float):
+                out[f.name] = f"{value:.8f}" if value is not None and not math.isnan(value) else ""
             else:
                 out[f.name] = value if value is not None else ""
         return out

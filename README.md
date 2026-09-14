@@ -61,12 +61,12 @@ poetry run playlist-forge analyze outliers --input clustered.json --top-n 5
 # 7. Find near-duplicate tracks and overlapping playlists
 poetry run playlist-forge analyze dedupe --input library_enriched.json --output dedupe_report.json
 
-# 8. Review clustered.json / dedupe_report.json by hand, then act:
-poetry run playlist-forge act split --input clustered.json --dry-run
-poetry run playlist-forge act merge --playlists "Chill 1,Chill 2" --into "Chill (merged)" --dry-run
+# 8. Review clustered.json / dedupe_report.json by hand, then push:
+poetry run playlist-forge push split --input clustered.json --dry-run
+poetry run playlist-forge push merge --playlists "Chill 1,Chill 2" --into "Chill (merged)" --dry-run
 ```
 
-**Always run with `--dry-run` first.** Every `act` command supports it and
+**Always run with `--dry-run` first.** Every `push` command supports it and
 will print what it would do without touching your account.
 
 ## File formats
@@ -83,7 +83,7 @@ pull    (Spotify)      → canonical Track dataset
 enrich  (ReccoBeats)   → adds audio-feature columns where matched
 library                → manages local library files
 analyze (scikit-learn) → cluster / outliers / dedupe — pure, offline, no API calls
-act     (Spotify)      → create new playlists based on analysis
+push    (Spotify)      → create new playlists based on analysis
 ```
 
 `analyze/*` never imports spotipy — it only operates on `Track` objects, so

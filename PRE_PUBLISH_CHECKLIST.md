@@ -27,12 +27,15 @@
       others untouched, so if `--playlist` is specified, then only tracks in
       the specified playlists should be enriched, and any others should be left
       as-is.
-- [ ] Rename the `--playlists` argument in `act merge` to `--from` and allow
-  multiple `--from` arguments to specify multiple source playlists to merge
+- [ ] Rename the `--playlists` argument in `push merge` to `--playlist` and allow
+  multiple `--playlist` arguments to specify multiple source playlists to merge
   into the destination playlist INSTEAD of requiring a single comma-separated
   list of playlists.
+    - Note that if no `--playlist` arguments are specified, a new empty
+      playlist is created.  If only a single `--playlist` argument is
+      specified, the source playlist is copied to the destination playlist.
 
-## 3. API Support
+## 3. API Updates
 
 - [ ] Add an `--api` argument to the `enrich` command which defaults to
   `reccobeats` but can be set to `getgenre` to use the GetGenre API instead.
@@ -45,6 +48,8 @@
       addition of other APIs.
     - Add a separate cache sqlite file for GetGenre API results, so that the
       cache is not shared with the ReccoBeats API.
+    - Cache not-found results just like ReccoBeats, so that we don't hammer 
+      the API with repeated requests for tracks/artists that are not in the database.
 - [ ] Pull the `snapshot_id` for each playlist when using the Spotify API and 
       cache the tracks for that snapshot.  The next time we get all of the
       playlists, we can compare the snapshot_id to see if the playlist has
@@ -54,6 +59,16 @@
         - Add a `--force` argument to the `pull` command to force pulling all playlists
           regardless of snapshot_id, in case the user wants to refresh their
           library even if nothing has changed.
+- [ ] Add a `--recheck` argument to the `enrich` command to force rechecking
+      any tracks that were cached as "not found" in the ReccoBeats/GetGenre API, in case
+      they have been added to the API since the last time they were checked.
+- [ ] Add a `--force` argument to the `enrich` command to force rechecking 
+      every track with the ReccoBeats/GetGenre API even if it already has a cached
+      result and updating the cache with the new result.
+- [ ] Determine how to handle songs with multiple artists
+        - Store all of them in the `artist` field as a semicolon-separated string?
+        - Convert `artist` to an array?
+        - Use `artist` as the primary artist, but store additional ones in a separate field?
 
 ## 4. Additional Library Commands
 
@@ -98,7 +113,7 @@
 ## 6. Manual Testing
 
 - [ ] Run the full pipeline against your **real Spotify account**
-      end to end at least once, using `--dry-run` on every `act` command first,
+      end to end at least once, using `--dry-run` on every `push` command first,
       then without it on a **throwaway test playlist** — not your actual library —
       to confirm writes behave as expected before you trust it near real data.
 - [ ] Test against an account with **zero playlists** and one with
@@ -110,13 +125,15 @@
       browser profile** (no cached Spotify login) — the happy path you've been
       testing with is your own already-authenticated browser, which can hide
       first-run bugs.
-- [ ] Confirm what happens if someone runs `act` commands
+- [ ] Confirm what happens if someone runs `push` commands
       _before_ `pull`/`enrich` (missing input file, empty dataset) — CLI tools
       get run out of order constantly; check the error messages are
       understandable rather than raw stack traces.
 - [ ] Fresh clone into a **new directory** and follow your own
       README's Quickstart section verbatim, as if you'd never seen the code
       before — this catches missing setup steps that muscle memory papers over.
+- [ ] Determine what happens if a playlist name contains a semi-colon, does
+      that break anything in csv/tsv exports or conversions?
 
 ## 7. Release and Distribution
 

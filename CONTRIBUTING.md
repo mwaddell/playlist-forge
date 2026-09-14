@@ -39,4 +39,4 @@ poetry run ruff check src tests
 
 ## Notes for changes that touch Spotify actions
 
-Use `--dry-run` first for `playlist-forge act ...` commands so account-changing actions are previewed before execution.
+Use `--dry-run` first for `playlist-forge push ...` commands so account-changing actions are previewed before execution.
