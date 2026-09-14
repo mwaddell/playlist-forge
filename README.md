@@ -57,7 +57,7 @@ poetry run playlist-forge analyze outliers --input clustered.json --top-n 5
 poetry run playlist-forge analyze dedupe --input library_enriched.json --output dedupe_report.json
 
 # 8. Review clustered.json / dedupe_report.json by hand, then act:
-poetry run playlist-forge act create-from-clusters --input clustered.json --dry-run
+poetry run playlist-forge act split --input clustered.json --dry-run
 poetry run playlist-forge act merge --playlists "Chill 1,Chill 2" --into "Chill (merged)" --dry-run
 ```
 

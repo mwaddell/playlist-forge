@@ -361,9 +361,9 @@ def analyze_dedupe(
 
 
 # ----------------------------------------------------------------- act ----
-@act_app.command("create-from-clusters")
+@act_app.command("split")
 @_handle_cli_errors
-def act_create_from_clusters(
+def act_split(
     input: Path = typer.Option(
         ..., "--input", "-i", help="Clustered dataset from `analyze cluster`."
     ),

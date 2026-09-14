@@ -101,7 +101,7 @@ it does not support CSV or TSV output.
 
 All write commands support `--dry-run`. Use it before changing Spotify data.
 
-### `playlist-forge act create-from-clusters`
+### `playlist-forge act split`
 
 Create playlists from clustered dataset output.
 
