@@ -37,7 +37,7 @@ def merge(
     track_ids: list[str] = []
 
     for playlist in targets:
-        for t in spotify_client.pull_playlist_tracks(spotify, playlist, fetch_genres=False):
+        for t in spotify_client.pull_playlist_tracks(spotify, playlist):
             if t.spotify_id in seen_ids:
                 continue
             if dedupe_by_isrc and t.isrc and t.isrc in seen_isrc:

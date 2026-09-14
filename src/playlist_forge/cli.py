@@ -133,6 +133,7 @@ def pull(
     playlist: str | None = typer.Option(
         None, "--playlist", help="Only pull playlists whose name contains this substring."
     ),
+    force: bool = typer.Option(False, "--force", help="Pull from Spotify API even if the result was already cached."),
 ):
     """Pull playlists and tracks from Spotify into a local dataset.
 
@@ -146,7 +147,7 @@ def pull(
     """
     settings = load_settings()
     spotify = auth.get_spotify_client(settings)
-    tracks = spotify_client.pull_library(spotify, playlist_name_filter=playlist)
+    tracks = spotify_client.pull_library(spotify, playlist_name_filter=playlist, force=force)
     io_formats.write_tracks(tracks, output, fmt)
     typer.echo(f"Pulled {len(tracks)} unique tracks -> {output}")
 

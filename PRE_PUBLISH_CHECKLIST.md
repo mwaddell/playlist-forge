@@ -50,7 +50,7 @@
       cache is not shared with the ReccoBeats API.
     - Cache not-found results just like ReccoBeats, so that we don't hammer 
       the API with repeated requests for tracks/artists that are not in the database.
-- [ ] Pull the `snapshot_id` for each playlist when using the Spotify API and 
+- [x] Pull the `snapshot_id` for each playlist when using the Spotify API and 
       cache the tracks for that snapshot.  The next time we get all of the
       playlists, we can compare the snapshot_id to see if the playlist has
       changed, and if not, we can skip pulling the tracks for that playlist.
@@ -65,6 +65,7 @@
 - [ ] Add a `--force` argument to the `enrich` command to force rechecking 
       every track with the ReccoBeats/GetGenre API even if it already has a cached
       result and updating the cache with the new result.
+- [ ] Update `push merge` so that it doesn't re-pull the playlists but uses those in the library
 - [ ] Determine how to handle songs with multiple artists
         - Store all of them in the `artist` field as a semicolon-separated string?
         - Convert `artist` to an array?

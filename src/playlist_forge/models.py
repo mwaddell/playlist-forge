@@ -113,3 +113,4 @@ class Playlist:
     owner: str | None = None
     owner_id: str | None = None
     is_collaborative: bool = False
+    snapshot_id: str | None = None
