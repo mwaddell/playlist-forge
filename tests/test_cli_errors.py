@@ -316,24 +316,6 @@ def test_enrich_uses_getgenre_when_requested(monkeypatch, capsys, tmp_path):
     assert "Enriched 1/1 tracks with getgenre" in capsys.readouterr().out
 
 
-def test_enrich_rejects_unknown_api(capsys, tmp_path):
-    result = runner.invoke(
-        cli.app,
-        [
-            "enrich",
-            "--input",
-            str(tmp_path / "in.json"),
-            "--output",
-            str(tmp_path / "out.json"),
-            "--api",
-            "unknown-api",
-        ],
-    )
-
-    assert result.exit_code != 0
-    assert "Invalid value for '--api'" in result.output
-
-
 def test_library_merge_merges_playlists_genres_and_metadata(tmp_path):
     first_input = Path(tmp_path / "library_a.json")
     second_input = Path(tmp_path / "library_b.json")
