@@ -124,8 +124,8 @@ def test_fetch_does_not_cache_transient_failure(monkeypatch):
     def raise_network_failure(*_args, **_kwargs):
         raise NetworkFailureError("boom")
 
-    monkeypatch.setattr(cache, "get", lambda key: None)
-    monkeypatch.setattr(cache, "set", lambda key, value: cache_writes.append((key, value)))
+    monkeypatch.setattr(cache, "get", lambda typ, key: None)
+    monkeypatch.setattr(cache, "set", lambda typ, key, value: cache_writes.append((key, value)))
     monkeypatch.setattr(client, "_get", raise_network_failure)
 
     with pytest.raises(NetworkFailureError):
