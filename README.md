@@ -44,16 +44,22 @@ poetry run playlist-forge auth login
 
 # 2. Pull your whole library to a single file
 poetry run playlist-forge pull --output library.json
+#    ...or only matching playlists by name or ID substring
+poetry run playlist-forge pull --output library.json --playlist "Road Trip" --playlist "37i9dQZF1DXcBWIGoYBM5M"
 
 # 3. Enrich with ReccoBeats audio features (optional — clustering also
 #    works on genre + year alone if you skip this)
 poetry run playlist-forge enrich --input library.json --output library_enriched.json
+#    ...or only enrich tracks from matching playlists
+poetry run playlist-forge enrich --input library.json --output library_enriched.json --playlist "Road Trip"
 
 # 4. Convert between dataset formats
 poetry run playlist-forge library convert --input library_enriched.json --output library_enriched.tsv
 
 # 5. Cluster everything
 poetry run playlist-forge analyze cluster --input library_enriched.json --output clustered.json
+#    ...or only cluster tracks from matching playlists
+poetry run playlist-forge analyze cluster --input library_enriched.json --output clustered.json --playlist "Road Trip"
 
 # 6. See what looks out of place in each playlist
 poetry run playlist-forge analyze outliers --input clustered.json --top-n 5
@@ -63,7 +69,7 @@ poetry run playlist-forge analyze dedupe --input library_enriched.json --output 
 
 # 8. Review clustered.json / dedupe_report.json by hand, then push:
 poetry run playlist-forge push split --input clustered.json --dry-run
-poetry run playlist-forge push merge --playlists "Chill 1,Chill 2" --into "Chill (merged)" --dry-run
+poetry run playlist-forge push merge --playlist "Chill 1" --playlist "Chill 2" --into "Chill (merged)" --dry-run
 ```
 
 **Always run with `--dry-run` first.** Every `push` command supports it and

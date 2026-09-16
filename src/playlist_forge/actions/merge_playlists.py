@@ -26,6 +26,9 @@ def merge(
     Returns:
         Created playlist ID, or None in dry-run mode.
     """
+    if not playlist_names:
+        return spotify_client.create_playlist(spotify, into_name, [], dry_run=dry_run)
+
     all_playlists = spotify_client.list_playlists(spotify)
     targets = [p for p in all_playlists if p.name in playlist_names]
     missing = set(playlist_names) - {p.name for p in targets}

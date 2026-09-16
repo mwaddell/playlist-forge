@@ -4,11 +4,14 @@ from pathlib import Path
 
 import pytest
 import typer
+from typer.testing import CliRunner
 
 from playlist_forge import cli
 from playlist_forge.errors import AuthFailureError
 from playlist_forge.io_formats import read_tracks, write_tracks
 from playlist_forge.models import Track
+
+runner = CliRunner()
 
 
 class DummySettings:
@@ -120,6 +123,338 @@ def test_playlist_name_for_id_uses_matching_playlist_index():
     assert cli._playlist_name_for_id(t, "p-target") == "Target"
 
 
+def test_select_tracks_by_playlist_prunes_memberships():
+    tracks = [
+        Track(
+            spotify_id="t1",
+            title="A",
+            artist="X",
+            album="",
+            playlist_ids=["p-alpha", "p-beta"],
+            playlist_names=["Alpha", "Beta"],
+        ),
+        Track(
+            spotify_id="t2",
+            title="B",
+            artist="Y",
+            album="",
+            playlist_ids=["p-beta"],
+            playlist_names=["Beta"],
+        ),
+    ]
+
+    selected = cli._select_tracks_by_playlist(tracks, ["alp"], prune_memberships=True)
+
+    assert [track.spotify_id for track in selected] == ["t1"]
+    assert selected[0].playlist_ids == ["p-alpha"]
+    assert selected[0].playlist_names == ["Alpha"]
+    assert tracks[0].playlist_ids == ["p-alpha", "p-beta"]
+
+
+def test_pull_accepts_repeated_playlist_options(monkeypatch, tmp_path):
+    monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
+    monkeypatch.setattr(cli.auth, "get_spotify_client", lambda _settings: object())
+    captured: dict = {}
+    monkeypatch.setattr(
+        cli.spotify_client,
+        "pull_library",
+        lambda _spotify, playlist_filters=None, force=False: captured.update(
+            {"playlist_filters": playlist_filters, "force": force}
+        )
+        or [],
+    )
+    monkeypatch.setattr(cli.io_formats, "write_tracks", lambda *_args, **_kwargs: None)
+
+    result = runner.invoke(
+        cli.app,
+        [
+            "pull",
+            "--output",
+            str(tmp_path / "out.json"),
+            "--playlist",
+            "Road Trip",
+            "--playlist",
+            "37i9dQZF1DXcBWIGoYBM5M",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["playlist_filters"] == ["Road Trip", "37i9dQZF1DXcBWIGoYBM5M"]
+    assert captured["force"] is False
+
+
+def test_enrich_only_updates_filtered_tracks(monkeypatch, tmp_path):
+    tracks = [
+        Track(
+            spotify_id="t1",
+            title="A",
+            artist="X",
+            album="",
+            playlist_ids=["p-target"],
+            playlist_names=["Target"],
+        ),
+        Track(
+            spotify_id="t2",
+            title="B",
+            artist="Y",
+            album="",
+            playlist_ids=["p-other"],
+            playlist_names=["Other"],
+        ),
+    ]
+
+    class FakeClient:
+        def __init__(self, _settings):
+            pass
+
+        def enrich(self, selected_tracks):
+            for track in selected_tracks:
+                track.feature_source = "reccobeats"
+            return selected_tracks
+
+    written: dict = {}
+    monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
+    monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: tracks)
+    monkeypatch.setattr(
+        cli.io_formats,
+        "write_tracks",
+        lambda written_tracks, path, fmt: written.update(
+            {"tracks": written_tracks, "path": path, "fmt": fmt}
+        ),
+    )
+    monkeypatch.setattr(cli, "ReccoBeatsClient", FakeClient)
+
+    cli.enrich(
+        input=Path(tmp_path / "in.json"),
+        output=Path(tmp_path / "out.json"),
+        fmt=None,
+        playlist=["Target"],
+    )
+
+    assert written["tracks"] == tracks
+    assert tracks[0].feature_source == "reccobeats"
+    assert tracks[1].feature_source is None
+
+
+def test_analyze_cluster_only_updates_selected_tracks(monkeypatch, tmp_path):
+    selected = Track(
+        spotify_id="t1",
+        title="A",
+        artist="X",
+        album="",
+        playlist_ids=["p-target"],
+        playlist_names=["Target"],
+        cluster_id=9,
+    )
+    untouched = Track(
+        spotify_id="t2",
+        title="B",
+        artist="Y",
+        album="",
+        playlist_ids=["p-other"],
+        playlist_names=["Other"],
+        cluster_id=7,
+    )
+    tracks = [selected, untouched]
+    written: dict = {}
+    captured_cluster_tracks: dict = {}
+
+    monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
+    monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: tracks)
+    monkeypatch.setattr(
+        cli.io_formats,
+        "write_tracks",
+        lambda written_tracks, path, fmt: written.update(
+            {"tracks": written_tracks, "path": path, "fmt": fmt}
+        ),
+    )
+
+    def fake_cluster_kmeans(input_tracks, **kwargs):
+        captured_cluster_tracks["tracks"] = input_tracks
+        captured_cluster_tracks["kwargs"] = kwargs
+        input_tracks[0].cluster_id = 3
+        return input_tracks
+
+    monkeypatch.setattr(cli.cluster_mod, "cluster_kmeans", fake_cluster_kmeans)
+
+    cli.analyze_cluster(
+        input=Path(tmp_path / "in.json"),
+        output=Path(tmp_path / "out.json"),
+        fmt=None,
+        playlist=["Target"],
+        algorithm="kmeans",
+        k="auto",
+    )
+
+    assert captured_cluster_tracks["tracks"] == [selected]
+    assert written["tracks"] == tracks
+    assert selected.cluster_id == 3
+    assert untouched.cluster_id is None
+
+
+def test_analyze_outliers_filters_and_prunes_playlist_memberships(monkeypatch, tmp_path, capsys):
+    tracks = [
+        Track(
+            spotify_id="t1",
+            title="A",
+            artist="X",
+            album="",
+            playlist_ids=["p-target", "p-other"],
+            playlist_names=["Target", "Other"],
+        ),
+        Track(
+            spotify_id="t2",
+            title="B",
+            artist="Y",
+            album="",
+            playlist_ids=["p-other"],
+            playlist_names=["Other"],
+        ),
+    ]
+    captured: dict = {}
+
+    monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: tracks)
+
+    def fake_top_outliers_by_playlist(selected_tracks, top_n):
+        captured["tracks"] = selected_tracks
+        assert top_n == 5
+        return {"p-target": [(selected_tracks[0], 0.25)]}
+
+    monkeypatch.setattr(cli.outliers_mod, "top_outliers_by_playlist", fake_top_outliers_by_playlist)
+
+    cli.analyze_outliers(input=Path(tmp_path / "in.json"), playlist=["Target"], top_n=5)
+
+    assert [track.spotify_id for track in captured["tracks"]] == ["t1"]
+    assert captured["tracks"][0].playlist_ids == ["p-target"]
+    assert captured["tracks"][0].playlist_names == ["Target"]
+    assert "Target" in capsys.readouterr().out
+
+
+def test_analyze_outliers_reports_when_filters_match_nothing(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: [])
+    monkeypatch.setattr(
+        cli.outliers_mod,
+        "top_outliers_by_playlist",
+        lambda *_args, **_kwargs: pytest.fail("outlier analysis should not run"),
+    )
+
+    cli.analyze_outliers(input=Path(tmp_path / "in.json"), playlist=["Missing"], top_n=5)
+
+    assert "No tracks matched the supplied --playlist filters." in capsys.readouterr().out
+
+
+def test_analyze_dedupe_filters_duplicates_and_prunes_overlap_memberships(monkeypatch, tmp_path):
+    tracks = [
+        Track(
+            spotify_id="t1",
+            title="A",
+            artist="X",
+            album="",
+            playlist_ids=["p-target", "p-other"],
+            playlist_names=["Target", "Other"],
+        ),
+        Track(
+            spotify_id="t2",
+            title="B",
+            artist="Y",
+            album="",
+            playlist_ids=["p-other"],
+            playlist_names=["Other"],
+        ),
+    ]
+    captured: dict = {}
+
+    monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: tracks)
+    monkeypatch.setattr(
+        cli.dedupe_mod,
+        "find_duplicate_tracks",
+        lambda selected_tracks, threshold: captured.update(
+            {"duplicate_tracks": selected_tracks, "track_threshold": threshold}
+        )
+        or [],
+    )
+    monkeypatch.setattr(
+        cli.dedupe_mod,
+        "find_playlist_overlaps",
+        lambda selected_tracks, threshold: captured.update(
+            {"overlap_tracks": selected_tracks, "playlist_threshold": threshold}
+        )
+        or [],
+    )
+
+    cli.analyze_dedupe(
+        input=Path(tmp_path / "in.json"),
+        output=Path(tmp_path / "out.json"),
+        playlist=["Target"],
+        track_threshold=0.9,
+        playlist_threshold=0.6,
+    )
+
+    assert [track.spotify_id for track in captured["duplicate_tracks"]] == ["t1"]
+    assert captured["duplicate_tracks"][0].playlist_ids == ["p-target", "p-other"]
+    assert [track.spotify_id for track in captured["overlap_tracks"]] == ["t1"]
+    assert captured["overlap_tracks"][0].playlist_ids == ["p-target"]
+
+
+def test_push_merge_accepts_repeated_playlist_options(monkeypatch):
+    monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
+    monkeypatch.setattr(cli.auth, "get_spotify_client", lambda _settings: object())
+    captured: dict = {}
+    monkeypatch.setattr(
+        cli.merge_playlists,
+        "merge",
+        lambda _spotify, playlist_names, into, dry_run=False: captured.update(
+            {"playlist_names": playlist_names, "into": into, "dry_run": dry_run}
+        )
+        or "new-playlist-id",
+    )
+
+    result = runner.invoke(
+        cli.app,
+        [
+            "push",
+            "merge",
+            "--playlist",
+            "Chill 1",
+            "--playlist",
+            "Chill 2",
+            "--into",
+            "Chill (merged)",
+            "--dry-run",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured == {
+        "playlist_names": ["Chill 1", "Chill 2"],
+        "into": "Chill (merged)",
+        "dry_run": True,
+    }
+
+
+def test_push_merge_allows_no_source_playlists(monkeypatch):
+    monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
+    monkeypatch.setattr(cli.auth, "get_spotify_client", lambda _settings: object())
+    captured: dict = {}
+    monkeypatch.setattr(
+        cli.merge_playlists,
+        "merge",
+        lambda _spotify, playlist_names, into, dry_run=False: captured.update(
+            {"playlist_names": playlist_names, "into": into, "dry_run": dry_run}
+        )
+        or "new-playlist-id",
+    )
+
+    result = runner.invoke(cli.app, ["push", "merge", "--into", "Empty Playlist"])
+
+    assert result.exit_code == 0
+    assert captured == {
+        "playlist_names": [],
+        "into": "Empty Playlist",
+        "dry_run": False,
+    }
+
+
 def test_analyze_cluster_uses_config_defaults_for_audio_weights(monkeypatch, tmp_path):
     class ConfiguredSettings:
         config = {
@@ -146,6 +481,7 @@ def test_analyze_cluster_uses_config_defaults_for_audio_weights(monkeypatch, tmp
         input=Path(tmp_path / "in.json"),
         output=Path(tmp_path / "out.json"),
         fmt=None,
+        playlist=None,
         algorithm="kmeans",
         k="auto",
     )
@@ -175,6 +511,7 @@ def test_analyze_cluster_cli_audio_weight_overrides_config(monkeypatch, tmp_path
         input=Path(tmp_path / "in.json"),
         output=Path(tmp_path / "out.json"),
         fmt=None,
+        playlist=None,
         algorithm="kmeans",
         k="auto",
         audio_feature_weight=3.0,
