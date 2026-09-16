@@ -345,5 +345,27 @@ def test_library_merge_repeated_input_keeps_first_file_duplicates(tmp_path):
 
     merged = read_tracks(output_path)
     assert [track.title for track in merged] == ["First", "Second"]
-    assert merged[0].playlist_ids == ["p1", "p2"]
-    assert merged[1].playlist_ids == ["p2", "p1"]
+    assert merged[0].playlist_ids == ["p1"]
+    assert merged[1].playlist_ids == ["p2"]
+
+
+def test_library_merge_keeps_later_file_duplicate_rows(tmp_path):
+    first_input = Path(tmp_path / "library_a.json")
+    second_input = Path(tmp_path / "library_b.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks([Track(spotify_id="dup", title="A", artist="X", album="Y")], first_input)
+    write_tracks(
+        [
+            Track(spotify_id="dup", title="B1", artist="X", album="Y", year=2001),
+            Track(spotify_id="dup", title="B2", artist="X", album="Y", year=2002),
+        ],
+        second_input,
+    )
+
+    cli.library_merge(input=[first_input, second_input], output=output_path, fmt=None)
+
+    merged = read_tracks(output_path)
+    assert len(merged) == 2
+    assert merged[0].year == 2001
+    assert merged[1].title == "B2"
