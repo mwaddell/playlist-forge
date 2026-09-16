@@ -19,7 +19,11 @@ class CacheType(Enum):
 def _connect(typ: CacheType) -> sqlite3.Connection:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-    filetype = "library" if typ == CacheType.SPOTIFY else "enrichment"
+    filetype = {
+        CacheType.SPOTIFY: "library",
+        CacheType.RECCOBEATS: "enrichment",
+        CacheType.GETGENRE: "getgenre",
+    }[typ]
 
     conn = sqlite3.connect(CACHE_DIR / f"{filetype}.sqlite3")
     conn.execute(f"CREATE TABLE IF NOT EXISTS {typ.value}_cache (key TEXT PRIMARY KEY, payload TEXT NOT NULL)")
