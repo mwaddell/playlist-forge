@@ -218,13 +218,11 @@ class GetGenreClient:
                     delay = self._retry_after_seconds(response) or (self.base_backoff_seconds * (2**attempt))
                     time.sleep(delay)
                     continue
-                raise ExternalServiceError(f"GetGenre request failed for {params}: {exc}") from exc
+                raise ExternalServiceError("GetGenre search request failed.") from exc
             except requests.RequestException as exc:
-                raise NetworkFailureError(
-                    f"GetGenre request failed due to network issue for {params}: {exc}"
-                ) from exc
+                raise NetworkFailureError("GetGenre search request failed due to a network issue.") from exc
 
-        raise NetworkFailureError(f"GetGenre request failed for {params}.")
+        raise NetworkFailureError("GetGenre search request failed.")
 
     @staticmethod
     def _cache_key(prefix: str, *parts: str) -> str:
@@ -238,7 +236,8 @@ class GetGenreClient:
             return cached or None
 
         data = self._get(params)
-        time.sleep(self.delay)
+        if data is not None:
+            time.sleep(self.delay)
         cache.set(cache.CacheType.GETGENRE, cache_key, data if data is not None else {})
         return data
 
