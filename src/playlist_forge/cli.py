@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 import typer
 
@@ -160,7 +160,10 @@ def enrich(
     input: Path = typer.Option(..., "--input", "-i"),
     output: Path = typer.Option(..., "--output", "-o"),
     fmt: str | None = typer.Option(None, "--format", "-f"),
-    api: Annotated[str, typer.Option("--api", help="reccobeats|getgenre")] = "reccobeats",
+    api: Annotated[
+        Literal["reccobeats", "getgenre"],
+        typer.Option("--api", help="reccobeats|getgenre"),
+    ] = "reccobeats",
 ):
     """Add enrichment data from the selected API to a pulled dataset file.
 
@@ -173,10 +176,6 @@ def enrich(
     Returns:
         None.
     """
-    if api not in {"reccobeats", "getgenre"}:
-        typer.echo(f"Unsupported --api '{api}'. Expected one of: getgenre, reccobeats.", err=True)
-        raise typer.Exit(code=1)
-
     settings = load_settings()
     tracks = io_formats.read_tracks(input)
     client = ReccoBeatsClient(settings) if api == "reccobeats" else GetGenreClient(settings)

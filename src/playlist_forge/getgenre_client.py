@@ -99,7 +99,12 @@ class GetGenreClient:
         for attempt in range(self.max_retries + 1):
             resp: requests.Response | None = None
             try:
-                resp = self.session.post(f"{self.base_url}/token", data=payload, headers=headers, timeout=10)
+                resp = self.session.post(
+                    f"{self.base_url}/token",
+                    data=payload,
+                    headers=headers,
+                    timeout=self.timeout_seconds,
+                )
                 if resp.status_code == 401:
                     raise AuthFailureError(
                         "GetGenre authentication failed (401). "
@@ -153,16 +158,23 @@ class GetGenreClient:
         for attempt in range(self.max_retries + 1):
             resp: requests.Response | None = None
             try:
-                resp = self.session.get(f"{self.base_url}/search", params=params, timeout=10)
+                resp = self.session.get(
+                    f"{self.base_url}/search",
+                    params=params,
+                    timeout=self.timeout_seconds,
+                )
                 if resp.status_code == 404:
                     return None
                 if resp.status_code == 401:
                     self._authenticated = False
                     self.session.headers.pop("Authorization", None)
-                    raise AuthFailureError(
-                        "GetGenre authentication failed (401). "
-                        "Check getgenre.username and getgenre.password in config.json and retry."
-                    )
+                    if attempt >= self.max_retries:
+                        raise AuthFailureError(
+                            "GetGenre authentication failed (401). "
+                            "Check getgenre.username and getgenre.password in config.json and retry."
+                        )
+                    self._authenticate()
+                    continue
                 if resp.status_code == 202 and attempt < self.max_retries:
                     delay = self._retry_after_seconds(resp) or (self.base_backoff_seconds * (2**attempt))
                     time.sleep(delay)
@@ -191,10 +203,13 @@ class GetGenreClient:
                 if response is not None and response.status_code == 401:
                     self._authenticated = False
                     self.session.headers.pop("Authorization", None)
-                    raise AuthFailureError(
-                        "GetGenre authentication failed (401). "
-                        "Check getgenre.username and getgenre.password in config.json and retry."
-                    ) from exc
+                    if attempt >= self.max_retries:
+                        raise AuthFailureError(
+                            "GetGenre authentication failed (401). "
+                            "Check getgenre.username and getgenre.password in config.json and retry."
+                        ) from exc
+                    self._authenticate()
+                    continue
                 if response is not None and response.status_code == 429 and attempt < self.max_retries:
                     delay = self._retry_after_seconds(response) or (self.base_backoff_seconds * (2**attempt))
                     time.sleep(delay)

@@ -203,3 +203,25 @@ def test_get_raises_after_repeated_rate_limits(monkeypatch):
 
     with pytest.raises(RateLimitExceededError):
         client._get({"artist_name": "Artist", "timeout": 10})
+
+
+def test_get_reauthenticates_after_search_401(monkeypatch):
+    client = GetGenreClient(DummySettings())
+    auth_calls: list[int] = []
+    search_responses = [
+        FakeResponse(401),
+        FakeResponse(200, {"top_genres": ["indie"], "genres": ["indie"]}),
+    ]
+
+    def fake_post(*args, **kwargs):
+        auth_calls.append(kwargs["timeout"])
+        return FakeResponse(200, {"access_token": f"token-{len(auth_calls)}", "token_type": "Bearer"})
+
+    monkeypatch.setattr(client.session, "post", fake_post)
+    monkeypatch.setattr(client.session, "get", lambda *args, **kwargs: search_responses.pop(0))
+    monkeypatch.setattr("playlist_forge.getgenre_client.time.sleep", lambda _seconds: None)
+
+    payload = client._get({"artist_name": "Artist", "timeout": 10})
+
+    assert payload == {"top_genres": ["indie"], "genres": ["indie"]}
+    assert auth_calls == [10, 10]

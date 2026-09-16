@@ -4,11 +4,14 @@ from pathlib import Path
 
 import pytest
 import typer
+from typer.testing import CliRunner
 
 from playlist_forge import cli
 from playlist_forge.errors import AuthFailureError
 from playlist_forge.io_formats import read_tracks, write_tracks
 from playlist_forge.models import Track
+
+runner = CliRunner()
 
 
 class DummySettings:
@@ -295,13 +298,18 @@ def test_enrich_uses_getgenre_when_requested(monkeypatch, capsys, tmp_path):
 
 
 def test_enrich_rejects_unknown_api(capsys, tmp_path):
-    with pytest.raises(typer.Exit) as exc_info:
-        cli.enrich(
-            input=Path(tmp_path / "in.json"),
-            output=Path(tmp_path / "out.json"),
-            fmt=None,
-            api="unknown-api",
-        )
+    result = runner.invoke(
+        cli.app,
+        [
+            "enrich",
+            "--input",
+            str(tmp_path / "in.json"),
+            "--output",
+            str(tmp_path / "out.json"),
+            "--api",
+            "unknown-api",
+        ],
+    )
 
-    assert exc_info.value.exit_code == 1
-    assert "Unsupported --api 'unknown-api'" in capsys.readouterr().err
+    assert result.exit_code != 0
+    assert "Invalid value for '--api'" in result.output
