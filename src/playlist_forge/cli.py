@@ -91,19 +91,17 @@ def _merge_libraries(inputs: list[Path]):
         merged_by_id.setdefault(track.spotify_id, []).append(track)
 
     for path in inputs[1:]:
-        incoming_by_id: dict[str, list] = {}
+        seen_counts: dict[str, int] = {}
         for track in io_formats.read_tracks(path):
-            incoming_by_id.setdefault(track.spotify_id, []).append(track)
-
-        for spotify_id, incoming_tracks in incoming_by_id.items():
-            existing_tracks = merged_by_id.setdefault(spotify_id, [])
-            for idx, track in enumerate(incoming_tracks):
-                if idx < len(existing_tracks):
-                    _merge_track_metadata(existing_tracks[idx], track)
-                    continue
-                copied = copy.deepcopy(track)
-                merged_tracks.append(copied)
-                existing_tracks.append(copied)
+            incoming_index = seen_counts.get(track.spotify_id, 0)
+            seen_counts[track.spotify_id] = incoming_index + 1
+            existing_tracks = merged_by_id.setdefault(track.spotify_id, [])
+            if incoming_index < len(existing_tracks):
+                _merge_track_metadata(existing_tracks[incoming_index], track)
+                continue
+            copied = copy.deepcopy(track)
+            merged_tracks.append(copied)
+            existing_tracks.append(copied)
     return merged_tracks
 
 

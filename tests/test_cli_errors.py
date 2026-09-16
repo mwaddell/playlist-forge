@@ -369,3 +369,25 @@ def test_library_merge_keeps_later_file_duplicate_rows(tmp_path):
     assert len(merged) == 2
     assert merged[0].year == 2001
     assert merged[1].title == "B2"
+
+
+def test_library_merge_preserves_later_file_row_order_for_new_rows(tmp_path):
+    first_input = Path(tmp_path / "library_a.json")
+    second_input = Path(tmp_path / "library_b.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks([Track(spotify_id="dup", title="A", artist="X", album="Y")], first_input)
+    write_tracks(
+        [
+            Track(spotify_id="dup", title="B1", artist="X", album="Y"),
+            Track(spotify_id="new-1", title="N1", artist="X", album="Y"),
+            Track(spotify_id="dup", title="B2", artist="X", album="Y"),
+            Track(spotify_id="new-2", title="N2", artist="X", album="Y"),
+        ],
+        second_input,
+    )
+
+    cli.library_merge(input=[first_input, second_input], output=output_path, fmt=None)
+
+    merged = read_tracks(output_path)
+    assert [track.spotify_id for track in merged] == ["dup", "new-1", "dup", "new-2"]
