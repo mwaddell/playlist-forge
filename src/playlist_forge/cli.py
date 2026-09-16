@@ -160,7 +160,7 @@ def enrich(
     input: Path = typer.Option(..., "--input", "-i"),
     output: Path = typer.Option(..., "--output", "-o"),
     fmt: str | None = typer.Option(None, "--format", "-f"),
-    api: str = typer.Option("reccobeats", "--api", help="reccobeats|getgenre"),
+    api: Annotated[str, typer.Option("--api", help="reccobeats|getgenre")] = "reccobeats",
 ):
     """Add enrichment data from the selected API to a pulled dataset file.
 

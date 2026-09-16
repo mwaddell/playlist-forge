@@ -45,9 +45,10 @@ poetry run playlist-forge auth login
 # 2. Pull your whole library to a single file
 poetry run playlist-forge pull --output library.json
 
-# 3. Enrich with ReccoBeats audio features (optional — clustering also
-#    works on genre + year alone if you skip this)
+# 3. Enrich with ReccoBeats audio features (default) or GetGenre genres
+#    (optional — clustering also works on genre + year alone if you skip this)
 poetry run playlist-forge enrich --input library.json --output library_enriched.json
+poetry run playlist-forge enrich --input library.json --output library_genres.json --api getgenre
 
 # 4. Convert between dataset formats
 poetry run playlist-forge library convert --input library_enriched.json --output library_enriched.tsv
@@ -80,7 +81,7 @@ names, genres) are `;`-joined in csv/tsv and native arrays in json.
 
 ```
 pull    (Spotify)      → canonical Track dataset
-enrich  (ReccoBeats)   → adds audio-feature columns where matched
+enrich  (ReccoBeats / GetGenre) → adds audio features or genres where matched
 library                → manages local library files
 analyze (scikit-learn) → cluster / outliers / dedupe — pure, offline, no API calls
 push    (Spotify)      → create new playlists based on analysis
@@ -100,7 +101,8 @@ with `playlist-forge config init`, reset it with
 `playlist-forge config clientid YOUR_SPOTIFY_CLIENT_ID`. Use
 `audio_feature_weight` as the default audio-feature multiplier and
 `audio_<feature>_weight` values (for example `audio_tempo_weight`) to override
-individual audio features.
+individual audio features. To use `playlist-forge enrich --api getgenre`,
+configure `getgenre.username` and `getgenre.password` in the same file.
 
 ## Development
 
