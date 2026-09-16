@@ -370,8 +370,9 @@ def analyze_cluster(
     tracks = io_formats.read_tracks(input)
     selected_tracks = _select_tracks_by_playlist(tracks, playlist)
     if playlist:
+        selected_track_refs = {id(track) for track in selected_tracks}
         for track in tracks:
-            if track not in selected_tracks:
+            if id(track) not in selected_track_refs:
                 track.cluster_id = None
     should_cluster = bool(selected_tracks) or not playlist
     if algorithm == "hdbscan":
