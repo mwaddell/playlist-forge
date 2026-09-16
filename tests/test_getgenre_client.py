@@ -124,6 +124,18 @@ def test_fetch_by_track_caches_not_found_results(monkeypatch):
     assert writes == [(cache.CacheType.GETGENRE, "track:song:artist", {})]
 
 
+def test_fetch_by_track_skips_cache_for_non_terminal_payload(monkeypatch):
+    client = GetGenreClient(DummySettings())
+    writes: list[tuple[cache.CacheType, str, dict]] = []
+
+    monkeypatch.setattr(cache, "get", lambda typ, key: None)
+    monkeypatch.setattr(cache, "set", lambda typ, key, value: writes.append((typ, key, value)))
+    monkeypatch.setattr(client, "_get", lambda _params: {"genre_finished": False})
+
+    assert client.fetch_by_track("Song", "Artist") == {"genre_finished": False}
+    assert writes == []
+
+
 def test_enrich_uses_track_then_artist_fallback(monkeypatch):
     client = GetGenreClient(DummySettings())
     tracks = [Track(spotify_id="track-1", title="Song 1", artist="Artist 1", album="Album 1")]

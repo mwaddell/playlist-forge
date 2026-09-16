@@ -101,3 +101,26 @@ def test_json_reads_legacy_artist_genres_field(tmp_path):
     loaded = read_tracks(path)
 
     assert loaded[0].genres == ["art rock", "alternative rock"]
+
+
+def test_json_prefers_non_empty_legacy_genres_when_genres_is_empty(tmp_path):
+    path = tmp_path / "mixed_tracks.json"
+    path.write_text(
+        """
+[
+  {
+    "spotify_id": "abc123",
+    "title": "Everything In Its Right Place",
+    "artist": "Radiohead",
+    "album": "Kid A",
+    "genres": [],
+    "artist_genres": ["art rock", "alternative rock"]
+  }
+]
+""".strip(),
+        encoding="utf-8",
+    )
+
+    loaded = read_tracks(path)
+
+    assert loaded[0].genres == ["art rock", "alternative rock"]

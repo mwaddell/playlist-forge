@@ -83,8 +83,10 @@ class Track:
     @classmethod
     def _normalize_row_keys(cls, row: dict[str, Any]) -> dict[str, Any]:
         normalized = dict(row)
-        if "artist_genres" in normalized and "genres" not in normalized:
-            normalized["genres"] = normalized.pop("artist_genres")
+        legacy_genres = normalized.pop("artist_genres", None)
+        current_genres = normalized.get("genres")
+        if not current_genres and legacy_genres:
+            normalized["genres"] = legacy_genres
         return normalized
 
     @classmethod

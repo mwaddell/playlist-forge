@@ -241,7 +241,11 @@ class GetGenreClient:
             return cached or None
 
         data = self._get(params)
-        cache.set(cache.CacheType.GETGENRE, cache_key, data if data is not None else {})
+        if data is None:
+            cache.set(cache.CacheType.GETGENRE, cache_key, {})
+            return None
+        if self._is_terminal_payload(data):
+            cache.set(cache.CacheType.GETGENRE, cache_key, data)
         return data
 
     def fetch_by_track(self, title: str, artist: str = "") -> dict | None:
@@ -278,6 +282,10 @@ class GetGenreClient:
             if isinstance(value, (int, float)):
                 return float(value)
         return None
+
+    @staticmethod
+    def _is_terminal_payload(payload: dict) -> bool:
+        return any(isinstance(payload.get(key), list) for key in ("top_genres", "genres"))
 
     def enrich(self, tracks: list[Track]) -> list[Track]:
         """Populate track genres using GetGenre matches."""
