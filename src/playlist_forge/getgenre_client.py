@@ -178,7 +178,6 @@ class GetGenreClient:
                             "GetGenre authentication failed (401). "
                             "Check getgenre.username and getgenre.password in config.json and retry."
                         )
-                    self._authenticate()
                     continue
                 if resp.status_code == 202 and attempt < self.max_retries:
                     delay = self._retry_after_seconds(resp) or (self.base_backoff_seconds * (2**attempt))
@@ -238,34 +237,30 @@ class GetGenreClient:
     def _search_with_cache(self, cache_key: str, params: dict[str, Any]) -> dict | None:
         cached = cache.get(cache.CacheType.GETGENRE, cache_key)
         if cached is not None:
-            return cached or None
+            return cached or None # cache.get returns {} for a cached "no match"
 
         data = self._get(params)
-        if data is None:
-            cache.set(cache.CacheType.GETGENRE, cache_key, {})
-            return None
-        if self._is_terminal_payload(data):
-            cache.set(cache.CacheType.GETGENRE, cache_key, data)
+        cache.set(cache.CacheType.GETGENRE, cache_key, data if data is not None else {})
         return data
 
-    def fetch_by_track(self, title: str, artist: str = "") -> dict | None:
+    def fetch(self, artist: str = "", album: str = "") -> dict | None:
         """Fetch and cache a GetGenre result for a track lookup."""
-        params: dict[str, Any] = {"track_name": title, "timeout": self.timeout_seconds}
+        if not album and not artist:
+            return None
+
+        params: dict[str, Any] = {"timeout": self.timeout_seconds}
+        if album:
+            params["album_name"] = album
         if artist:
             params["artist_name"] = artist
-        return self._search_with_cache(self._cache_key("track", title, artist), params)
-
-    def fetch_by_artist(self, artist: str) -> dict | None:
-        """Fetch and cache a GetGenre result for an artist lookup."""
-        params: dict[str, Any] = {"artist_name": artist, "timeout": self.timeout_seconds}
-        return self._search_with_cache(self._cache_key("artist", artist), params)
+        return self._search_with_cache(self._cache_key("getgenre", artist, album), params)
 
     @staticmethod
-    def _extract_genres(payload: dict | None) -> list[str]:
-        if not payload:
-            return []
+    def _extract_genres(payload: dict, top_only: bool) -> list[str]:
         genres: list[str] = []
-        for key in ("top_genres", "genres"):
+        keys = ("top_genres",) if top_only else ("top_genres", "genres")
+
+        for key in keys:
             value = payload.get(key, [])
             if isinstance(value, list):
                 for item in value:
@@ -276,36 +271,29 @@ class GetGenreClient:
     @staticmethod
     def _extract_confidence(payload: dict | None) -> float | None:
         if not payload:
-            return None
+            return 0.0
         for key in ("genre_match_confidence", "match_confidence", "confidence", "score", "probability"):
             value = payload.get(key)
             if isinstance(value, (int, float)):
                 return float(value)
         return None
 
-    @staticmethod
-    def _is_terminal_payload(payload: dict) -> bool:
-        return any(isinstance(payload.get(key), list) for key in ("top_genres", "genres"))
-
-    def enrich(self, tracks: list[Track]) -> list[Track]:
+    def enrich(self, tracks: list[Track], top_only: bool = True) -> list[Track]:
         """Populate track genres using GetGenre matches."""
         for track in _maybe_progress_track(tracks, description="Enriching tracks..."):
-            payload = self.fetch_by_track(track.title, track.artist)
-            genres = self._extract_genres(payload)
-            if not genres and track.artist:
-                payload = self.fetch_by_artist(track.artist)
-                genres = self._extract_genres(payload)
+            payload = self.fetch(track.artist, track.album) or {}
+            genres = self._extract_genres(payload, top_only)
 
             if not genres:
                 if track.genre_source == "getgenre":
                     track.genres = []
                 track.genre_source = "unmatched"
-                track.genre_match_confidence = None
+                track.genre_match_confidence = 0.0
                 continue
 
             track.genres = genres
             track.genre_source = "getgenre"
-            track.genre_match_confidence = self._extract_confidence(payload)
+            track.genre_match_confidence = payload.get("analysis", {}).get("level", 0.0)
         return tracks
 
     def _sleep_for_request_delay(self) -> None:
