@@ -183,10 +183,6 @@ class GetGenreClient:
                     delay = self._retry_after_seconds(resp) or (self.base_backoff_seconds * (2**attempt))
                     time.sleep(delay)
                     continue
-                if resp.status_code == 202:
-                    raise ExternalServiceError(
-                        "GetGenre lookup did not finish after retries. Please wait and retry."
-                    )
                 if resp.status_code == 429:
                     if attempt >= self.max_retries:
                         raise RateLimitExceededError(

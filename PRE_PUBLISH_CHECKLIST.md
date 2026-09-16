@@ -59,9 +59,20 @@
         - Add a `--force` argument to the `pull` command to force pulling all playlists
           regardless of snapshot_id, in case the user wants to refresh their
           library even if nothing has changed.
+- [ ] Add a `--level` argument to the `enrich` command (currently only used for GetGenres)
+      which takes `top`, `best` (default), `validated`, or `all` to specify which level
+      of genres to return for each track/artist (`top` only gets those at
+      considered "top genres", "validated" gets both "top genres" and "genres",
+      "all" includes unvalidated ones as well.  "best" gets only "top" but if
+      that is missing/blank, then it gets only "validated", and if that is also
+      missing/blank then it gets "unvalidated". Note that "best" is not
+      necessarily only a single genre, since a track/artist can have multiple
+      "top" genres, or multiple "validated" genres, or multiple "unvalidated"
+      genres.
 - [ ] Add a `--recheck` argument to the `enrich` command to force rechecking
       any tracks that were cached as "not found" in the ReccoBeats/GetGenre API, in case
       they have been added to the API since the last time they were checked.
+        - Should this also recheck getgenres which are marked as `exhausted = false`?
 - [ ] Add a `--force` argument to the `enrich` command to force rechecking 
       every track with the ReccoBeats/GetGenre API even if it already has a cached
       result and updating the cache with the new result.
@@ -70,6 +81,8 @@
         - Store all of them in the `artist` field as a semicolon-separated string?
         - Convert `artist` to an array?
         - Use `artist` as the primary artist, but store additional ones in a separate field?
+- [ ] Add a `--debug` flag for any command which calls any external API
+      (spotify, reccobeats, getgenre) to print the raw API response for debugging purposes.
 
 ## 4. Additional Library Commands
 
@@ -128,6 +141,10 @@
       CLI's ability to read/write files correctly.
 - [ ] Update CI to enforce code coverage thresholds (e.g. 80% or 90%) and fail
       the build if coverage drops below that.
+- [ ] Fix: It appears that if the token has expired, the `pull`
+      command will happily return 0 playlists and 0 tracks, which is
+      misleading.  It should instead detect that the token has expired and
+      prompt the user to re-authenticate.
 
 ## 5. Manual Testing
 
