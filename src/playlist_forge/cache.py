@@ -16,9 +16,6 @@ class CacheType(Enum):
     RECCOBEATS = "reccobeats"
     GETGENRE = "getgenre"
 
-_DB_PATH = CACHE_DIR / "enrichment.sqlite3"
-
-
 def _connect(typ: CacheType) -> sqlite3.Connection:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
 

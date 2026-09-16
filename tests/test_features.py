@@ -7,8 +7,8 @@ from playlist_forge.models import Track
 
 def test_feature_matrix_shape_with_genres_only():
     tracks = [
-        Track(spotify_id="a", title="A", artist="X", album="", artist_genres=["rock"]),
-        Track(spotify_id="b", title="B", artist="Y", album="", artist_genres=["pop"]),
+        Track(spotify_id="a", title="A", artist="X", album="", genres=["rock"]),
+        Track(spotify_id="b", title="B", artist="Y", album="", genres=["pop"]),
     ]
     matrix, names = build_feature_matrix(tracks)
     assert matrix.shape[0] == 2

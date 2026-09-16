@@ -37,9 +37,9 @@
 
 ## 3. API Updates
 
-- [ ] Add an `--api` argument to the `enrich` command which defaults to
+- [x] Add an `--api` argument to the `enrich` command which defaults to
   `reccobeats` but can be set to `getgenre` to use the GetGenre API instead.
-- [ ] When specifying `getgenre` as the API, the `enrich` command should call
+- [x] When specifying `getgenre` as the API, the `enrich` command should call
   the GetGenre API for each track and/or artist, and store the returned
   genre(s) in the output file.
     - https://www.getgenre.com/api
@@ -73,7 +73,7 @@
 
 ## 4. Additional Library Commands
 
-- [ ] Add a `library merge` command to merge multiple library files into a single file.
+- [x] Add a `library merge` command to merge multiple library files into a single file.
     - Allow multiple `--input` arguments to specify the input files to merge.
     - Allow an `--output` argument to specify the output file name.
     - Note: for tracks matched in both files, the merged library should contain

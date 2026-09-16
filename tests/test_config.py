@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import stat
 
 import pytest
 
@@ -25,6 +26,7 @@ def test_initialize_config_writes_default_json(monkeypatch, tmp_path):
     assert payload["spotify"]["client_id"] is None
     assert payload["spotify"]["redirect_uri"] == "http://127.0.0.1:8080/callback"
     assert payload["cluster"]["genre_weight"] == 1.0
+    assert payload["getgenre"]["base_url"] == "https://api.getgenre.com"
 
 
 def test_initialize_config_requires_force_to_replace(monkeypatch, tmp_path):
@@ -63,6 +65,7 @@ def test_load_settings_reads_spotify_values_from_config_json(monkeypatch, tmp_pa
                     "redirect_uri": "http://localhost:9000/callback",
                 },
                 "reccobeats": {"api_key": "rb-key"},
+                "getgenre": {"username": "genre-user", "password": "genre-pass"},
                 "cluster": {"genre_weight": 1.5},
             }
         ),
@@ -74,6 +77,8 @@ def test_load_settings_reads_spotify_values_from_config_json(monkeypatch, tmp_pa
     assert settings.spotify_client_id == "spotify-client-id"
     assert settings.spotify_redirect_uri == "http://localhost:9000/callback"
     assert settings.reccobeats_api_key == "rb-key"
+    assert settings.getgenre_username == "genre-user"
+    assert settings.getgenre_password == "genre-pass"
     assert settings.config["cluster"]["genre_weight"] == 1.5
     assert settings.config["cluster"]["year_weight"] == 0.3
 
@@ -172,8 +177,51 @@ def test_set_spotify_client_id_creates_full_default_config_when_missing(monkeypa
     assert payload["spotify"]["client_id"] == "client-id"
     assert payload["cluster"]["genre_weight"] == 1.0
     assert payload["reccobeats"]["base_url"] == "https://api.reccobeats.com"
+    assert payload["getgenre"]["base_url"] == "https://api.getgenre.com"
 
 
 def test_set_spotify_client_id_rejects_blank_values():
     with pytest.raises(ConfigurationError, match="cannot be empty"):
         config.set_spotify_client_id("   ")
+
+
+def test_set_getgenre_credentials_updates_existing_config(monkeypatch, tmp_path):
+    config_dir = tmp_path / "config-home"
+    config_path = config_dir / "config.json"
+    monkeypatch.setattr(config, "CONFIG_DIR", config_dir)
+    monkeypatch.setattr(config, "CONFIG_PATH", config_path)
+    config_dir.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        json.dumps({"cluster": {"genre_weight": 2.0}}),
+        encoding="utf-8",
+    )
+
+    written_path = config.set_getgenre_credentials(" genre-user ", " genre-pass ")
+
+    assert written_path == config_path
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
+    assert payload["getgenre"]["username"] == "genre-user"
+    assert payload["getgenre"]["password"] == "genre-pass"
+    assert payload["cluster"]["genre_weight"] == 2.0
+
+
+def test_set_getgenre_credentials_rejects_blank_username():
+    with pytest.raises(ConfigurationError, match="username cannot be empty"):
+        config.set_getgenre_credentials("   ", "genre-pass")
+
+
+def test_set_getgenre_credentials_rejects_blank_password():
+    with pytest.raises(ConfigurationError, match="password cannot be empty"):
+        config.set_getgenre_credentials("genre-user", "   ")
+
+
+def test_write_config_restricts_file_permissions(monkeypatch, tmp_path):
+    config_dir = tmp_path / "config-home"
+    config_path = config_dir / "config.json"
+    monkeypatch.setattr(config, "CONFIG_DIR", config_dir)
+    monkeypatch.setattr(config, "CONFIG_PATH", config_path)
+
+    config.write_config({"spotify": {"client_id": "client-id"}})
+
+    mode = stat.S_IMODE(config_path.stat().st_mode)
+    assert mode == 0o600

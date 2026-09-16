@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 import typer
 
@@ -11,8 +11,14 @@ from .actions import create_playlists, merge_playlists
 from .analyze import cluster as cluster_mod
 from .analyze import dedupe as dedupe_mod
 from .analyze import outliers as outliers_mod
-from .config import initialize_config, load_settings, set_spotify_client_id
+from .config import (
+    initialize_config,
+    load_settings,
+    set_getgenre_credentials,
+    set_spotify_client_id,
+)
 from .errors import PlaylistForgeError
+from .getgenre_client import GetGenreClient
 from .library import merge_libraries, playlist_name_for_id
 from .reccobeats_client import ReccoBeatsClient
 
@@ -88,6 +94,24 @@ def config_clientid(
     typer.echo(f"Updated Spotify client ID in {config_path}.")
 
 
+@config_app.command("getgenres")
+@_handle_cli_errors
+def config_getgenres(
+    username: Annotated[str, typer.Argument(help="GetGenre username to store in config.json.")],
+):
+    """Store GetGenre credentials in the local config.json file.
+
+    Args:
+        username: GetGenre username value.
+
+    Returns:
+        None.
+    """
+    password = typer.prompt("GetGenre password", hide_input=True)
+    config_path = set_getgenre_credentials(username, password)
+    typer.echo(f"Updated GetGenre credentials in {config_path}.")
+
+
 # ---------------------------------------------------------------- auth ----
 @auth_app.command("login")
 @_handle_cli_errors
@@ -153,25 +177,30 @@ def enrich(
     input: Path = typer.Option(..., "--input", "-i"),
     output: Path = typer.Option(..., "--output", "-o"),
     fmt: str | None = typer.Option(None, "--format", "-f"),
+    api: Annotated[
+        Literal["reccobeats", "getgenre"],
+        typer.Option("--api", help="reccobeats|getgenre"),
+    ] = "reccobeats",
 ):
-    """Add ReccoBeats audio features to a pulled dataset file.
+    """Add enrichment data from the selected API to a pulled dataset file.
 
     Args:
         input: Input pulled dataset path.
         output: Output enriched dataset path.
         fmt: Optional output format override.
+        api: Enrichment API to use.
 
     Returns:
         None.
     """
     settings = load_settings()
     tracks = io_formats.read_tracks(input)
-    client = ReccoBeatsClient(settings)
+    client = ReccoBeatsClient(settings) if api == "reccobeats" else GetGenreClient(settings)
     enriched = client.enrich(tracks)
     io_formats.write_tracks(enriched, output, fmt)
 
-    matched = sum(1 for t in enriched if t.feature_source == "reccobeats")
-    typer.echo(f"Enriched {matched}/{len(enriched)} tracks -> {output}")
+    matched = (sum(1 for t in enriched if t.feature_source == api))
+    typer.echo(f"Enriched {matched}/{len(enriched)} tracks with {api} -> {output}")
 
 
 # ---------------------------------------------- library: convert ----

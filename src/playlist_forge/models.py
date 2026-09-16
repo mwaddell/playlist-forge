@@ -25,7 +25,9 @@ class Track:
     year: int | None = None
     duration_ms: int | None = None
     added_at: str | None = None
-    artist_genres: list[str] = field(default_factory=list)
+    genres: list[str] = field(default_factory=list)
+    genre_source: str | None = None
+    genre_match_confidence: float | None = None
 
     # Audio-feature enrichment (ReccoBeats or similar). All optional —
     # analysis code must degrade gracefully when these are None.
@@ -48,7 +50,7 @@ class Track:
     cluster_id: int | None = None
     outlier_score: float | None = None
 
-    LIST_FIELDS = ("playlist_ids", "playlist_names", "artist_genres")
+    LIST_FIELDS = ("playlist_ids", "playlist_names", "genres")
 
     def to_flat_dict(self, delimiter: str = ",") -> dict[str, Any]:
         """Flatten a track for CSV/TSV serialization.
