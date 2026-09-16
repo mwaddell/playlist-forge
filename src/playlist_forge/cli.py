@@ -199,7 +199,8 @@ def enrich(
     enriched = client.enrich(tracks)
     io_formats.write_tracks(enriched, output, fmt)
 
-    matched = (sum(1 for t in enriched if t.feature_source == api))
+    matched = (sum(1 for t in enriched if t.feature_source == api)
+        if api == "reccobeats" else sum(1 for t in enriched if t.genre_source == api))
     typer.echo(f"Enriched {matched}/{len(enriched)} tracks with {api} -> {output}")
 
 
