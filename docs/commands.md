@@ -60,6 +60,17 @@ Options:
 - `--output`, `-o`: output dataset path
 - `--format`, `-f`: output format override
 
+### `playlist-forge library merge`
+
+Merge one or more dataset files into one output dataset. Repeat `--input` for
+multiple sources.
+
+Options:
+
+- `--input`, `-i`: input dataset path (repeatable)
+- `--output`, `-o`: output dataset path
+- `--format`, `-f`: output format override
+
 ## `analyze`
 
 ### `playlist-forge analyze cluster`
