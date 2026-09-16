@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+from dataclasses import replace
 from pathlib import Path
 from typing import Annotated
 
@@ -45,6 +46,44 @@ def _playlist_name_for_id(track, playlist_id: str) -> str:
         if pid == playlist_id and idx < len(track.playlist_names):
             return track.playlist_names[idx]
     return playlist_id
+
+
+def _matching_playlist_memberships(track, playlist_filters: list[str] | None) -> tuple[list[str], list[str]]:
+    if not playlist_filters:
+        return list(track.playlist_ids), list(track.playlist_names)
+
+    matching_ids: list[str] = []
+    matching_names: list[str] = []
+    for idx, playlist_id in enumerate(track.playlist_ids):
+        playlist_name = track.playlist_names[idx] if idx < len(track.playlist_names) else ""
+        if spotify_client.playlist_matches_filter(playlist_name, playlist_id, playlist_filters):
+            matching_ids.append(playlist_id)
+            if idx < len(track.playlist_names):
+                matching_names.append(playlist_name)
+    return matching_ids, matching_names
+
+
+def _select_tracks_by_playlist(
+    tracks: list,
+    playlist_filters: list[str] | None,
+    *,
+    prune_memberships: bool = False,
+) -> list:
+    if not playlist_filters:
+        return tracks
+
+    selected_tracks: list = []
+    for track in tracks:
+        matching_ids, matching_names = _matching_playlist_memberships(track, playlist_filters)
+        if not matching_ids:
+            continue
+        if prune_memberships:
+            selected_tracks.append(
+                replace(track, playlist_ids=matching_ids, playlist_names=matching_names)
+            )
+        else:
+            selected_tracks.append(track)
+    return selected_tracks
 
 
 def _handle_cli_errors(func):
@@ -130,24 +169,27 @@ def pull(
     fmt: str | None = typer.Option(
         None, "--format", "-f", help="json|csv|tsv (inferred from --output if omitted)."
     ),
-    playlist: str | None = typer.Option(
-        None, "--playlist", help="Only pull playlists whose name contains this substring."
+    playlist: Annotated[list[str] | None, typer.Option(
+        "--playlist",
+        help="Only pull playlists whose name or ID contains any supplied substring.",
+    )] = None,
+    force: bool = typer.Option(
+        False, "--force", help="Pull from Spotify API even if the result was already cached."
     ),
-    force: bool = typer.Option(False, "--force", help="Pull from Spotify API even if the result was already cached."),
 ):
     """Pull playlists and tracks from Spotify into a local dataset.
 
     Args:
         output: Output file path.
         fmt: Optional output format override.
-        playlist: Optional playlist name substring filter.
+        playlist: Optional playlist name/ID substring filters.
 
     Returns:
         None.
     """
     settings = load_settings()
     spotify = auth.get_spotify_client(settings)
-    tracks = spotify_client.pull_library(spotify, playlist_name_filter=playlist, force=force)
+    tracks = spotify_client.pull_library(spotify, playlist_filters=playlist, force=force)
     io_formats.write_tracks(tracks, output, fmt)
     typer.echo(f"Pulled {len(tracks)} unique tracks -> {output}")
 
@@ -159,6 +201,10 @@ def enrich(
     input: Path = typer.Option(..., "--input", "-i"),
     output: Path = typer.Option(..., "--output", "-o"),
     fmt: str | None = typer.Option(None, "--format", "-f"),
+    playlist: Annotated[list[str] | None, typer.Option(
+        "--playlist",
+        help="Only enrich tracks in playlists whose name or ID contains any supplied substring.",
+    )] = None,
 ):
     """Add ReccoBeats audio features to a pulled dataset file.
 
@@ -166,18 +212,20 @@ def enrich(
         input: Input pulled dataset path.
         output: Output enriched dataset path.
         fmt: Optional output format override.
+        playlist: Optional playlist name/ID substring filters.
 
     Returns:
         None.
     """
     settings = load_settings()
     tracks = io_formats.read_tracks(input)
+    target_tracks = _select_tracks_by_playlist(tracks, playlist)
     client = ReccoBeatsClient(settings)
-    enriched = client.enrich(tracks)
-    io_formats.write_tracks(enriched, output, fmt)
+    client.enrich(target_tracks)
+    io_formats.write_tracks(tracks, output, fmt)
 
-    matched = sum(1 for t in enriched if t.feature_source == "reccobeats")
-    typer.echo(f"Enriched {matched}/{len(enriched)} tracks -> {output}")
+    matched = sum(1 for t in target_tracks if t.feature_source == "reccobeats")
+    typer.echo(f"Enriched {matched}/{len(target_tracks)} tracks -> {output}")
 
 
 # ---------------------------------------------- library: convert ----
@@ -210,6 +258,10 @@ def analyze_cluster(
     input: Path = typer.Option(..., "--input", "-i"),
     output: Path = typer.Option(..., "--output", "-o"),
     fmt: str | None = typer.Option(None, "--format", "-f"),
+    playlist: Annotated[list[str] | None, typer.Option(
+        "--playlist",
+        help="Only cluster tracks in playlists whose name or ID contains any supplied substring.",
+    )] = None,
     algorithm: str = typer.Option("kmeans", help="kmeans|hdbscan"),
     k: str = typer.Option("auto", help="Number of clusters (kmeans only), or 'auto'."),
     genre_weight: Annotated[float | None, typer.Option("--genre-weight")] = None,
@@ -239,6 +291,7 @@ def analyze_cluster(
         input: Input track dataset path.
         output: Output clustered dataset path.
         fmt: Optional output format override.
+        playlist: Optional playlist name/ID substring filters.
         algorithm: Clustering algorithm name.
         k: KMeans cluster count or ``auto``.
         genre_weight: Genre feature weight multiplier.
@@ -315,44 +368,64 @@ def analyze_cluster(
     }
 
     tracks = io_formats.read_tracks(input)
+    selected_tracks = _select_tracks_by_playlist(tracks, playlist)
+    if playlist:
+        for track in tracks:
+            if track not in selected_tracks:
+                track.cluster_id = None
     if algorithm == "hdbscan":
-        clustered = cluster_mod.cluster_hdbscan(
-            tracks,
-            genre_weight=resolved_genre_weight,
-            audio_feature_weight=resolved_audio_feature_weight,
-            audio_feature_weights=resolved_audio_weight_overrides,
-            year_weight=resolved_year_weight,
+        clustered = (
+            cluster_mod.cluster_hdbscan(
+                selected_tracks,
+                genre_weight=resolved_genre_weight,
+                audio_feature_weight=resolved_audio_feature_weight,
+                audio_feature_weights=resolved_audio_weight_overrides,
+                year_weight=resolved_year_weight,
+            )
+            if selected_tracks
+            else []
         )
     else:
-        clustered = cluster_mod.cluster_kmeans(
-            tracks,
-            k=k,
-            genre_weight=resolved_genre_weight,
-            audio_feature_weight=resolved_audio_feature_weight,
-            audio_feature_weights=resolved_audio_weight_overrides,
-            year_weight=resolved_year_weight,
+        clustered = (
+            cluster_mod.cluster_kmeans(
+                selected_tracks,
+                k=k,
+                genre_weight=resolved_genre_weight,
+                audio_feature_weight=resolved_audio_feature_weight,
+                audio_feature_weights=resolved_audio_weight_overrides,
+                year_weight=resolved_year_weight,
+            )
+            if selected_tracks
+            else []
         )
-    io_formats.write_tracks(clustered, output, fmt)
+    io_formats.write_tracks(tracks, output, fmt)
     n_clusters = len({t.cluster_id for t in clustered if t.cluster_id is not None})
-    typer.echo(f"Assigned {len(clustered)} tracks to {n_clusters} clusters -> {output}")
+    typer.echo(f"Assigned {len(selected_tracks)} tracks to {n_clusters} clusters -> {output}")
 
 
 @analyze_app.command("outliers")
 @_handle_cli_errors
 def analyze_outliers(
     input: Path = typer.Option(..., "--input", "-i"),
+    playlist: Annotated[list[str] | None, typer.Option(
+        "--playlist",
+        help="Only analyze playlists whose name or ID contains any supplied substring.",
+    )] = None,
     top_n: int = typer.Option(5, help="Top N outliers per playlist."),
 ):
     """Print the highest outlier tracks for each playlist.
 
     Args:
         input: Input track dataset path.
+        playlist: Optional playlist name/ID substring filters.
         top_n: Number of outliers to print per playlist.
 
     Returns:
         None.
     """
-    tracks = io_formats.read_tracks(input)
+    tracks = _select_tracks_by_playlist(
+        io_formats.read_tracks(input), playlist, prune_memberships=True
+    )
     results = outliers_mod.top_outliers_by_playlist(tracks, top_n=top_n)
     for pid, scored in results.items():
         name = _playlist_name_for_id(scored[0][0], pid) if scored else pid
@@ -366,6 +439,10 @@ def analyze_outliers(
 def analyze_dedupe(
     input: Path = typer.Option(..., "--input", "-i"),
     output: Path = typer.Option(..., "--output", "-o"),
+    playlist: Annotated[list[str] | None, typer.Option(
+        "--playlist",
+        help="Only analyze playlists whose name or ID contains any supplied substring.",
+    )] = None,
     track_threshold: float = typer.Option(0.90),
     playlist_threshold: float = typer.Option(0.60),
 ):
@@ -374,6 +451,7 @@ def analyze_dedupe(
     Args:
         input: Input track dataset path.
         output: Output JSON report path.
+        playlist: Optional playlist name/ID substring filters.
         track_threshold: Similarity threshold for duplicate track detection.
         playlist_threshold: Jaccard threshold for playlist overlap detection.
 
@@ -383,7 +461,9 @@ def analyze_dedupe(
     import json
     from dataclasses import asdict
 
-    tracks = io_formats.read_tracks(input)
+    tracks = _select_tracks_by_playlist(
+        io_formats.read_tracks(input), playlist, prune_memberships=True
+    )
     dup_tracks = dedupe_mod.find_duplicate_tracks(tracks, threshold=track_threshold)
     overlaps = dedupe_mod.find_playlist_overlaps(tracks, threshold=playlist_threshold)
 
@@ -433,14 +513,17 @@ def act_split(
 @act_app.command("merge")
 @_handle_cli_errors
 def act_merge(
-    playlists: str = typer.Option(..., help="Comma-separated playlist names to merge."),
+    playlist: Annotated[list[str] | None, typer.Option(
+        "--playlist",
+        help="Source playlist name; repeat to merge multiple playlists.",
+    )] = None,
     into: str = typer.Option(..., help="Name for the new merged playlist."),
     dry_run: bool = typer.Option(False),
 ):
     """Merge existing playlists into one new deduplicated playlist.
 
     Args:
-        playlists: Comma-separated source playlist names.
+        playlist: Source playlist names to merge.
         into: Name for the merged playlist.
         dry_run: Whether to skip Spotify write operations.
 
@@ -449,8 +532,7 @@ def act_merge(
     """
     settings = load_settings()
     spotify = auth.get_spotify_client(settings)
-    names = [p.strip() for p in playlists.split(",")]
-    new_id = merge_playlists.merge(spotify, names, into, dry_run=dry_run)
+    new_id = merge_playlists.merge(spotify, playlist or [], into, dry_run=dry_run)
     typer.echo(f"Merged into '{into}' -> {new_id or '(dry-run)'}")
 
 
