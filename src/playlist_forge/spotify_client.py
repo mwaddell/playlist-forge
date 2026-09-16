@@ -18,6 +18,7 @@ import requests
 import spotipy
 from rich.progress import track as progress_track
 
+from . import cache
 from .errors import (
     AuthFailureError,
     ExternalServiceError,
@@ -161,41 +162,33 @@ def list_playlists(spotify: spotipy.Spotify) -> list[Playlist]:
             owner=p["owner"]["display_name"],
             owner_id=p["owner"].get("id"),
             is_collaborative=p.get("collaborative", False),
+            snapshot_id=p.get("snapshot_id"),
         )
         for p in raw
         if p is not None
     ]
 
 
-def _artist_genre_map(spotify: spotipy.Spotify, artist_ids: set[str]) -> dict[str, list[str]]:
-    """Batch-fetch genres for a set of artist IDs (max 50 per request)."""
-    genre_map: dict[str, list[str]] = {}
-    ids = list(artist_ids)
-    for i in range(0, len(ids), 50):
-        batch = ids[i : i + 50]
-        resp = _spotify_call("fetching artist genres", lambda: spotify.artists(batch))
-        for artist in resp["artists"]:
-            if artist:
-                genre_map[artist["id"]] = artist.get("genres", [])
-        time.sleep(0.05)
-    return genre_map
-
-
 def pull_playlist_tracks(
     spotify: spotipy.Spotify,
     playlist: Playlist,
-    fetch_genres: bool = False,
+    force: bool = False,
 ) -> list[Track]:
     """Pull all tracks for one playlist.
 
     Args:
         spotify: Authenticated Spotify API client.
         playlist: Playlist metadata to fetch tracks from.
-        fetch_genres: Whether to fetch artist genres for included artists (Currently Deprected in Spotify API).
+        force: Whether to pull even if there is a cached version for the playlist snapshot.
 
     Returns:
         Track objects for the playlist.
     """
+    cache_key = f"spotify:{playlist.spotify_id}:{playlist.snapshot_id}" if playlist.snapshot_id else None
+    cached = cache.get(cache.CacheType.SPOTIFY, cache_key) if cache_key and not force else None
+    if cached is not None:
+        return [Track.from_flat_dict(row, delimiter=";") for row in cached]
+
     first = _spotify_call(
         f"pulling tracks for playlist '{playlist.name}'",
         lambda: spotify.playlist_items(
@@ -218,8 +211,6 @@ def pull_playlist_tracks(
         for a in t.get("artists", []):
             artist_ids.add(a["id"])
 
-    genre_map = _artist_genre_map(spotify, artist_ids) if fetch_genres and artist_ids else {}
-
     for item in raw_items:
         t = item.get("item")
         if not t or not t.get("id"):
@@ -227,8 +218,6 @@ def pull_playlist_tracks(
         artists = t.get("artists", [])
         primary_artist = artists[0] if artists else {"id": None, "name": "Unknown"}
         genres: list[str] = []
-        for a in artists:
-            genres.extend(genre_map.get(a["id"], []))
 
         release_date = (t.get("album") or {}).get("release_date", "")
         year = None
@@ -253,10 +242,13 @@ def pull_playlist_tracks(
                 artist_genres=sorted(set(genres)),
             )
         )
+
+    if cache_key:
+        cache.set(cache.CacheType.SPOTIFY, cache_key, [t.to_flat_dict(delimiter=";") for t in tracks])
     return tracks
 
 
-def pull_library(spotify: spotipy.Spotify, playlist_name_filter: str | None = None) -> list[Track]:
+def pull_library(spotify: spotipy.Spotify, playlist_name_filter: str | None = None, force: bool = False) -> list[Track]:
     """Pull playlists and merge duplicate track IDs across playlists.
 
     Args:
@@ -274,7 +266,7 @@ def pull_library(spotify: spotipy.Spotify, playlist_name_filter: str | None = No
     current_user_id: str | None = None
     for playlist in progress_track(playlists, description="Pulling playlists..."):
         try:
-            playlist_tracks = pull_playlist_tracks(spotify, playlist)
+            playlist_tracks = pull_playlist_tracks(spotify, playlist, force)
         except ExternalServiceError as exc:
             cause = exc.__cause__
             if not (
