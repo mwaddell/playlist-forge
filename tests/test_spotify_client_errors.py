@@ -87,7 +87,7 @@ def test_pull_playlist_tracks_handles_empty_playlist_response():
             return {"items": [], "next": None}
 
     playlist = Playlist(spotify_id="p1", name="Playlist")
-    pulled = spotify_client.pull_playlist_tracks(FakeSpotify(), playlist, fetch_genres=False)
+    pulled = spotify_client.pull_playlist_tracks(FakeSpotify(), playlist, force=False)
     assert pulled == []
 
 
@@ -102,7 +102,7 @@ def test_pull_playlist_tracks_keeps_403_as_external_error_without_skip_flag(
 
     playlist = Playlist(spotify_id="p1", name="Owned Playlist")
     with pytest.raises(ExternalServiceError, match="status=403"):
-        spotify_client.pull_playlist_tracks(FakeSpotify(), playlist, fetch_genres=False)
+        spotify_client.pull_playlist_tracks(FakeSpotify(), playlist, force=False)
 
 
 def test_pull_library_warns_and_skips_for_playlist_permission_error(
@@ -129,8 +129,7 @@ def test_pull_library_warns_and_skips_for_playlist_permission_error(
     def fake_list_playlists(_spotify):
         return [accessible, restricted]
 
-    def fake_pull_playlist_tracks(_spotify, playlist, fetch_genres=True):
-        assert fetch_genres is True
+    def fake_pull_playlist_tracks(_spotify, playlist, force=False):
         if playlist.spotify_id == restricted.spotify_id:
             raise ExternalServiceError(
                 "Spotify request failed while pulling tracks (status=403)."
@@ -170,7 +169,7 @@ def test_pull_library_does_not_lookup_current_user_without_permission_error(monk
     monkeypatch.setattr(
         spotify_client,
         "pull_playlist_tracks",
-        lambda _spotify, _playlist, fetch_genres=True: [track],
+        lambda _spotify, _playlist, force=False: [track],
     )
 
     pulled = spotify_client.pull_library(FakeSpotify())
@@ -189,8 +188,7 @@ def test_pull_library_raises_external_error_when_current_user_id_is_unavailable(
     playlist = Playlist(spotify_id="p1", name="Restricted", owner_id="other-user")
 
     monkeypatch.setattr(spotify_client, "list_playlists", lambda _spotify: [playlist])
-    def fake_pull_playlist_tracks(_spotify, _playlist, fetch_genres=True):
-        assert fetch_genres is True
+    def fake_pull_playlist_tracks(_spotify, _playlist, force=False):
         raise ExternalServiceError(
             "Spotify request failed while pulling tracks (status=403)."
         ) from FakeSpotifyException(403)
