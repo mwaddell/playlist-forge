@@ -181,9 +181,8 @@ class ReccoBeatsClient:
             content = response.get("content", []) if response else []
             payload = content[0] if content else {}
             if not payload:
-                if t.feature_source == "reccobeats":
-                    for field_name in FEATURE_FIELDS:
-                        setattr(t, field_name, None)
+                for field_name in FEATURE_FIELDS:
+                    setattr(t, field_name, None)
                 t.feature_source = "unmatched"
                 t.feature_confidence = 0.0
                 continue

@@ -252,44 +252,84 @@ class GetGenreClient:
         return self._search_with_cache(self._cache_key("getgenre", artist, album), params)
 
     @staticmethod
-    def _extract_genres(payload: dict, top_only: bool) -> list[str]:
-        genres: list[str] = []
-        keys = ("top_genres",) if top_only else ("top_genres", "genres")
-
-        for key in keys:
-            value = payload.get(key, [])
-            if isinstance(value, list):
-                for item in value:
-                    if isinstance(item, str) and item and item not in genres:
-                        genres.append(item)
-        return genres
+    def _add_new_genres(existing: list[str], payload: dict, key: str) -> None:
+        new_genres = payload.get(key, [])
+        if isinstance(new_genres, list):
+            for genre in new_genres:
+                if isinstance(genre, str) and genre and genre not in existing:
+                    existing.append(genre)
 
     @staticmethod
-    def _extract_confidence(payload: dict | None) -> float | None:
-        if not payload:
-            return 0.0
-        for key in ("genre_match_confidence", "match_confidence", "confidence", "score", "probability"):
-            value = payload.get(key)
-            if isinstance(value, (int, float)):
-                return float(value)
-        return None
+    def _add_all_genres(existing: list[str], items: list[dict], key: str) -> float:
+        level = 0.0
+        count = 0.0
+        for item in items:
+            GetGenreClient._add_new_genres(existing, item, key)
+            level += item.get("analysis", {}).get("level", 0.0)
+            count += 1.0
+        return level / count if count > 0 else 0.0
+
+    @staticmethod
+    def _extract_genres(payload: dict, level: str) -> tuple[str, float, list[str]]:
+        genres: list[str] = []
+
+        # Get top_genres by album
+        val = GetGenreClient._add_all_genres(genres, [payload], "top_genres")
+        if genres and level in ("top", "best"):
+            return "getgenre album top", val, genres
+
+        if level != "top":
+            # Get genres by album
+            val = GetGenreClient._add_all_genres(genres, [payload], "genres")
+            if genres:
+                if level == "best": 
+                    return "getgenre album validated", val, genres
+                if level == "clean":
+                    return "getgenre album clean", val, genres
+
+            if level != "clean":
+                # Get unverified_genres by album
+                val = GetGenreClient._add_all_genres(genres, [payload], "unvalidated_genres")
+                if genres:
+                    if level == "best":
+                        return "getgenre album unvalidated", val, genres
+                    return "getgenre album all", val, genres
+
+        artists = payload.get("album_artists", [])
+
+        # Get top_genres by artist
+        val = GetGenreClient._add_all_genres(genres, artists, "top_genres")
+        if genres and level in ("top", "best"):
+            return "getgenre artist top", val, genres
+
+        if level != "top":
+            # Get genres by artist
+            val = GetGenreClient._add_all_genres(genres, artists, "genres")
+            if genres:
+                if level == "best": 
+                    return "getgenre artist validated", val, genres
+                if level == "clean":
+                    return "getgenre artist clean", val, genres
+
+            if level != "clean":
+                # Get unverified_genres by artist
+                val = GetGenreClient._add_all_genres(genres, artists, "unvalidated_genres")
+                if genres:
+                    if level == "best":
+                        return "getgenre artist unvalidated", val, genres
+                    return "getgenre artist all", val, genres
+
+        return "unmatched", 0.0, genres
 
     def enrich(self, tracks: list[Track], top_only: bool = True) -> list[Track]:
         """Populate track genres using GetGenre matches."""
         for track in _maybe_progress_track(tracks, description="Enriching tracks..."):
             payload = self.fetch(track.artist, track.album) or {}
-            genres = self._extract_genres(payload, top_only)
-
-            if not genres:
-                if track.genre_source == "getgenre":
-                    track.genres = []
-                track.genre_source = "unmatched"
-                track.genre_match_confidence = 0.0
-                continue
+            match_source, confidence, genres = self._extract_genres(payload, top_only)
 
             track.genres = genres
-            track.genre_source = "getgenre"
-            track.genre_match_confidence = payload.get("analysis", {}).get("level", 0.0)
+            track.genre_source = match_source
+            track.genre_match_confidence = confidence
         return tracks
 
     def _sleep_for_request_delay(self) -> None:
