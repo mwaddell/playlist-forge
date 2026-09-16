@@ -81,6 +81,20 @@
       fields, the merged library should prefer non-null values from the first
       input file, then the second, and so on.
     - Note: specifying only a single `--input` file should work identically to `library convert`
+    - Add support for one (or more) of the libraries to be a "metadata-only" library,
+      which contains only the enriched metadata fields (e.g. genres,
+      cluster_id, etc.) and no playlist information.  When merging a
+      metadata-only library with a full library, the merged library should
+      contain the union of all playlists from the full library and the enriched
+      metadata from both libraries.  
+        - In short, tracks with no playlist should NOT show up in the merged library 
+          (they should only be used for reference if they don't also exist
+          in any playlist), so they should be ignored in the results.
+        - (Optionally) Add a `--allow-blank-playlist` argument to allow tracks
+          with no playlist to be included in the merged library, if the user
+          wants to do that. 
+            - Does this argument need to be added to any other commands that
+              operate on libraries, such as `library extract` or `library remove`?
 - [ ] Add a `library extract` command to extract a subset of the library by playlist and output the extracted library to a new file.
     - Allow multiple `--playlist` arguments to extract multiple playlists.
     - Note: specifying no `--playlist` arguments should extract no playlists, resulting in an empty library file.
