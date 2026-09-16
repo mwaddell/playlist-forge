@@ -428,6 +428,9 @@ def analyze_outliers(
     tracks = _select_tracks_by_playlist(
         io_formats.read_tracks(input), playlist, prune_memberships=True
     )
+    if playlist and not tracks:
+        typer.echo("No tracks matched the supplied --playlist filters.")
+        return
     results = outliers_mod.top_outliers_by_playlist(tracks, top_n=top_n)
     for pid, scored in results.items():
         name = _playlist_name_for_id(scored[0][0], pid) if scored else pid
@@ -463,11 +466,11 @@ def analyze_dedupe(
     import json
     from dataclasses import asdict
 
-    tracks = _select_tracks_by_playlist(
-        io_formats.read_tracks(input), playlist, prune_memberships=True
-    )
-    dup_tracks = dedupe_mod.find_duplicate_tracks(tracks, threshold=track_threshold)
-    overlaps = dedupe_mod.find_playlist_overlaps(tracks, threshold=playlist_threshold)
+    tracks = io_formats.read_tracks(input)
+    duplicate_scope = _select_tracks_by_playlist(tracks, playlist)
+    overlap_scope = _select_tracks_by_playlist(tracks, playlist, prune_memberships=True)
+    dup_tracks = dedupe_mod.find_duplicate_tracks(duplicate_scope, threshold=track_threshold)
+    overlaps = dedupe_mod.find_playlist_overlaps(overlap_scope, threshold=playlist_threshold)
 
     report = {
         "duplicate_tracks": [asdict(d) for d in dup_tracks],

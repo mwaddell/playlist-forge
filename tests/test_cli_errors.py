@@ -330,6 +330,72 @@ def test_analyze_outliers_filters_and_prunes_playlist_memberships(monkeypatch, t
     assert "Target" in capsys.readouterr().out
 
 
+def test_analyze_outliers_reports_when_filters_match_nothing(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: [])
+    monkeypatch.setattr(
+        cli.outliers_mod,
+        "top_outliers_by_playlist",
+        lambda *_args, **_kwargs: pytest.fail("outlier analysis should not run"),
+    )
+
+    cli.analyze_outliers(input=Path(tmp_path / "in.json"), playlist=["Missing"], top_n=5)
+
+    assert "No tracks matched the supplied --playlist filters." in capsys.readouterr().out
+
+
+def test_analyze_dedupe_filters_duplicates_and_prunes_overlap_memberships(monkeypatch, tmp_path):
+    tracks = [
+        Track(
+            spotify_id="t1",
+            title="A",
+            artist="X",
+            album="",
+            playlist_ids=["p-target", "p-other"],
+            playlist_names=["Target", "Other"],
+        ),
+        Track(
+            spotify_id="t2",
+            title="B",
+            artist="Y",
+            album="",
+            playlist_ids=["p-other"],
+            playlist_names=["Other"],
+        ),
+    ]
+    captured: dict = {}
+
+    monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: tracks)
+    monkeypatch.setattr(
+        cli.dedupe_mod,
+        "find_duplicate_tracks",
+        lambda selected_tracks, threshold: captured.update(
+            {"duplicate_tracks": selected_tracks, "track_threshold": threshold}
+        )
+        or [],
+    )
+    monkeypatch.setattr(
+        cli.dedupe_mod,
+        "find_playlist_overlaps",
+        lambda selected_tracks, threshold: captured.update(
+            {"overlap_tracks": selected_tracks, "playlist_threshold": threshold}
+        )
+        or [],
+    )
+
+    cli.analyze_dedupe(
+        input=Path(tmp_path / "in.json"),
+        output=Path(tmp_path / "out.json"),
+        playlist=["Target"],
+        track_threshold=0.9,
+        playlist_threshold=0.6,
+    )
+
+    assert [track.spotify_id for track in captured["duplicate_tracks"]] == ["t1"]
+    assert captured["duplicate_tracks"][0].playlist_ids == ["p-target", "p-other"]
+    assert [track.spotify_id for track in captured["overlap_tracks"]] == ["t1"]
+    assert captured["overlap_tracks"][0].playlist_ids == ["p-target"]
+
+
 def test_push_merge_accepts_repeated_playlist_options(monkeypatch):
     monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
     monkeypatch.setattr(cli.auth, "get_spotify_client", lambda _settings: object())
