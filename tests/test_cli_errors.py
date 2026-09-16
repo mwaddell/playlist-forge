@@ -236,3 +236,76 @@ def test_convert_same_format_creates_copy(tmp_path):
 
     copied = read_tracks(output_path)
     assert [t.spotify_id for t in copied] == ["abc"]
+
+
+def test_library_merge_merges_playlists_genres_and_metadata(tmp_path):
+    first_input = Path(tmp_path / "library_a.json")
+    second_input = Path(tmp_path / "library_b.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks(
+        [
+            Track(
+                spotify_id="shared",
+                title="First Title",
+                artist="First Artist",
+                album="First Album",
+                playlist_ids=["p1", "p2"],
+                playlist_names=["Playlist One", "Playlist Two"],
+                artist_genres=["rock", "indie"],
+                year=None,
+                duration_ms=111000,
+            ),
+            Track(spotify_id="first-only", title="Only First", artist="A", album="B"),
+        ],
+        first_input,
+    )
+    write_tracks(
+        [
+            Track(
+                spotify_id="shared",
+                title="Second Title",
+                artist="Second Artist",
+                album="Second Album",
+                playlist_ids=["p2", "p3"],
+                playlist_names=["Different Name Ignored", "Playlist Three"],
+                artist_genres=["indie", "electronic"],
+                year=2002,
+                duration_ms=222000,
+            ),
+            Track(spotify_id="second-only", title="Only Second", artist="C", album="D"),
+        ],
+        second_input,
+    )
+
+    cli.library_merge(input=[first_input, second_input], output=output_path, fmt=None)
+    merged = {track.spotify_id: track for track in read_tracks(output_path)}
+
+    shared = merged["shared"]
+    assert shared.title == "First Title"
+    assert shared.artist == "First Artist"
+    assert shared.album == "First Album"
+    assert shared.duration_ms == 111000
+    assert shared.year == 2002
+    assert shared.playlist_ids == ["p1", "p2", "p3"]
+    assert shared.playlist_names == ["Playlist One", "Playlist Two", "Playlist Three"]
+    assert shared.artist_genres == ["rock", "indie", "electronic"]
+    assert set(merged.keys()) == {"shared", "first-only", "second-only"}
+
+
+def test_library_merge_single_input_matches_convert_behavior(tmp_path):
+    input_path = Path(tmp_path / "library.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks(
+        [
+            Track(spotify_id="dup", title="First", artist="A", album="X"),
+            Track(spotify_id="dup", title="Second", artist="A", album="Y"),
+        ],
+        input_path,
+    )
+
+    cli.library_merge(input=[input_path], output=output_path, fmt=None)
+
+    merged = read_tracks(output_path)
+    assert [track.title for track in merged] == ["First", "Second"]

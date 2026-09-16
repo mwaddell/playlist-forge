@@ -52,6 +52,9 @@ poetry run playlist-forge enrich --input library.json --output library_enriched.
 # 4. Convert between dataset formats
 poetry run playlist-forge library convert --input library_enriched.json --output library_enriched.tsv
 
+# 4b. Merge multiple library files
+poetry run playlist-forge library merge --input library_a.json --input library_b.json --output library_merged.json
+
 # 5. Cluster everything
 poetry run playlist-forge analyze cluster --input library_enriched.json --output clustered.json
 

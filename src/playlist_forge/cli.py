@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import copy
 import functools
+from dataclasses import fields as dataclass_fields
 from pathlib import Path
 from typing import Annotated
 
@@ -45,6 +47,53 @@ def _playlist_name_for_id(track, playlist_id: str) -> str:
         if pid == playlist_id and idx < len(track.playlist_names):
             return track.playlist_names[idx]
     return playlist_id
+
+
+def _merge_unique_strings(existing: list[str], incoming: list[str]) -> list[str]:
+    seen = set(existing)
+    merged = list(existing)
+    for value in incoming:
+        if value not in seen:
+            seen.add(value)
+            merged.append(value)
+    return merged
+
+
+def _playlist_membership_pairs(track) -> list[tuple[str, str]]:
+    pairs: list[tuple[str, str]] = []
+    for pid in track.playlist_ids:
+        pairs.append((pid, _playlist_name_for_id(track, pid)))
+    return pairs
+
+
+def _merge_track_metadata(existing, incoming) -> None:
+    playlist_name_by_id = dict(_playlist_membership_pairs(existing))
+    for pid, pname in _playlist_membership_pairs(incoming):
+        playlist_name_by_id.setdefault(pid, pname)
+    existing.playlist_ids = list(playlist_name_by_id.keys())
+    existing.playlist_names = list(playlist_name_by_id.values())
+    existing.artist_genres = _merge_unique_strings(existing.artist_genres, incoming.artist_genres)
+
+    for field in dataclass_fields(existing):
+        if field.name in {"spotify_id", "playlist_ids", "playlist_names", "artist_genres"}:
+            continue
+        if getattr(existing, field.name) is None and getattr(incoming, field.name) is not None:
+            setattr(existing, field.name, getattr(incoming, field.name))
+
+
+def _merge_libraries(inputs: list[Path]):
+    if len(inputs) == 1:
+        return io_formats.read_tracks(inputs[0])
+
+    merged_by_id = {}
+    for path in inputs:
+        for track in io_formats.read_tracks(path):
+            existing = merged_by_id.get(track.spotify_id)
+            if existing is None:
+                merged_by_id[track.spotify_id] = copy.deepcopy(track)
+                continue
+            _merge_track_metadata(existing, track)
+    return list(merged_by_id.values())
 
 
 def _handle_cli_errors(func):
@@ -201,6 +250,28 @@ def library_convert(
     tracks = io_formats.read_tracks(input)
     io_formats.write_tracks(tracks, output, fmt)
     typer.echo(f"Converted {len(tracks)} tracks -> {output}")
+
+
+@library_app.command("merge")
+@_handle_cli_errors
+def library_merge(
+    input: Annotated[list[Path], typer.Option(..., "--input", "-i")],
+    output: Path = typer.Option(..., "--output", "-o"),
+    fmt: str | None = typer.Option(None, "--format", "-f"),
+):
+    """Merge one or more dataset files into a single dataset file.
+
+    Args:
+        input: Input dataset paths (repeat ``--input`` for multiple files).
+        output: Output dataset path.
+        fmt: Optional output format override.
+
+    Returns:
+        None.
+    """
+    tracks = _merge_libraries(input)
+    io_formats.write_tracks(tracks, output, fmt)
+    typer.echo(f"Merged {len(input)} file(s) into {len(tracks)} tracks -> {output}")
 
 
 # ------------------------------------------------------------- analyze ----
