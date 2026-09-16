@@ -123,7 +123,33 @@ class Track:
         normalized = dict(row)
         if "artist_genres" in normalized and "genres" not in normalized:
             normalized["genres"] = normalized.pop("artist_genres")
-        return cls(**normalized)
+
+        kwargs: dict[str, Any] = {}
+        valid_fields = {f.name for f in fields(cls)}
+        for key, value in normalized.items():
+            if key not in valid_fields:
+                continue
+            if key in cls.LIST_FIELDS:
+                if value in ("", None):
+                    kwargs[key] = []
+                elif isinstance(value, str):
+                    kwargs[key] = [v for v in value.split(",") if v]
+                else:
+                    kwargs[key] = list(value)
+            elif value in ("", None):
+                kwargs[key] = None
+            elif key in ("year", "duration_ms", "cluster_id"):
+                kwargs[key] = int(value)
+            elif key in (
+                "tempo", "energy", "danceability", "valence",
+                "acousticness", "instrumentalness", "liveness",
+                "loudness", "speechiness", "genre_match_confidence",
+                "feature_match_confidence", "outlier_score",
+            ):
+                kwargs[key] = float(value)
+            else:
+                kwargs[key] = value
+        return cls(**kwargs)
 
 
 @dataclass

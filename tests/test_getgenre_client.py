@@ -7,7 +7,12 @@ import pytest
 import requests
 
 from playlist_forge import cache
-from playlist_forge.errors import ConfigurationError, NetworkFailureError, RateLimitExceededError
+from playlist_forge.errors import (
+    ConfigurationError,
+    ExternalServiceError,
+    NetworkFailureError,
+    RateLimitExceededError,
+)
 from playlist_forge.getgenre_client import GetGenreClient, _fallback_progress_track
 from playlist_forge.models import Track
 
@@ -225,3 +230,16 @@ def test_get_reauthenticates_after_search_401(monkeypatch):
 
     assert payload == {"top_genres": ["indie"], "genres": ["indie"]}
     assert auth_calls == [10, 10]
+
+
+def test_get_raises_when_search_never_finishes(monkeypatch):
+    client = GetGenreClient(DummySettings())
+
+    monkeypatch.setattr(client.session, "post", lambda *args, **kwargs: FakeResponse(
+        200, {"access_token": "token", "token_type": "Bearer"}
+    ))
+    monkeypatch.setattr(client.session, "get", lambda *args, **kwargs: FakeResponse(202))
+    monkeypatch.setattr("playlist_forge.getgenre_client.time.sleep", lambda _seconds: None)
+
+    with pytest.raises(ExternalServiceError, match="did not finish after retries"):
+        client._get({"artist_name": "Artist", "timeout": 10})
