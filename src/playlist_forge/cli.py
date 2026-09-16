@@ -13,6 +13,7 @@ from .analyze import dedupe as dedupe_mod
 from .analyze import outliers as outliers_mod
 from .config import initialize_config, load_settings, set_spotify_client_id
 from .errors import PlaylistForgeError
+from .getgenre_client import GetGenreClient
 from .reccobeats_client import ReccoBeatsClient
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
@@ -159,25 +160,35 @@ def enrich(
     input: Path = typer.Option(..., "--input", "-i"),
     output: Path = typer.Option(..., "--output", "-o"),
     fmt: str | None = typer.Option(None, "--format", "-f"),
+    api: str = typer.Option("reccobeats", "--api", help="reccobeats|getgenre"),
 ):
-    """Add ReccoBeats audio features to a pulled dataset file.
+    """Add enrichment data from the selected API to a pulled dataset file.
 
     Args:
         input: Input pulled dataset path.
         output: Output enriched dataset path.
         fmt: Optional output format override.
+        api: Enrichment API to use.
 
     Returns:
         None.
     """
+    if api not in {"reccobeats", "getgenre"}:
+        typer.echo(f"Unsupported --api '{api}'. Expected one of: getgenre, reccobeats.", err=True)
+        raise typer.Exit(code=1)
+
     settings = load_settings()
     tracks = io_formats.read_tracks(input)
-    client = ReccoBeatsClient(settings)
+    client = ReccoBeatsClient(settings) if api == "reccobeats" else GetGenreClient(settings)
     enriched = client.enrich(tracks)
     io_formats.write_tracks(enriched, output, fmt)
 
-    matched = sum(1 for t in enriched if t.feature_source == "reccobeats")
-    typer.echo(f"Enriched {matched}/{len(enriched)} tracks -> {output}")
+    matched = (
+        sum(1 for t in enriched if t.feature_source == "reccobeats")
+        if api == "reccobeats"
+        else sum(1 for t in enriched if t.genre_source == "getgenre")
+    )
+    typer.echo(f"Enriched {matched}/{len(enriched)} tracks with {api} -> {output}")
 
 
 # ---------------------------------------------- library: convert ----

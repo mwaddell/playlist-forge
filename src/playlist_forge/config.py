@@ -43,6 +43,13 @@ _DEFAULTS = {
         "base_url": "https://api.reccobeats.com",
         "request_delay_seconds": 0.2,
     },
+    "getgenre": {
+        "base_url": "https://api.getgenre.com",
+        "request_delay_seconds": 0.2,
+        "timeout_seconds": 10,
+        "username": None,
+        "password": None,
+    },
 }
 
 
@@ -52,6 +59,8 @@ class Settings:
     spotify_redirect_uri: str
     reccobeats_api_key: str | None
     config: dict
+    getgenre_username: str | None = None
+    getgenre_password: str | None = None
 
 
 def _merge_dicts(base: dict, override: dict) -> dict:
@@ -168,6 +177,7 @@ def load_settings() -> Settings:
     merged = load_config()
     spotify_config = _get_config_section(merged, "spotify")
     reccobeats_config = _get_config_section(merged, "reccobeats")
+    getgenre_config = _get_config_section(merged, "getgenre")
 
     return Settings(
         spotify_client_id=spotify_config.get("client_id"),
@@ -175,4 +185,6 @@ def load_settings() -> Settings:
         or DEFAULT_REDIRECT_URI,
         reccobeats_api_key=reccobeats_config.get("api_key"),
         config=merged,
+        getgenre_username=getgenre_config.get("username"),
+        getgenre_password=getgenre_config.get("password"),
     )

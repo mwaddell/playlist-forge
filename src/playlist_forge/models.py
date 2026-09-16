@@ -25,7 +25,9 @@ class Track:
     year: int | None = None
     duration_ms: int | None = None
     added_at: str | None = None
-    artist_genres: list[str] = field(default_factory=list)
+    genres: list[str] = field(default_factory=list)
+    genre_source: str | None = None
+    genre_match_confidence: float | None = None
 
     # Audio-feature enrichment (ReccoBeats or similar). All optional —
     # analysis code must degrade gracefully when these are None.
@@ -48,7 +50,15 @@ class Track:
     cluster_id: int | None = None
     outlier_score: float | None = None
 
-    LIST_FIELDS = ("playlist_ids", "playlist_names", "artist_genres")
+    LIST_FIELDS = ("playlist_ids", "playlist_names", "genres")
+
+    @property
+    def artist_genres(self) -> list[str]:
+        return self.genres
+
+    @artist_genres.setter
+    def artist_genres(self, value: list[str]) -> None:
+        self.genres = value
 
     def to_flat_dict(self, delimiter: str = ",") -> dict[str, Any]:
         """Flatten a track for CSV/TSV serialization.
@@ -81,6 +91,10 @@ class Track:
         Returns:
             Reconstructed ``Track`` instance.
         """
+        row = dict(row)
+        if "artist_genres" in row and "genres" not in row:
+            row["genres"] = row.pop("artist_genres")
+
         kwargs: dict[str, Any] = {}
         valid_fields = {f.name for f in fields(cls)}
         for key, value in row.items():
@@ -95,13 +109,21 @@ class Track:
             elif key in (
                 "tempo", "energy", "danceability", "valence",
                 "acousticness", "instrumentalness", "liveness", 
-                "loudness", "speechiness", "feature_match_confidence",
-                "outlier_score",
+                "loudness", "speechiness", "genre_match_confidence",
+                "feature_match_confidence", "outlier_score",
             ):
                 kwargs[key] = float(value)
             else:
                 kwargs[key] = value
         return cls(**kwargs)
+
+    @classmethod
+    def from_dict(cls, row: dict[str, Any]) -> Track:
+        """Build a ``Track`` from a dictionary, accepting legacy genre keys."""
+        normalized = dict(row)
+        if "artist_genres" in normalized and "genres" not in normalized:
+            normalized["genres"] = normalized.pop("artist_genres")
+        return cls(**normalized)
 
 
 @dataclass

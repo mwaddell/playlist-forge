@@ -39,7 +39,7 @@ def test_top_outliers_by_playlist_does_not_clobber_shared_track_state():
         album="",
         playlist_ids=["p1", "p2"],
         playlist_names=["One", "Two"],
-        artist_genres=["rock"],
+        genres=["rock"],
         tempo=120.0,
         year=2000,
     )
@@ -50,7 +50,7 @@ def test_top_outliers_by_playlist_does_not_clobber_shared_track_state():
         album="",
         playlist_ids=["p1"],
         playlist_names=["One"],
-        artist_genres=["rock"],
+        genres=["rock"],
         tempo=121.0,
         year=2001,
     )
@@ -61,7 +61,7 @@ def test_top_outliers_by_playlist_does_not_clobber_shared_track_state():
         album="",
         playlist_ids=["p2"],
         playlist_names=["Two"],
-        artist_genres=["jazz"],
+        genres=["jazz"],
         tempo=90.0,
         year=1990,
     )

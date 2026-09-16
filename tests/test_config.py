@@ -25,6 +25,7 @@ def test_initialize_config_writes_default_json(monkeypatch, tmp_path):
     assert payload["spotify"]["client_id"] is None
     assert payload["spotify"]["redirect_uri"] == "http://127.0.0.1:8080/callback"
     assert payload["cluster"]["genre_weight"] == 1.0
+    assert payload["getgenre"]["base_url"] == "https://api.getgenre.com"
 
 
 def test_initialize_config_requires_force_to_replace(monkeypatch, tmp_path):
@@ -63,6 +64,7 @@ def test_load_settings_reads_spotify_values_from_config_json(monkeypatch, tmp_pa
                     "redirect_uri": "http://localhost:9000/callback",
                 },
                 "reccobeats": {"api_key": "rb-key"},
+                "getgenre": {"username": "genre-user", "password": "genre-pass"},
                 "cluster": {"genre_weight": 1.5},
             }
         ),
@@ -74,6 +76,8 @@ def test_load_settings_reads_spotify_values_from_config_json(monkeypatch, tmp_pa
     assert settings.spotify_client_id == "spotify-client-id"
     assert settings.spotify_redirect_uri == "http://localhost:9000/callback"
     assert settings.reccobeats_api_key == "rb-key"
+    assert settings.getgenre_username == "genre-user"
+    assert settings.getgenre_password == "genre-pass"
     assert settings.config["cluster"]["genre_weight"] == 1.5
     assert settings.config["cluster"]["year_weight"] == 0.3
 
@@ -172,6 +176,7 @@ def test_set_spotify_client_id_creates_full_default_config_when_missing(monkeypa
     assert payload["spotify"]["client_id"] == "client-id"
     assert payload["cluster"]["genre_weight"] == 1.0
     assert payload["reccobeats"]["base_url"] == "https://api.reccobeats.com"
+    assert payload["getgenre"]["base_url"] == "https://api.getgenre.com"
 
 
 def test_set_spotify_client_id_rejects_blank_values():
