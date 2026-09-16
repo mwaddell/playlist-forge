@@ -60,15 +60,29 @@
           regardless of snapshot_id, in case the user wants to refresh their
           library even if nothing has changed.
 - [ ] Add a `--level` argument to the `enrich` command (currently only used for GetGenres)
-      which takes `top`, `best` (default), `validated`, or `all` to specify which level
+      which takes `top`, `best` (default), `clean`, or `all` to specify which level
       of genres to return for each track/artist (`top` only gets those at
-      considered "top genres", "validated" gets both "top genres" and "genres",
-      "all" includes unvalidated ones as well.  "best" gets only "top" but if
-      that is missing/blank, then it gets only "validated", and if that is also
-      missing/blank then it gets "unvalidated". Note that "best" is not
+      considered "top genres", `clean` gets both "top genres" and "genres",
+      `all` includes unvalidated ones as well.  `best` gets only "top genres" but if
+      that is missing/blank, then it gets only "genres", and if that is also
+      missing/blank then it gets only "unvalidated genres". Note that `best` is not
       necessarily only a single genre, since a track/artist can have multiple
-      "top" genres, or multiple "validated" genres, or multiple "unvalidated"
-      genres.
+      "top genres", or multiple "genres", or multiple "unvalidated genres".
+        - The `genre_source` field will indicate which level was used to get 
+        the genre(s) for that track/artist.
+            - `top` = "top genres" only
+            - `validated` = "genres" only
+            - `unvalidated` = "unvalidated genres" only
+            - `clean` = "top genres" plus "genres"
+            - `all` = "top genres" plus "genres" plus "unvalidated genres"
+        - The `genre_source` will also indicate whether the genre(s) were
+          returned for that specific album/artist, or if they were returned 
+          for the artist in general (but not necessarily for that specific
+          album).
+        - Examples:
+            - `getgenres album top`
+            - `getgenres artist clean`
+            - `getgenres artist unvalidated`
 - [ ] Add a `--recheck` argument to the `enrich` command to force rechecking
       any tracks that were cached as "not found" in the ReccoBeats/GetGenre API, in case
       they have been added to the API since the last time they were checked.
@@ -101,10 +115,6 @@
       the resulting merged library for tracks which otherwise lack metadata,
       but should otherwise not show up in the merged library.  (If a metadata
       file does contain playlist information, it should be ignored.)
-        - Is this the best way to handle this?  Is there a better, more general
-          way of handling tracks that have no playlists which works across all
-          commands?  Maybe just treat them like everything else but add a
-          `library clean` command to remove them?
 - [ ] Add a `library check` command to check the library to sure that it 
       contains no duplicate tracks (i.e. tracks with the same Spotify ID) and
       that all tracks have at least one playlist.
