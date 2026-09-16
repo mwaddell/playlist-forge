@@ -94,9 +94,9 @@ def config_clientid(
     typer.echo(f"Updated Spotify client ID in {config_path}.")
 
 
-@config_app.command("getgenres")
+@config_app.command("getgenre")
 @_handle_cli_errors
-def config_getgenres(
+def config_getgenre(
     username: Annotated[str, typer.Argument(help="GetGenre username to store in config.json.")],
 ):
     """Store GetGenre credentials in the local config.json file.

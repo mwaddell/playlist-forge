@@ -94,7 +94,7 @@ def test_config_clientid_reports_written_path(monkeypatch, capsys):
     assert "Updated Spotify client ID in /tmp/config.json." in captured.out
 
 
-def test_config_getgenres_reports_written_path(monkeypatch, capsys):
+def test_config_getgenre_reports_written_path(monkeypatch, capsys):
     captured_args: dict = {}
 
     def fake_set_getgenre_credentials(username: str, password: str) -> Path:
@@ -105,7 +105,7 @@ def test_config_getgenres_reports_written_path(monkeypatch, capsys):
     monkeypatch.setattr(cli, "set_getgenre_credentials", fake_set_getgenre_credentials)
     monkeypatch.setattr(cli.typer, "prompt", lambda *_args, **_kwargs: "genre-pass")
 
-    cli.config_getgenres("genre-user")
+    cli.config_getgenre("genre-user")
 
     captured = capsys.readouterr()
     assert captured_args == {"username": "genre-user", "password": "genre-pass"}

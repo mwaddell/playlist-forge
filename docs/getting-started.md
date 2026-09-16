@@ -43,7 +43,7 @@ poetry run playlist-forge pull --output library.json
 # Add ReccoBeats audio features
 poetry run playlist-forge enrich --input library.json --output library_features.json
 
-# Add GetGenres genres
+# Add GetGenre genres
 poetry run playlist-forge enrich --input library_features.json --output library_enriched.json --api getgenre
 
 # Convert between dataset formats
