@@ -5,6 +5,7 @@ from dataclasses import fields as dataclass_fields
 from pathlib import Path
 
 from .. import io_formats
+from ..models import Track
 
 
 def playlist_name_for_id(track, playlist_id: str) -> str:
@@ -55,7 +56,7 @@ def _merge_track_metadata(existing, incoming) -> None:
             setattr(existing, field.name, getattr(incoming, field.name))
 
 
-def merge_libraries(inputs: list[Path]):
+def merge_libraries(inputs: list[Path]) -> list[Track]:
     """Merge one or more library track files into a single track list.
 
     Args:
