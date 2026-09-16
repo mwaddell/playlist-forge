@@ -81,19 +81,15 @@ class Track:
         return out
 
     @classmethod
-    def from_flat_dict(cls, row: dict[str, Any], delimiter: str = ",") -> Track:
-        """Build a ``Track`` from a flat CSV/TSV row.
+    def _normalize_row_keys(cls, row: dict[str, Any]) -> dict[str, Any]:
+        normalized = dict(row)
+        if "artist_genres" in normalized and "genres" not in normalized:
+            normalized["genres"] = normalized.pop("artist_genres")
+        return normalized
 
-        Args:
-            row: Flat dictionary row from CSV/TSV input.
-            delimiter: Delimiter used inside flattened list-valued fields.
-
-        Returns:
-            Reconstructed ``Track`` instance.
-        """
-        row = dict(row)
-        if "artist_genres" in row and "genres" not in row:
-            row["genres"] = row.pop("artist_genres")
+    @classmethod
+    def _coerce_row(cls, row: dict[str, Any], *, delimiter: str | None) -> dict[str, Any]:
+        row = cls._normalize_row_keys(row)
 
         kwargs: dict[str, Any] = {}
         valid_fields = {f.name for f in fields(cls)}
@@ -101,41 +97,15 @@ class Track:
             if key not in valid_fields:
                 continue
             if key in cls.LIST_FIELDS:
-                kwargs[key] = [v for v in (value or "").split(delimiter) if v]
-            elif value in ("", None):
-                kwargs[key] = None
-            elif key in ("year", "duration_ms", "cluster_id"):
-                kwargs[key] = int(value)
-            elif key in (
-                "tempo", "energy", "danceability", "valence",
-                "acousticness", "instrumentalness", "liveness", 
-                "loudness", "speechiness", "genre_match_confidence",
-                "feature_match_confidence", "outlier_score",
-            ):
-                kwargs[key] = float(value)
-            else:
-                kwargs[key] = value
-        return cls(**kwargs)
-
-    @classmethod
-    def from_dict(cls, row: dict[str, Any]) -> Track:
-        """Build a ``Track`` from a dictionary, accepting legacy genre keys."""
-        normalized = dict(row)
-        if "artist_genres" in normalized and "genres" not in normalized:
-            normalized["genres"] = normalized.pop("artist_genres")
-
-        kwargs: dict[str, Any] = {}
-        valid_fields = {f.name for f in fields(cls)}
-        for key, value in normalized.items():
-            if key not in valid_fields:
-                continue
-            if key in cls.LIST_FIELDS:
-                if value in ("", None):
-                    kwargs[key] = []
-                elif isinstance(value, str):
-                    kwargs[key] = [v for v in value.split(",") if v]
+                if delimiter is None:
+                    if value in ("", None):
+                        kwargs[key] = []
+                    elif isinstance(value, str):
+                        kwargs[key] = [v for v in value.split(",") if v]
+                    else:
+                        kwargs[key] = list(value)
                 else:
-                    kwargs[key] = list(value)
+                    kwargs[key] = [v for v in (value or "").split(delimiter) if v]
             elif value in ("", None):
                 kwargs[key] = None
             elif key in ("year", "duration_ms", "cluster_id"):
@@ -149,7 +119,25 @@ class Track:
                 kwargs[key] = float(value)
             else:
                 kwargs[key] = value
-        return cls(**kwargs)
+        return kwargs
+
+    @classmethod
+    def from_flat_dict(cls, row: dict[str, Any], delimiter: str = ",") -> Track:
+        """Build a ``Track`` from a flat CSV/TSV row.
+
+        Args:
+            row: Flat dictionary row from CSV/TSV input.
+            delimiter: Delimiter used inside flattened list-valued fields.
+
+        Returns:
+            Reconstructed ``Track`` instance.
+        """
+        return cls(**cls._coerce_row(row, delimiter=delimiter))
+
+    @classmethod
+    def from_dict(cls, row: dict[str, Any]) -> Track:
+        """Build a ``Track`` from a dictionary, accepting legacy genre keys."""
+        return cls(**cls._coerce_row(row, delimiter=None))
 
 
 @dataclass
