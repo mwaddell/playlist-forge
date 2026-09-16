@@ -57,6 +57,7 @@ class GetGenreClient:
         self.session = requests.Session()
         self.session.headers["accept"] = "application/json"
         self._authenticated = False
+        self._last_request_started_at: float | None = None
 
     @staticmethod
     def _retry_after_seconds(resp: requests.Response) -> float | None:
@@ -99,6 +100,8 @@ class GetGenreClient:
         for attempt in range(self.max_retries + 1):
             resp: requests.Response | None = None
             try:
+                self._sleep_for_request_delay()
+                self._last_request_started_at = time.monotonic()
                 resp = self.session.post(
                     f"{self.base_url}/token",
                     data=payload,
@@ -158,6 +161,8 @@ class GetGenreClient:
         for attempt in range(self.max_retries + 1):
             resp: requests.Response | None = None
             try:
+                self._sleep_for_request_delay()
+                self._last_request_started_at = time.monotonic()
                 resp = self.session.get(
                     f"{self.base_url}/search",
                     params=params,
@@ -236,8 +241,6 @@ class GetGenreClient:
             return cached or None
 
         data = self._get(params)
-        if data is not None:
-            time.sleep(self.delay)
         cache.set(cache.CacheType.GETGENRE, cache_key, data if data is not None else {})
         return data
 
@@ -286,6 +289,7 @@ class GetGenreClient:
                 genres = self._extract_genres(payload)
 
             if not genres:
+                track.genres = []
                 track.genre_source = "unmatched"
                 track.genre_match_confidence = None
                 continue
@@ -294,3 +298,10 @@ class GetGenreClient:
             track.genre_source = "getgenre"
             track.genre_match_confidence = self._extract_confidence(payload)
         return tracks
+
+    def _sleep_for_request_delay(self) -> None:
+        if self.delay <= 0 or self._last_request_started_at is None:
+            return
+        remaining = self.delay - (time.monotonic() - self._last_request_started_at)
+        if remaining > 0:
+            time.sleep(remaining)
