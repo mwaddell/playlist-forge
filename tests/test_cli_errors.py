@@ -8,7 +8,7 @@ import typer
 from playlist_forge import cli
 from playlist_forge.errors import AuthFailureError
 from playlist_forge.io_formats import read_tracks, write_tracks
-from playlist_forge.library.merge import playlist_name_for_id
+from playlist_forge.library.merge import merge_libraries, playlist_name_for_id
 from playlist_forge.models import Track
 
 
@@ -392,3 +392,8 @@ def test_library_merge_preserves_later_file_row_order_for_new_rows(tmp_path):
 
     merged = read_tracks(output_path)
     assert [track.spotify_id for track in merged] == ["dup", "new-1", "dup", "new-2"]
+
+
+def test_merge_libraries_rejects_empty_inputs():
+    with pytest.raises(ValueError, match="At least one input path is required"):
+        merge_libraries([])

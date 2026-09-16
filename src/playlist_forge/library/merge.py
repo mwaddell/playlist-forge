@@ -64,6 +64,9 @@ def merge_libraries(inputs: list[Path]):
     Returns:
         Merged track list.
     """
+    if not inputs:
+        raise ValueError("At least one input path is required to merge libraries.")
+
     if len(inputs) == 1:
         return io_formats.read_tracks(inputs[0])
 
