@@ -81,7 +81,7 @@ def test_tsv_round_trip(tmp_path):
     assert loaded[0].genres == ["art rock", "alternative rock"]
 
 
-def test_json_reads_legacy_artist_genres_field(tmp_path):
+def test_json_reads_legacy_genres_field(tmp_path):
     path = tmp_path / "legacy_tracks.json"
     path.write_text(
         """
@@ -91,7 +91,7 @@ def test_json_reads_legacy_artist_genres_field(tmp_path):
     "title": "Everything In Its Right Place",
     "artist": "Radiohead",
     "album": "Kid A",
-    "artist_genres": ["art rock", "alternative rock"]
+    "genres": ["art rock", "alternative rock"]
   }
 ]
 """.strip(),
@@ -114,7 +114,7 @@ def test_json_prefers_non_empty_legacy_genres_when_genres_is_empty(tmp_path):
     "artist": "Radiohead",
     "album": "Kid A",
     "genres": [],
-    "artist_genres": ["art rock", "alternative rock"]
+    "genres": ["art rock", "alternative rock"]
   }
 ]
 """.strip(),

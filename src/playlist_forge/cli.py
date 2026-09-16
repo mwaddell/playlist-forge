@@ -19,6 +19,7 @@ from .config import (
 )
 from .errors import PlaylistForgeError
 from .getgenre_client import GetGenreClient
+from .library import merge_libraries, playlist_name_for_id
 from .reccobeats_client import ReccoBeatsClient
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
@@ -44,13 +45,6 @@ _AUDIO_FEATURE_FIELDS = (
     "tempo",
     "valence",
 )
-
-
-def _playlist_name_for_id(track, playlist_id: str) -> str:
-    for idx, pid in enumerate(track.playlist_ids):
-        if pid == playlist_id and idx < len(track.playlist_names):
-            return track.playlist_names[idx]
-    return playlist_id
 
 
 def _handle_cli_errors(func):
@@ -232,6 +226,28 @@ def library_convert(
     typer.echo(f"Converted {len(tracks)} tracks -> {output}")
 
 
+@library_app.command("merge")
+@_handle_cli_errors
+def library_merge(
+    input: Annotated[list[Path], typer.Option(..., "--input", "-i")],
+    output: Path = typer.Option(..., "--output", "-o"),
+    fmt: str | None = typer.Option(None, "--format", "-f"),
+):
+    """Merge one or more dataset files into a single dataset file.
+
+    Args:
+        input: Input dataset paths (repeat ``--input`` for multiple files).
+        output: Output dataset path.
+        fmt: Optional output format override.
+
+    Returns:
+        None.
+    """
+    tracks = merge_libraries(input)
+    io_formats.write_tracks(tracks, output, fmt)
+    typer.echo(f"Merged {len(input)} file(s) into {len(tracks)} tracks -> {output}")
+
+
 # ------------------------------------------------------------- analyze ----
 @analyze_app.command("cluster")
 @_handle_cli_errors
@@ -384,7 +400,7 @@ def analyze_outliers(
     tracks = io_formats.read_tracks(input)
     results = outliers_mod.top_outliers_by_playlist(tracks, top_n=top_n)
     for pid, scored in results.items():
-        name = _playlist_name_for_id(scored[0][0], pid) if scored else pid
+        name = playlist_name_for_id(scored[0][0], pid) if scored else pid
         typer.echo(f"\n{name}")
         for t, score in scored:
             typer.echo(f"  {score:.3f}  {t.artist} — {t.title}")

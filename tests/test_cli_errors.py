@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 from playlist_forge import cli
 from playlist_forge.errors import AuthFailureError
 from playlist_forge.io_formats import read_tracks, write_tracks
+from playlist_forge.library.merge import merge_libraries, playlist_name_for_id
 from playlist_forge.models import Track
 
 runner = CliRunner()
@@ -138,7 +139,7 @@ def test_playlist_name_for_id_uses_matching_playlist_index():
         playlist_ids=["p-other", "p-target"],
         playlist_names=["Other", "Target"],
     )
-    assert cli._playlist_name_for_id(t, "p-target") == "Target"
+    assert playlist_name_for_id(t, "p-target") == "Target"
 
 
 def test_analyze_cluster_uses_config_defaults_for_audio_weights(monkeypatch, tmp_path):
@@ -331,3 +332,163 @@ def test_enrich_rejects_unknown_api(capsys, tmp_path):
 
     assert result.exit_code != 0
     assert "Invalid value for '--api'" in result.output
+
+
+def test_library_merge_merges_playlists_genres_and_metadata(tmp_path):
+    first_input = Path(tmp_path / "library_a.json")
+    second_input = Path(tmp_path / "library_b.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks(
+        [
+            Track(
+                spotify_id="shared",
+                title="First Title",
+                artist="First Artist",
+                album="First Album",
+                playlist_ids=["p1", "p2"],
+                playlist_names=["Playlist One", "Playlist Two"],
+                genres=["rock", "indie"],
+                year=None,
+                duration_ms=111000,
+            ),
+            Track(spotify_id="first-only", title="Only First", artist="A", album="B"),
+        ],
+        first_input,
+    )
+    write_tracks(
+        [
+            Track(
+                spotify_id="shared",
+                title="Second Title",
+                artist="Second Artist",
+                album="Second Album",
+                playlist_ids=["p2", "p3"],
+                playlist_names=["Different Name Ignored", "Playlist Three"],
+                genres=["indie", "electronic"],
+                year=2002,
+                duration_ms=222000,
+            ),
+            Track(spotify_id="second-only", title="Only Second", artist="C", album="D"),
+        ],
+        second_input,
+    )
+
+    cli.library_merge(input=[first_input, second_input], output=output_path, fmt=None)
+    merged = {track.spotify_id: track for track in read_tracks(output_path)}
+
+    shared = merged["shared"]
+    assert shared.title == "First Title"
+    assert shared.artist == "First Artist"
+    assert shared.album == "First Album"
+    assert shared.duration_ms == 111000
+    assert shared.year == 2002
+    assert shared.playlist_ids == ["p1", "p2", "p3"]
+    assert shared.playlist_names == ["Playlist One", "Playlist Two", "Playlist Three"]
+    assert shared.genres == ["rock", "indie", "electronic"]
+    assert set(merged.keys()) == {"shared", "first-only", "second-only"}
+
+
+def test_library_merge_single_input_matches_convert_behavior(tmp_path):
+    input_path = Path(tmp_path / "library.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks(
+        [
+            Track(spotify_id="dup", title="First", artist="A", album="X"),
+            Track(spotify_id="dup", title="Second", artist="A", album="Y"),
+        ],
+        input_path,
+    )
+
+    cli.library_merge(input=[input_path], output=output_path, fmt=None)
+
+    merged = read_tracks(output_path)
+    assert [track.title for track in merged] == ["First", "Second"]
+
+
+def test_library_merge_repeated_input_keeps_first_file_duplicates(tmp_path):
+    input_path = Path(tmp_path / "library.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks(
+        [
+            Track(
+                spotify_id="dup",
+                title="First",
+                artist="A",
+                album="X",
+                playlist_ids=["p1"],
+                playlist_names=["One"],
+                genres=["rock"],
+                year=None,
+            ),
+            Track(
+                spotify_id="dup",
+                title="Second",
+                artist="A",
+                album="Y",
+                playlist_ids=["p2"],
+                playlist_names=["Two"],
+                genres=["pop"],
+                year=None,
+            ),
+        ],
+        input_path,
+    )
+
+    cli.library_merge(input=[input_path, input_path], output=output_path, fmt=None)
+
+    merged = read_tracks(output_path)
+    assert [track.title for track in merged] == ["First", "Second"]
+    assert merged[0].playlist_ids == ["p1"]
+    assert merged[1].playlist_ids == ["p2"]
+
+
+def test_library_merge_keeps_later_file_duplicate_rows(tmp_path):
+    first_input = Path(tmp_path / "library_a.json")
+    second_input = Path(tmp_path / "library_b.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks([Track(spotify_id="dup", title="A", artist="X", album="Y")], first_input)
+    write_tracks(
+        [
+            Track(spotify_id="dup", title="B1", artist="X", album="Y", year=2001),
+            Track(spotify_id="dup", title="B2", artist="X", album="Y", year=2002),
+        ],
+        second_input,
+    )
+
+    cli.library_merge(input=[first_input, second_input], output=output_path, fmt=None)
+
+    merged = read_tracks(output_path)
+    assert len(merged) == 2
+    assert merged[0].year == 2001
+    assert merged[1].title == "B2"
+
+
+def test_library_merge_preserves_later_file_row_order_for_new_rows(tmp_path):
+    first_input = Path(tmp_path / "library_a.json")
+    second_input = Path(tmp_path / "library_b.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks([Track(spotify_id="dup", title="A", artist="X", album="Y")], first_input)
+    write_tracks(
+        [
+            Track(spotify_id="dup", title="B1", artist="X", album="Y"),
+            Track(spotify_id="new-1", title="N1", artist="X", album="Y"),
+            Track(spotify_id="dup", title="B2", artist="X", album="Y"),
+            Track(spotify_id="new-2", title="N2", artist="X", album="Y"),
+        ],
+        second_input,
+    )
+
+    cli.library_merge(input=[first_input, second_input], output=output_path, fmt=None)
+
+    merged = read_tracks(output_path)
+    assert [track.spotify_id for track in merged] == ["dup", "new-1", "dup", "new-2"]
+
+
+def test_merge_libraries_rejects_empty_inputs():
+    with pytest.raises(ValueError, match="At least one input path is required"):
+        merge_libraries([])
