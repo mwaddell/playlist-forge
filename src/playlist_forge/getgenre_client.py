@@ -297,7 +297,8 @@ class GetGenreClient:
                 genres = self._extract_genres(payload)
 
             if not genres:
-                track.genres = []
+                if track.genre_source == "getgenre":
+                    track.genres = []
                 track.genre_source = "unmatched"
                 track.genre_match_confidence = None
                 continue

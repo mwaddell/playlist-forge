@@ -86,6 +86,7 @@ def write_config(config: dict) -> Path:
     _ensure_config_path_is_regular_file()
     try:
         CONFIG_PATH.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+        CONFIG_PATH.chmod(0o600)
     except OSError as exc:
         raise ConfigurationError(f"Could not write config file {CONFIG_PATH}: {exc}") from exc
     return CONFIG_PATH

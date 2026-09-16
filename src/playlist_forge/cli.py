@@ -104,17 +104,16 @@ def config_clientid(
 @_handle_cli_errors
 def config_getgenres(
     username: Annotated[str, typer.Argument(help="GetGenre username to store in config.json.")],
-    password: Annotated[str, typer.Argument(help="GetGenre password to store in config.json.")],
 ):
     """Store GetGenre credentials in the local config.json file.
 
     Args:
         username: GetGenre username value.
-        password: GetGenre password value.
 
     Returns:
         None.
     """
+    password = typer.prompt("GetGenre password", hide_input=True)
     config_path = set_getgenre_credentials(username, password)
     typer.echo(f"Updated GetGenre credentials in {config_path}.")
 

@@ -102,8 +102,9 @@ def test_config_getgenres_reports_written_path(monkeypatch, capsys):
         return Path("/tmp/config.json")
 
     monkeypatch.setattr(cli, "set_getgenre_credentials", fake_set_getgenre_credentials)
+    monkeypatch.setattr(cli.typer, "prompt", lambda *_args, **_kwargs: "genre-pass")
 
-    cli.config_getgenres("genre-user", "genre-pass")
+    cli.config_getgenres("genre-user")
 
     captured = capsys.readouterr()
     assert captured_args == {"username": "genre-user", "password": "genre-pass"}

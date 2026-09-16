@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import stat
 
 import pytest
 
@@ -212,3 +213,15 @@ def test_set_getgenre_credentials_rejects_blank_username():
 def test_set_getgenre_credentials_rejects_blank_password():
     with pytest.raises(ConfigurationError, match="password cannot be empty"):
         config.set_getgenre_credentials("genre-user", "   ")
+
+
+def test_write_config_restricts_file_permissions(monkeypatch, tmp_path):
+    config_dir = tmp_path / "config-home"
+    config_path = config_dir / "config.json"
+    monkeypatch.setattr(config, "CONFIG_DIR", config_dir)
+    monkeypatch.setattr(config, "CONFIG_PATH", config_path)
+
+    config.write_config({"spotify": {"client_id": "client-id"}})
+
+    mode = stat.S_IMODE(config_path.stat().st_mode)
+    assert mode == 0o600

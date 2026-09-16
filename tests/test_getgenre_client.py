@@ -162,7 +162,31 @@ def test_enrich_uses_track_then_artist_fallback(monkeypatch):
 
 def test_enrich_marks_unmatched_when_no_genres_found(monkeypatch):
     client = GetGenreClient(DummySettings())
-    tracks = [Track(spotify_id="track-1", title="Song 1", artist="Artist 1", album="Album 1", genres=["stale"])]
+    tracks = [Track(spotify_id="track-1", title="Song 1", artist="Artist 1", album="Album 1", genres=["legacy"])]
+
+    monkeypatch.setattr(client, "fetch_by_track", lambda title, artist: {})
+    monkeypatch.setattr(client, "fetch_by_artist", lambda artist: {})
+
+    enriched = client.enrich(tracks)
+
+    assert enriched is tracks
+    assert tracks[0].genres == ["legacy"]
+    assert tracks[0].genre_source == "unmatched"
+    assert tracks[0].genre_match_confidence is None
+
+
+def test_enrich_clears_stale_getgenre_match_when_no_genres_found(monkeypatch):
+    client = GetGenreClient(DummySettings())
+    tracks = [
+        Track(
+            spotify_id="track-1",
+            title="Song 1",
+            artist="Artist 1",
+            album="Album 1",
+            genres=["stale"],
+            genre_source="getgenre",
+        )
+    ]
 
     monkeypatch.setattr(client, "fetch_by_track", lambda title, artist: {})
     monkeypatch.setattr(client, "fetch_by_artist", lambda artist: {})
@@ -172,7 +196,6 @@ def test_enrich_marks_unmatched_when_no_genres_found(monkeypatch):
     assert enriched is tracks
     assert tracks[0].genres == []
     assert tracks[0].genre_source == "unmatched"
-    assert tracks[0].genre_match_confidence is None
 
 
 def test_enrich_uses_progress_indicator(monkeypatch):
