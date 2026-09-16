@@ -81,30 +81,34 @@
       fields, the merged library should prefer non-null values from the first
       input file, then the second, and so on.
     - Note: specifying only a single `--input` file should work identically to `library convert`
-    - Add support for one (or more) of the libraries to be a "metadata-only" library,
-      which contains only the enriched metadata fields (e.g. genres,
-      cluster_id, etc.) and no playlist information.  When merging a
-      metadata-only library with a full library, the merged library should
-      contain the union of all playlists from the full library and the enriched
-      metadata from both libraries.  
-        - In short, tracks with no playlist should NOT show up in the merged library 
-          (they should only be used for reference if they don't also exist
-          in any playlist), so they should be ignored in the results.
-        - (Optionally) Add a `--allow-blank-playlist` argument to allow tracks
-          with no playlist to be included in the merged library, if the user
-          wants to do that. 
-            - Does this argument need to be added to any other commands that
-              operate on libraries, such as `library extract` or `library remove`?
+- [ ] Add a `--input-metadata` argument to the `library merge` command 
+      (which can be specified more than once) to specify one or more input files
+      that should be treated as "metadata-only" libraries (i.e. they contain
+      only enriched metadata information) that should only be used to enrich
+      the resulting merged library for tracks which otherwise lack metadata,
+      but should otherwise not show up in the merged library.  (If a metadata
+      file does contain playlist information, it should be ignored.)
+        - Is this the best way to handle this?  Is there a better, more general
+          way of handling tracks that have no playlists which works across all
+          commands?  Maybe just treat them like everything else but add a
+          `library clean` command to remove them?
+- [ ] Add a `library check` command to check the library to sure that it 
+      contains no duplicate tracks (i.e. tracks with the same Spotify ID) and
+      that all tracks have at least one playlist.
+    - If duplicates are found, print a warning message and list the duplicate
+      tracks with their Spotify IDs and playlists.
+    - If tracks with no playlists are found, print a warning message and list
+      the tracks with their Spotify IDs and metadata.
+    - Check all other **required** fields to make sure they are valid
+    - Check for special characters?
+    - Report on missing optional data (like `library stats`) ?
 - [ ] Add a `library extract` command to extract a subset of the library by playlist and output the extracted library to a new file.
     - Allow multiple `--playlist` arguments to extract multiple playlists.
     - Note: specifying no `--playlist` arguments should extract no playlists, resulting in an empty library file.
 - [ ] Add a `library remove` command to remove a subset of the library by playlist and output the remaining library to a new file.
     - Allow multiple `--playlist` arguments to remove multiple playlists.
     - Note: specifying no `--playlist` arguments should extract all playlists, simply copying the file.
-
-## 5. Additional Analysis Commands
-
-- [ ] Add a `analyze stats` command to compute and display basic statistics about the library, such as:
+- [ ] Add a `library stats` command to compute and display basic statistics about the library, such as:
     - Total number of tracks
     - Total number of playlists
     - Total number of artists
@@ -114,7 +118,7 @@
     - Distribution of all numeric fields (e.g. popularity, tempo, energy, danceability, etc.)
     - Allow specifying one or more `--playlist` arguments to compute statistics for only those playlists.
 
-## 5. Code Quality
+## 4. Code Quality
 
 - [ ] Increase test coverage on `spotify_client.py` and
       `reccobeats_client.py` using mocked API responses (e.g. `responses` or
@@ -125,7 +129,7 @@
 - [ ] Update CI to enforce code coverage thresholds (e.g. 80% or 90%) and fail
       the build if coverage drops below that.
 
-## 6. Manual Testing
+## 5. Manual Testing
 
 - [ ] Run the full pipeline against your **real Spotify account**
       end to end at least once, using `--dry-run` on every `push` command first,
@@ -149,8 +153,11 @@
       before — this catches missing setup steps that muscle memory papers over.
 - [ ] Determine what happens if a playlist name contains a semi-colon, does
       that break anything in csv/tsv exports or conversions?
+- [ ] Test all commands with libraries containing tracks that lack a playlist
+      (e.g. tracks that were removed from all playlists) to ensure they are
+      handled correctly and don't break any commands.
 
-## 7. Release and Distribution
+## 6. Release and Distribution
 
 - [ ] Tag as v1.0.0 and create a GitHub Release with notes, so early users have
       a stable point to install against instead of tracking `main`.
