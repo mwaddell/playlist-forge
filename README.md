@@ -45,10 +45,10 @@ poetry run playlist-forge auth login
 # 2. Pull your whole library to a single file
 poetry run playlist-forge pull --output library.json
 
-# 3. Enrich with ReccoBeats audio features (default) or GetGenre genres
-#    (optional — clustering also works on genre + year alone if you skip this)
-poetry run playlist-forge enrich --input library.json --output library_enriched.json
-poetry run playlist-forge enrich --input library.json --output library_genres.json --api getgenre
+# 3. Enrich with ReccoBeats audio features (default) and/or GetGenre genres
+#    (optional — clustering also works on year alone if you skip this)
+poetry run playlist-forge enrich --input library.json --output library_features.json
+poetry run playlist-forge enrich --input library_features.json --output library_enriched.json --api getgenre
 
 # 4. Convert between dataset formats
 poetry run playlist-forge library convert --input library_enriched.json --output library_enriched.tsv

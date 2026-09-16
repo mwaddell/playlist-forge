@@ -52,14 +52,6 @@ class Track:
 
     LIST_FIELDS = ("playlist_ids", "playlist_names", "genres")
 
-    @property
-    def artist_genres(self) -> list[str]:
-        return self.genres
-
-    @artist_genres.setter
-    def artist_genres(self, value: list[str]) -> None:
-        self.genres = value
-
     def to_flat_dict(self, delimiter: str = ",") -> dict[str, Any]:
         """Flatten a track for CSV/TSV serialization.
 
@@ -81,49 +73,6 @@ class Track:
         return out
 
     @classmethod
-    def _normalize_row_keys(cls, row: dict[str, Any]) -> dict[str, Any]:
-        normalized = dict(row)
-        legacy_genres = normalized.pop("artist_genres", None)
-        current_genres = normalized.get("genres")
-        if not current_genres and legacy_genres:
-            normalized["genres"] = legacy_genres
-        return normalized
-
-    @classmethod
-    def _coerce_row(cls, row: dict[str, Any], *, delimiter: str | None) -> dict[str, Any]:
-        row = cls._normalize_row_keys(row)
-
-        kwargs: dict[str, Any] = {}
-        valid_fields = {f.name for f in fields(cls)}
-        for key, value in row.items():
-            if key not in valid_fields:
-                continue
-            if key in cls.LIST_FIELDS:
-                if delimiter is None:
-                    if value in ("", None):
-                        kwargs[key] = []
-                    elif isinstance(value, str):
-                        kwargs[key] = [v for v in value.split(",") if v]
-                    else:
-                        kwargs[key] = list(value)
-                else:
-                    kwargs[key] = [v for v in (value or "").split(delimiter) if v]
-            elif value in ("", None):
-                kwargs[key] = None
-            elif key in ("year", "duration_ms", "cluster_id"):
-                kwargs[key] = int(value)
-            elif key in (
-                "tempo", "energy", "danceability", "valence",
-                "acousticness", "instrumentalness", "liveness",
-                "loudness", "speechiness", "genre_match_confidence",
-                "feature_match_confidence", "outlier_score",
-            ):
-                kwargs[key] = float(value)
-            else:
-                kwargs[key] = value
-        return kwargs
-
-    @classmethod
     def from_flat_dict(cls, row: dict[str, Any], delimiter: str = ",") -> Track:
         """Build a ``Track`` from a flat CSV/TSV row.
 
@@ -134,12 +83,27 @@ class Track:
         Returns:
             Reconstructed ``Track`` instance.
         """
-        return cls(**cls._coerce_row(row, delimiter=delimiter))
-
-    @classmethod
-    def from_dict(cls, row: dict[str, Any]) -> Track:
-        """Build a ``Track`` from a dictionary, accepting legacy genre keys."""
-        return cls(**cls._coerce_row(row, delimiter=None))
+        kwargs: dict[str, Any] = {}
+        valid_fields = {f.name for f in fields(cls)}
+        for key, value in row.items():
+            if key not in valid_fields:
+                continue
+            if key in cls.LIST_FIELDS:
+                kwargs[key] = [v for v in (value or "").split(delimiter) if v]
+            elif value in ("", None):
+                kwargs[key] = None
+            elif key in ("year", "duration_ms", "cluster_id"):
+                kwargs[key] = int(value)
+            elif key in (
+                "tempo", "energy", "danceability", "valence",
+                "acousticness", "instrumentalness", "liveness", 
+                "loudness", "speechiness", "feature_match_confidence",
+                "outlier_score",
+            ):
+                kwargs[key] = float(value)
+            else:
+                kwargs[key] = value
+        return cls(**kwargs)
 
 
 @dataclass

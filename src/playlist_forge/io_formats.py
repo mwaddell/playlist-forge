@@ -80,7 +80,7 @@ def read_tracks(path: str | Path, fmt: str | None = None) -> list[Track]:
 
     if fmt == "json":
         payload = json.loads(path.read_text(encoding="utf-8"))
-        return [Track.from_dict(row) for row in payload]
+        return [Track(**row) for row in payload]
 
     delimiter = _DELIMS.get(fmt, ",")
     with path.open(newline="", encoding="utf-8") as fh:
