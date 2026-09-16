@@ -85,15 +85,22 @@ def _merge_libraries(inputs: list[Path]):
     if len(inputs) == 1:
         return io_formats.read_tracks(inputs[0])
 
-    merged_by_id = {}
-    for path in inputs:
+    merged_tracks = [copy.deepcopy(track) for track in io_formats.read_tracks(inputs[0])]
+    merged_by_id: dict[str, list] = {}
+    for track in merged_tracks:
+        merged_by_id.setdefault(track.spotify_id, []).append(track)
+
+    for path in inputs[1:]:
         for track in io_formats.read_tracks(path):
-            existing = merged_by_id.get(track.spotify_id)
-            if existing is None:
-                merged_by_id[track.spotify_id] = copy.deepcopy(track)
+            existing_tracks = merged_by_id.get(track.spotify_id)
+            if not existing_tracks:
+                copied = copy.deepcopy(track)
+                merged_tracks.append(copied)
+                merged_by_id[copied.spotify_id] = [copied]
                 continue
-            _merge_track_metadata(existing, track)
-    return list(merged_by_id.values())
+            for existing in existing_tracks:
+                _merge_track_metadata(existing, track)
+    return merged_tracks
 
 
 def _handle_cli_errors(func):

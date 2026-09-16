@@ -309,3 +309,41 @@ def test_library_merge_single_input_matches_convert_behavior(tmp_path):
 
     merged = read_tracks(output_path)
     assert [track.title for track in merged] == ["First", "Second"]
+
+
+def test_library_merge_repeated_input_keeps_first_file_duplicates(tmp_path):
+    input_path = Path(tmp_path / "library.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks(
+        [
+            Track(
+                spotify_id="dup",
+                title="First",
+                artist="A",
+                album="X",
+                playlist_ids=["p1"],
+                playlist_names=["One"],
+                artist_genres=["rock"],
+                year=None,
+            ),
+            Track(
+                spotify_id="dup",
+                title="Second",
+                artist="A",
+                album="Y",
+                playlist_ids=["p2"],
+                playlist_names=["Two"],
+                artist_genres=["pop"],
+                year=None,
+            ),
+        ],
+        input_path,
+    )
+
+    cli.library_merge(input=[input_path, input_path], output=output_path, fmt=None)
+
+    merged = read_tracks(output_path)
+    assert [track.title for track in merged] == ["First", "Second"]
+    assert merged[0].playlist_ids == ["p1", "p2"]
+    assert merged[1].playlist_ids == ["p2", "p1"]
