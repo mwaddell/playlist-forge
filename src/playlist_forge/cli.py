@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import copy
 import functools
-from dataclasses import fields as dataclass_fields
 from pathlib import Path
 from typing import Annotated
 
@@ -15,6 +13,7 @@ from .analyze import dedupe as dedupe_mod
 from .analyze import outliers as outliers_mod
 from .config import initialize_config, load_settings, set_spotify_client_id
 from .errors import PlaylistForgeError
+from .library import merge_libraries, playlist_name_for_id
 from .reccobeats_client import ReccoBeatsClient
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
@@ -40,69 +39,6 @@ _AUDIO_FEATURE_FIELDS = (
     "tempo",
     "valence",
 )
-
-
-def _playlist_name_for_id(track, playlist_id: str) -> str:
-    for idx, pid in enumerate(track.playlist_ids):
-        if pid == playlist_id and idx < len(track.playlist_names):
-            return track.playlist_names[idx]
-    return playlist_id
-
-
-def _merge_unique_strings(existing: list[str], incoming: list[str]) -> list[str]:
-    seen = set(existing)
-    merged = list(existing)
-    for value in incoming:
-        if value not in seen:
-            seen.add(value)
-            merged.append(value)
-    return merged
-
-
-def _playlist_membership_pairs(track) -> list[tuple[str, str]]:
-    pairs: list[tuple[str, str]] = []
-    for pid in track.playlist_ids:
-        pairs.append((pid, _playlist_name_for_id(track, pid)))
-    return pairs
-
-
-def _merge_track_metadata(existing, incoming) -> None:
-    playlist_name_by_id = dict(_playlist_membership_pairs(existing))
-    for pid, pname in _playlist_membership_pairs(incoming):
-        playlist_name_by_id.setdefault(pid, pname)
-    existing.playlist_ids = list(playlist_name_by_id.keys())
-    existing.playlist_names = list(playlist_name_by_id.values())
-    existing.artist_genres = _merge_unique_strings(existing.artist_genres, incoming.artist_genres)
-
-    for field in dataclass_fields(existing):
-        if field.name in {"spotify_id", "playlist_ids", "playlist_names", "artist_genres"}:
-            continue
-        if getattr(existing, field.name) is None and getattr(incoming, field.name) is not None:
-            setattr(existing, field.name, getattr(incoming, field.name))
-
-
-def _merge_libraries(inputs: list[Path]):
-    if len(inputs) == 1:
-        return io_formats.read_tracks(inputs[0])
-
-    merged_tracks = [copy.deepcopy(track) for track in io_formats.read_tracks(inputs[0])]
-    merged_by_id: dict[str, list] = {}
-    for track in merged_tracks:
-        merged_by_id.setdefault(track.spotify_id, []).append(track)
-
-    for path in inputs[1:]:
-        seen_counts: dict[str, int] = {}
-        for track in io_formats.read_tracks(path):
-            incoming_index = seen_counts.get(track.spotify_id, 0)
-            seen_counts[track.spotify_id] = incoming_index + 1
-            existing_tracks = merged_by_id.setdefault(track.spotify_id, [])
-            if incoming_index < len(existing_tracks):
-                _merge_track_metadata(existing_tracks[incoming_index], track)
-                continue
-            copied = copy.deepcopy(track)
-            merged_tracks.append(copied)
-            existing_tracks.append(copied)
-    return merged_tracks
 
 
 def _handle_cli_errors(func):
@@ -278,7 +214,7 @@ def library_merge(
     Returns:
         None.
     """
-    tracks = _merge_libraries(input)
+    tracks = merge_libraries(input)
     io_formats.write_tracks(tracks, output, fmt)
     typer.echo(f"Merged {len(input)} file(s) into {len(tracks)} tracks -> {output}")
 
@@ -435,7 +371,7 @@ def analyze_outliers(
     tracks = io_formats.read_tracks(input)
     results = outliers_mod.top_outliers_by_playlist(tracks, top_n=top_n)
     for pid, scored in results.items():
-        name = _playlist_name_for_id(scored[0][0], pid) if scored else pid
+        name = playlist_name_for_id(scored[0][0], pid) if scored else pid
         typer.echo(f"\n{name}")
         for t, score in scored:
             typer.echo(f"  {score:.3f}  {t.artist} — {t.title}")

@@ -8,6 +8,7 @@ import typer
 from playlist_forge import cli
 from playlist_forge.errors import AuthFailureError
 from playlist_forge.io_formats import read_tracks, write_tracks
+from playlist_forge.library.merge import playlist_name_for_id
 from playlist_forge.models import Track
 
 
@@ -117,7 +118,7 @@ def test_playlist_name_for_id_uses_matching_playlist_index():
         playlist_ids=["p-other", "p-target"],
         playlist_names=["Other", "Target"],
     )
-    assert cli._playlist_name_for_id(t, "p-target") == "Target"
+    assert playlist_name_for_id(t, "p-target") == "Target"
 
 
 def test_analyze_cluster_uses_config_defaults_for_audio_weights(monkeypatch, tmp_path):
