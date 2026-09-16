@@ -373,6 +373,7 @@ def analyze_cluster(
         for track in tracks:
             if track not in selected_tracks:
                 track.cluster_id = None
+    should_cluster = bool(selected_tracks) or not playlist
     if algorithm == "hdbscan":
         clustered = (
             cluster_mod.cluster_hdbscan(
@@ -382,7 +383,7 @@ def analyze_cluster(
                 audio_feature_weights=resolved_audio_weight_overrides,
                 year_weight=resolved_year_weight,
             )
-            if selected_tracks
+            if should_cluster
             else []
         )
     else:
@@ -395,7 +396,7 @@ def analyze_cluster(
                 audio_feature_weights=resolved_audio_weight_overrides,
                 year_weight=resolved_year_weight,
             )
-            if selected_tracks
+            if should_cluster
             else []
         )
     io_formats.write_tracks(tracks, output, fmt)

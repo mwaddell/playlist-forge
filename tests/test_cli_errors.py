@@ -322,7 +322,7 @@ def test_analyze_outliers_filters_and_prunes_playlist_memberships(monkeypatch, t
 
     monkeypatch.setattr(cli.outliers_mod, "top_outliers_by_playlist", fake_top_outliers_by_playlist)
 
-    cli.analyze_outliers(input=Path(tmp_path / "in.json"), playlist=["Target"])
+    cli.analyze_outliers(input=Path(tmp_path / "in.json"), playlist=["Target"], top_n=5)
 
     assert [track.spotify_id for track in captured["tracks"]] == ["t1"]
     assert captured["tracks"][0].playlist_ids == ["p-target"]
@@ -415,6 +415,7 @@ def test_analyze_cluster_uses_config_defaults_for_audio_weights(monkeypatch, tmp
         input=Path(tmp_path / "in.json"),
         output=Path(tmp_path / "out.json"),
         fmt=None,
+        playlist=None,
         algorithm="kmeans",
         k="auto",
     )
@@ -444,6 +445,7 @@ def test_analyze_cluster_cli_audio_weight_overrides_config(monkeypatch, tmp_path
         input=Path(tmp_path / "in.json"),
         output=Path(tmp_path / "out.json"),
         fmt=None,
+        playlist=None,
         algorithm="kmeans",
         k="auto",
         audio_feature_weight=3.0,
