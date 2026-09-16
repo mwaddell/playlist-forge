@@ -98,11 +98,13 @@ All configuration lives in `~/.config/playlist-forge/config.json` (or
 `$PLAYLIST_FORGE_HOME/config.json` if you override the config root). Create it
 with `playlist-forge config init`, reset it with
 `playlist-forge config init --force`, then set your Spotify client ID with
-`playlist-forge config clientid YOUR_SPOTIFY_CLIENT_ID`. Use
+`playlist-forge config clientid YOUR_SPOTIFY_CLIENT_ID`, and store GetGenre
+credentials with
+`playlist-forge config getgenres YOUR_GETGENRE_USERNAME YOUR_GETGENRE_PASSWORD`.
+Use
 `audio_feature_weight` as the default audio-feature multiplier and
 `audio_<feature>_weight` values (for example `audio_tempo_weight`) to override
-individual audio features. To use `playlist-forge enrich --api getgenre`,
-configure `getgenre.username` and `getgenre.password` in the same file.
+individual audio features.
 
 ## Development
 

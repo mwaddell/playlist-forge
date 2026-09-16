@@ -166,6 +166,21 @@ def set_spotify_client_id(client_id: str) -> Path:
     return write_config(_set_nested_config_value(base_config, ("spotify", "client_id"), normalized))
 
 
+def set_getgenre_credentials(username: str, password: str) -> Path:
+    """Persist GetGenre credentials in config.json."""
+    normalized_username = username.strip()
+    normalized_password = password.strip()
+    if not normalized_username:
+        raise ConfigurationError("GetGenre username cannot be empty.")
+    if not normalized_password:
+        raise ConfigurationError("GetGenre password cannot be empty.")
+
+    base_config = _read_user_config() if CONFIG_PATH.exists() else default_config()
+    updated = _set_nested_config_value(base_config, ("getgenre", "username"), normalized_username)
+    updated = _set_nested_config_value(updated, ("getgenre", "password"), normalized_password)
+    return write_config(updated)
+
+
 def load_settings() -> Settings:
     """Load application settings from config.json.
 

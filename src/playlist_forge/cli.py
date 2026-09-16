@@ -11,7 +11,12 @@ from .actions import create_playlists, merge_playlists
 from .analyze import cluster as cluster_mod
 from .analyze import dedupe as dedupe_mod
 from .analyze import outliers as outliers_mod
-from .config import initialize_config, load_settings, set_spotify_client_id
+from .config import (
+    initialize_config,
+    load_settings,
+    set_getgenre_credentials,
+    set_spotify_client_id,
+)
 from .errors import PlaylistForgeError
 from .getgenre_client import GetGenreClient
 from .reccobeats_client import ReccoBeatsClient
@@ -93,6 +98,25 @@ def config_clientid(
     """
     config_path = set_spotify_client_id(client_id)
     typer.echo(f"Updated Spotify client ID in {config_path}.")
+
+
+@config_app.command("getgenres")
+@_handle_cli_errors
+def config_getgenres(
+    username: Annotated[str, typer.Argument(help="GetGenre username to store in config.json.")],
+    password: Annotated[str, typer.Argument(help="GetGenre password to store in config.json.")],
+):
+    """Store GetGenre credentials in the local config.json file.
+
+    Args:
+        username: GetGenre username value.
+        password: GetGenre password value.
+
+    Returns:
+        None.
+    """
+    config_path = set_getgenre_credentials(username, password)
+    typer.echo(f"Updated GetGenre credentials in {config_path}.")
 
 
 # ---------------------------------------------------------------- auth ----
@@ -182,7 +206,11 @@ def enrich(
     enriched = client.enrich(tracks)
     io_formats.write_tracks(enriched, output, fmt)
 
-    matched = (sum(1 for t in enriched if t.feature_source == api))
+    matched = sum(
+        1
+        for t in enriched
+        if (t.feature_source if api == "reccobeats" else t.genre_source) == api
+    )
     typer.echo(f"Enriched {matched}/{len(enriched)} tracks with {api} -> {output}")
 
 

@@ -93,6 +93,23 @@ def test_config_clientid_reports_written_path(monkeypatch, capsys):
     assert "Updated Spotify client ID in /tmp/config.json." in captured.out
 
 
+def test_config_getgenres_reports_written_path(monkeypatch, capsys):
+    captured_args: dict = {}
+
+    def fake_set_getgenre_credentials(username: str, password: str) -> Path:
+        captured_args["username"] = username
+        captured_args["password"] = password
+        return Path("/tmp/config.json")
+
+    monkeypatch.setattr(cli, "set_getgenre_credentials", fake_set_getgenre_credentials)
+
+    cli.config_getgenres("genre-user", "genre-pass")
+
+    captured = capsys.readouterr()
+    assert captured_args == {"username": "genre-user", "password": "genre-pass"}
+    assert "Updated GetGenre credentials in /tmp/config.json." in captured.out
+
+
 def test_analyze_cluster_rejects_unknown_algorithm(capsys, tmp_path):
     with pytest.raises(typer.Exit) as exc_info:
         cli.analyze_cluster(

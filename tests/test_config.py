@@ -182,3 +182,33 @@ def test_set_spotify_client_id_creates_full_default_config_when_missing(monkeypa
 def test_set_spotify_client_id_rejects_blank_values():
     with pytest.raises(ConfigurationError, match="cannot be empty"):
         config.set_spotify_client_id("   ")
+
+
+def test_set_getgenre_credentials_updates_existing_config(monkeypatch, tmp_path):
+    config_dir = tmp_path / "config-home"
+    config_path = config_dir / "config.json"
+    monkeypatch.setattr(config, "CONFIG_DIR", config_dir)
+    monkeypatch.setattr(config, "CONFIG_PATH", config_path)
+    config_dir.mkdir(parents=True, exist_ok=True)
+    config_path.write_text(
+        json.dumps({"cluster": {"genre_weight": 2.0}}),
+        encoding="utf-8",
+    )
+
+    written_path = config.set_getgenre_credentials(" genre-user ", " genre-pass ")
+
+    assert written_path == config_path
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
+    assert payload["getgenre"]["username"] == "genre-user"
+    assert payload["getgenre"]["password"] == "genre-pass"
+    assert payload["cluster"]["genre_weight"] == 2.0
+
+
+def test_set_getgenre_credentials_rejects_blank_username():
+    with pytest.raises(ConfigurationError, match="username cannot be empty"):
+        config.set_getgenre_credentials("   ", "genre-pass")
+
+
+def test_set_getgenre_credentials_rejects_blank_password():
+    with pytest.raises(ConfigurationError, match="password cannot be empty"):
+        config.set_getgenre_credentials("genre-user", "   ")
