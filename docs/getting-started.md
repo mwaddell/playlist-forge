@@ -41,10 +41,16 @@ commands.
 poetry run playlist-forge pull --output library.json
 
 # Add ReccoBeats audio features
-poetry run playlist-forge enrich --input library.json --output library_enriched.json
+poetry run playlist-forge enrich --input library.json --output library_features.json
+
+# Add GetGenre genres
+poetry run playlist-forge enrich --input library_features.json --output library_enriched.json --api getgenre
 
 # Convert between dataset formats
 poetry run playlist-forge library convert --input library_enriched.json --output library_enriched.tsv
+
+# Merge multiple library files
+poetry run playlist-forge library merge --input library_a.json --input library_b.json --output library_merged.json
 
 # Cluster tracks
 poetry run playlist-forge analyze cluster --input library_enriched.json --output clustered.json
@@ -63,6 +69,7 @@ poetry run playlist-forge push merge --playlists "Chill 1,Chill 2" --into "Chill
 ## File formats
 
 The dataset conversion commands with file output (`pull`, `enrich`, `library convert`,
+`library merge`,
 and `analyze cluster`) accept `--format json|csv|tsv`, or infer input/output
 formats from file extensions. `analyze outliers` prints directly to the
 terminal, and `analyze dedupe` writes JSON to the explicit `--output` path that

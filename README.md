@@ -47,14 +47,18 @@ poetry run playlist-forge pull --output library.json
 #    ...or only matching playlists by name or ID substring
 poetry run playlist-forge pull --output library.json --playlist "Road Trip" --playlist "37i9dQZF1DXcBWIGoYBM5M"
 
-# 3. Enrich with ReccoBeats audio features (optional — clustering also
-#    works on genre + year alone if you skip this)
-poetry run playlist-forge enrich --input library.json --output library_enriched.json
+# 3. Enrich with ReccoBeats audio features (default) and/or GetGenre genres
+#    (optional — clustering also works on year alone if you skip this)
+poetry run playlist-forge enrich --input library.json --output library_features.json
 #    ...or only enrich tracks from matching playlists
-poetry run playlist-forge enrich --input library.json --output library_enriched.json --playlist "Road Trip"
+poetry run playlist-forge enrich --input library.json --output library_features.json --playlist "Road Trip"
+poetry run playlist-forge enrich --input library_features.json --output library_enriched.json --api getgenre
 
 # 4. Convert between dataset formats
 poetry run playlist-forge library convert --input library_enriched.json --output library_enriched.tsv
+
+# 4b. Merge multiple library files
+poetry run playlist-forge library merge --input library_a.json --input library_b.json --output library_merged.json
 
 # 5. Cluster everything
 poetry run playlist-forge analyze cluster --input library_enriched.json --output clustered.json
@@ -86,7 +90,7 @@ names, genres) are `;`-joined in csv/tsv and native arrays in json.
 
 ```
 pull    (Spotify)      → canonical Track dataset
-enrich  (ReccoBeats)   → adds audio-feature columns where matched
+enrich  (ReccoBeats / GetGenre) → adds audio features or genres where matched
 library                → manages local library files
 analyze (scikit-learn) → cluster / outliers / dedupe — pure, offline, no API calls
 push    (Spotify)      → create new playlists based on analysis
@@ -103,7 +107,10 @@ All configuration lives in `~/.config/playlist-forge/config.json` (or
 `$PLAYLIST_FORGE_HOME/config.json` if you override the config root). Create it
 with `playlist-forge config init`, reset it with
 `playlist-forge config init --force`, then set your Spotify client ID with
-`playlist-forge config clientid YOUR_SPOTIFY_CLIENT_ID`. Use
+`playlist-forge config clientid YOUR_SPOTIFY_CLIENT_ID`, and store GetGenre
+credentials with `playlist-forge config getgenre YOUR_GETGENRE_USERNAME`
+(the password is prompted securely).
+Use
 `audio_feature_weight` as the default audio-feature multiplier and
 `audio_<feature>_weight` values (for example `audio_tempo_weight`) to override
 individual audio features.

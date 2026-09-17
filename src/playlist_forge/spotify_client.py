@@ -273,7 +273,7 @@ def pull_playlist_tracks(
                 year=year if year > 1900 else None,
                 duration_ms=t.get("duration_ms"),
                 added_at=item.get("added_at"),
-                artist_genres=sorted(set(genres)),
+                genres=sorted(set(genres)),
             )
         )
 

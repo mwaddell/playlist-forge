@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 from playlist_forge import cli
 from playlist_forge.errors import AuthFailureError
 from playlist_forge.io_formats import read_tracks, write_tracks
+from playlist_forge.library.merge import merge_libraries, playlist_name_for_id
 from playlist_forge.models import Track
 
 runner = CliRunner()
@@ -93,6 +94,24 @@ def test_config_clientid_reports_written_path(monkeypatch, capsys):
     assert "Updated Spotify client ID in /tmp/config.json." in captured.out
 
 
+def test_config_getgenre_reports_written_path(monkeypatch, capsys):
+    captured_args: dict = {}
+
+    def fake_set_getgenre_credentials(username: str, password: str) -> Path:
+        captured_args["username"] = username
+        captured_args["password"] = password
+        return Path("/tmp/config.json")
+
+    monkeypatch.setattr(cli, "set_getgenre_credentials", fake_set_getgenre_credentials)
+    monkeypatch.setattr(cli.typer, "prompt", lambda *_args, **_kwargs: "genre-pass")
+
+    cli.config_getgenre("genre-user")
+
+    captured = capsys.readouterr()
+    assert captured_args == {"username": "genre-user", "password": "genre-pass"}
+    assert "Updated GetGenre credentials in /tmp/config.json." in captured.out
+
+
 def test_analyze_cluster_rejects_unknown_algorithm(capsys, tmp_path):
     with pytest.raises(typer.Exit) as exc_info:
         cli.analyze_cluster(
@@ -120,7 +139,7 @@ def test_playlist_name_for_id_uses_matching_playlist_index():
         playlist_ids=["p-other", "p-target"],
         playlist_names=["Other", "Target"],
     )
-    assert cli._playlist_name_for_id(t, "p-target") == "Target"
+    assert playlist_name_for_id(t, "p-target") == "Target"
 
 
 def test_select_tracks_by_playlist_prunes_memberships():
@@ -573,3 +592,219 @@ def test_convert_same_format_creates_copy(tmp_path):
 
     copied = read_tracks(output_path)
     assert [t.spotify_id for t in copied] == ["abc"]
+
+
+def test_enrich_uses_reccobeats_by_default(monkeypatch, capsys, tmp_path):
+    tracks = [Track(spotify_id="abc", title="Song", artist="Artist", album="Album")]
+    captured: dict = {}
+
+    class FakeClient:
+        def __init__(self, _settings):
+            captured["client"] = "reccobeats"
+
+        def enrich(self, input_tracks):
+            input_tracks[0].feature_source = "reccobeats"
+            return input_tracks
+
+    monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
+    monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: tracks)
+    monkeypatch.setattr(cli.io_formats, "write_tracks", lambda written_tracks, path, fmt: captured.update(
+        {"written_tracks": written_tracks, "write_path": path, "fmt": fmt}
+    ))
+    monkeypatch.setattr(cli, "ReccoBeatsClient", FakeClient)
+
+    output_path = Path(tmp_path / "out.json")
+    cli.enrich(input=Path(tmp_path / "in.json"), output=output_path, fmt=None)
+
+    assert captured["client"] == "reccobeats"
+    assert captured["written_tracks"] == tracks
+    assert captured["write_path"] == output_path
+    assert "Enriched 1/1 tracks with reccobeats" in capsys.readouterr().out
+
+
+def test_enrich_uses_getgenre_when_requested(monkeypatch, capsys, tmp_path):
+    tracks = [Track(spotify_id="abc", title="Song", artist="Artist", album="Album")]
+    captured: dict = {}
+
+    class FakeClient:
+        def __init__(self, _settings):
+            captured["client"] = "getgenre"
+
+        def enrich(self, input_tracks):
+            input_tracks[0].genre_source = "getgenre"
+            input_tracks[0].genres = ["indie"]
+            return input_tracks
+
+    monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
+    monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: tracks)
+    monkeypatch.setattr(cli.io_formats, "write_tracks", lambda written_tracks, path, fmt: captured.update(
+        {"written_tracks": written_tracks, "write_path": path, "fmt": fmt}
+    ))
+    monkeypatch.setattr(cli, "GetGenreClient", FakeClient)
+
+    output_path = Path(tmp_path / "out.json")
+    cli.enrich(input=Path(tmp_path / "in.json"), output=output_path, fmt=None, api="getgenre")
+
+    assert captured["client"] == "getgenre"
+    assert captured["written_tracks"][0].genres == ["indie"]
+    assert "Enriched 1/1 tracks with getgenre" in capsys.readouterr().out
+
+
+def test_library_merge_merges_playlists_genres_and_metadata(tmp_path):
+    first_input = Path(tmp_path / "library_a.json")
+    second_input = Path(tmp_path / "library_b.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks(
+        [
+            Track(
+                spotify_id="shared",
+                title="First Title",
+                artist="First Artist",
+                album="First Album",
+                playlist_ids=["p1", "p2"],
+                playlist_names=["Playlist One", "Playlist Two"],
+                genres=["rock", "indie"],
+                year=None,
+                duration_ms=111000,
+            ),
+            Track(spotify_id="first-only", title="Only First", artist="A", album="B"),
+        ],
+        first_input,
+    )
+    write_tracks(
+        [
+            Track(
+                spotify_id="shared",
+                title="Second Title",
+                artist="Second Artist",
+                album="Second Album",
+                playlist_ids=["p2", "p3"],
+                playlist_names=["Different Name Ignored", "Playlist Three"],
+                genres=["indie", "electronic"],
+                year=2002,
+                duration_ms=222000,
+            ),
+            Track(spotify_id="second-only", title="Only Second", artist="C", album="D"),
+        ],
+        second_input,
+    )
+
+    cli.library_merge(input=[first_input, second_input], output=output_path, fmt=None)
+    merged = {track.spotify_id: track for track in read_tracks(output_path)}
+
+    shared = merged["shared"]
+    assert shared.title == "First Title"
+    assert shared.artist == "First Artist"
+    assert shared.album == "First Album"
+    assert shared.duration_ms == 111000
+    assert shared.year == 2002
+    assert shared.playlist_ids == ["p1", "p2", "p3"]
+    assert shared.playlist_names == ["Playlist One", "Playlist Two", "Playlist Three"]
+    assert shared.genres == ["rock", "indie", "electronic"]
+    assert set(merged.keys()) == {"shared", "first-only", "second-only"}
+
+
+def test_library_merge_single_input_matches_convert_behavior(tmp_path):
+    input_path = Path(tmp_path / "library.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks(
+        [
+            Track(spotify_id="dup", title="First", artist="A", album="X"),
+            Track(spotify_id="dup", title="Second", artist="A", album="Y"),
+        ],
+        input_path,
+    )
+
+    cli.library_merge(input=[input_path], output=output_path, fmt=None)
+
+    merged = read_tracks(output_path)
+    assert [track.title for track in merged] == ["First", "Second"]
+
+
+def test_library_merge_repeated_input_keeps_first_file_duplicates(tmp_path):
+    input_path = Path(tmp_path / "library.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks(
+        [
+            Track(
+                spotify_id="dup",
+                title="First",
+                artist="A",
+                album="X",
+                playlist_ids=["p1"],
+                playlist_names=["One"],
+                genres=["rock"],
+                year=None,
+            ),
+            Track(
+                spotify_id="dup",
+                title="Second",
+                artist="A",
+                album="Y",
+                playlist_ids=["p2"],
+                playlist_names=["Two"],
+                genres=["pop"],
+                year=None,
+            ),
+        ],
+        input_path,
+    )
+
+    cli.library_merge(input=[input_path, input_path], output=output_path, fmt=None)
+
+    merged = read_tracks(output_path)
+    assert [track.title for track in merged] == ["First", "Second"]
+    assert merged[0].playlist_ids == ["p1"]
+    assert merged[1].playlist_ids == ["p2"]
+
+
+def test_library_merge_keeps_later_file_duplicate_rows(tmp_path):
+    first_input = Path(tmp_path / "library_a.json")
+    second_input = Path(tmp_path / "library_b.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks([Track(spotify_id="dup", title="A", artist="X", album="Y")], first_input)
+    write_tracks(
+        [
+            Track(spotify_id="dup", title="B1", artist="X", album="Y", year=2001),
+            Track(spotify_id="dup", title="B2", artist="X", album="Y", year=2002),
+        ],
+        second_input,
+    )
+
+    cli.library_merge(input=[first_input, second_input], output=output_path, fmt=None)
+
+    merged = read_tracks(output_path)
+    assert len(merged) == 2
+    assert merged[0].year == 2001
+    assert merged[1].title == "B2"
+
+
+def test_library_merge_preserves_later_file_row_order_for_new_rows(tmp_path):
+    first_input = Path(tmp_path / "library_a.json")
+    second_input = Path(tmp_path / "library_b.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks([Track(spotify_id="dup", title="A", artist="X", album="Y")], first_input)
+    write_tracks(
+        [
+            Track(spotify_id="dup", title="B1", artist="X", album="Y"),
+            Track(spotify_id="new-1", title="N1", artist="X", album="Y"),
+            Track(spotify_id="dup", title="B2", artist="X", album="Y"),
+            Track(spotify_id="new-2", title="N2", artist="X", album="Y"),
+        ],
+        second_input,
+    )
+
+    cli.library_merge(input=[first_input, second_input], output=output_path, fmt=None)
+
+    merged = read_tracks(output_path)
+    assert [track.spotify_id for track in merged] == ["dup", "new-1", "dup", "new-2"]
+
+
+def test_merge_libraries_rejects_empty_inputs():
+    with pytest.raises(ValueError, match="At least one input path is required"):
+        merge_libraries([])
