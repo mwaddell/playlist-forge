@@ -329,7 +329,7 @@ class GetGenreClient:
 
             track.genres = genres
             track.genre_source = match_source
-            track.genre_match_confidence = confidence
+            track.genre_match_confidence = confidence / 100.0
         return tracks
 
     def _sleep_for_request_delay(self) -> None:
