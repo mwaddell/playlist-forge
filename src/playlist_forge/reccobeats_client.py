@@ -162,7 +162,6 @@ class ReccoBeatsClient:
             return cached or None  # cache.get returns {} for a cached "no match"
 
         data = self._get("/v1/audio-features", params={"ids": spotify_id})
-        time.sleep(self.delay)
         cache.set(cache.CacheType.RECCOBEATS, cache_key, data if data is not None else {})
         return data
 
@@ -182,7 +181,10 @@ class ReccoBeatsClient:
             content = response.get("content", []) if response else []
             payload = content[0] if content else {}
             if not payload:
+                for field_name in FEATURE_FIELDS:
+                    setattr(t, field_name, None)
                 t.feature_source = "unmatched"
+                t.feature_confidence = 0.0
                 continue
 
             for field_name in FEATURE_FIELDS:

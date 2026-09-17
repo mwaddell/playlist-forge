@@ -43,6 +43,13 @@ _DEFAULTS = {
         "base_url": "https://api.reccobeats.com",
         "request_delay_seconds": 0.2,
     },
+    "getgenre": {
+        "base_url": "https://api.getgenre.com",
+        "request_delay_seconds": 0.2,
+        "timeout_seconds": 10,
+        "username": None,
+        "password": None,
+    },
 }
 
 
@@ -52,6 +59,8 @@ class Settings:
     spotify_redirect_uri: str
     reccobeats_api_key: str | None
     config: dict
+    getgenre_username: str | None = None
+    getgenre_password: str | None = None
 
 
 def _merge_dicts(base: dict, override: dict) -> dict:
@@ -77,6 +86,7 @@ def write_config(config: dict) -> Path:
     _ensure_config_path_is_regular_file()
     try:
         CONFIG_PATH.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+        CONFIG_PATH.chmod(0o600)
     except OSError as exc:
         raise ConfigurationError(f"Could not write config file {CONFIG_PATH}: {exc}") from exc
     return CONFIG_PATH
@@ -157,6 +167,21 @@ def set_spotify_client_id(client_id: str) -> Path:
     return write_config(_set_nested_config_value(base_config, ("spotify", "client_id"), normalized))
 
 
+def set_getgenre_credentials(username: str, password: str) -> Path:
+    """Persist GetGenre credentials in config.json."""
+    normalized_username = username.strip()
+    normalized_password = password.strip()
+    if not normalized_username:
+        raise ConfigurationError("GetGenre username cannot be empty.")
+    if not normalized_password:
+        raise ConfigurationError("GetGenre password cannot be empty.")
+
+    base_config = _read_user_config() if CONFIG_PATH.exists() else default_config()
+    updated = _set_nested_config_value(base_config, ("getgenre", "username"), normalized_username)
+    updated = _set_nested_config_value(updated, ("getgenre", "password"), normalized_password)
+    return write_config(updated)
+
+
 def load_settings() -> Settings:
     """Load application settings from config.json.
 
@@ -168,6 +193,7 @@ def load_settings() -> Settings:
     merged = load_config()
     spotify_config = _get_config_section(merged, "spotify")
     reccobeats_config = _get_config_section(merged, "reccobeats")
+    getgenre_config = _get_config_section(merged, "getgenre")
 
     return Settings(
         spotify_client_id=spotify_config.get("client_id"),
@@ -175,4 +201,6 @@ def load_settings() -> Settings:
         or DEFAULT_REDIRECT_URI,
         reccobeats_api_key=reccobeats_config.get("api_key"),
         config=merged,
+        getgenre_username=getgenre_config.get("username"),
+        getgenre_password=getgenre_config.get("password"),
     )

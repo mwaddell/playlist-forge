@@ -68,7 +68,7 @@ def build_feature_matrix(
         audio features are imputed with each column mean rather than ``0.0``
         so unmatched values do not bias vectors toward one edge.
     """
-    genre_lists = [t.artist_genres or [] for t in tracks]
+    genre_lists = [t.genres or [] for t in tracks]
     mlb = MultiLabelBinarizer()
     genre_matrix = mlb.fit_transform(genre_lists).astype(float) * genre_weight
     genre_names = [f"genre:{g}" for g in mlb.classes_]

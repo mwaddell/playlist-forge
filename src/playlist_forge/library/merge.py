@@ -47,10 +47,10 @@ def _merge_track_metadata(existing, incoming) -> None:
         playlist_name_by_id.setdefault(pid, pname)
     existing.playlist_ids = list(playlist_name_by_id.keys())
     existing.playlist_names = list(playlist_name_by_id.values())
-    existing.artist_genres = _merge_unique_strings(existing.artist_genres, incoming.artist_genres)
+    existing.genres = _merge_unique_strings(existing.genres, incoming.genres)
 
     for field in dataclass_fields(existing):
-        if field.name in {"spotify_id", "playlist_ids", "playlist_names", "artist_genres"}:
+        if field.name in {"spotify_id", "playlist_ids", "playlist_names", "genres"}:
             continue
         if getattr(existing, field.name) is None and getattr(incoming, field.name) is not None:
             setattr(existing, field.name, getattr(incoming, field.name))

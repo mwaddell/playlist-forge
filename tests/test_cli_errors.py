@@ -4,12 +4,15 @@ from pathlib import Path
 
 import pytest
 import typer
+from typer.testing import CliRunner
 
 from playlist_forge import cli
 from playlist_forge.errors import AuthFailureError
 from playlist_forge.io_formats import read_tracks, write_tracks
 from playlist_forge.library.merge import merge_libraries, playlist_name_for_id
 from playlist_forge.models import Track
+
+runner = CliRunner()
 
 
 class DummySettings:
@@ -89,6 +92,24 @@ def test_config_clientid_reports_written_path(monkeypatch, capsys):
     captured = capsys.readouterr()
     assert captured_args["client_id"] == "spotify-client-id"
     assert "Updated Spotify client ID in /tmp/config.json." in captured.out
+
+
+def test_config_getgenre_reports_written_path(monkeypatch, capsys):
+    captured_args: dict = {}
+
+    def fake_set_getgenre_credentials(username: str, password: str) -> Path:
+        captured_args["username"] = username
+        captured_args["password"] = password
+        return Path("/tmp/config.json")
+
+    monkeypatch.setattr(cli, "set_getgenre_credentials", fake_set_getgenre_credentials)
+    monkeypatch.setattr(cli.typer, "prompt", lambda *_args, **_kwargs: "genre-pass")
+
+    cli.config_getgenre("genre-user")
+
+    captured = capsys.readouterr()
+    assert captured_args == {"username": "genre-user", "password": "genre-pass"}
+    assert "Updated GetGenre credentials in /tmp/config.json." in captured.out
 
 
 def test_analyze_cluster_rejects_unknown_algorithm(capsys, tmp_path):
@@ -239,6 +260,62 @@ def test_convert_same_format_creates_copy(tmp_path):
     assert [t.spotify_id for t in copied] == ["abc"]
 
 
+def test_enrich_uses_reccobeats_by_default(monkeypatch, capsys, tmp_path):
+    tracks = [Track(spotify_id="abc", title="Song", artist="Artist", album="Album")]
+    captured: dict = {}
+
+    class FakeClient:
+        def __init__(self, _settings):
+            captured["client"] = "reccobeats"
+
+        def enrich(self, input_tracks):
+            input_tracks[0].feature_source = "reccobeats"
+            return input_tracks
+
+    monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
+    monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: tracks)
+    monkeypatch.setattr(cli.io_formats, "write_tracks", lambda written_tracks, path, fmt: captured.update(
+        {"written_tracks": written_tracks, "write_path": path, "fmt": fmt}
+    ))
+    monkeypatch.setattr(cli, "ReccoBeatsClient", FakeClient)
+
+    output_path = Path(tmp_path / "out.json")
+    cli.enrich(input=Path(tmp_path / "in.json"), output=output_path, fmt=None)
+
+    assert captured["client"] == "reccobeats"
+    assert captured["written_tracks"] == tracks
+    assert captured["write_path"] == output_path
+    assert "Enriched 1/1 tracks with reccobeats" in capsys.readouterr().out
+
+
+def test_enrich_uses_getgenre_when_requested(monkeypatch, capsys, tmp_path):
+    tracks = [Track(spotify_id="abc", title="Song", artist="Artist", album="Album")]
+    captured: dict = {}
+
+    class FakeClient:
+        def __init__(self, _settings):
+            captured["client"] = "getgenre"
+
+        def enrich(self, input_tracks):
+            input_tracks[0].genre_source = "getgenre"
+            input_tracks[0].genres = ["indie"]
+            return input_tracks
+
+    monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
+    monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: tracks)
+    monkeypatch.setattr(cli.io_formats, "write_tracks", lambda written_tracks, path, fmt: captured.update(
+        {"written_tracks": written_tracks, "write_path": path, "fmt": fmt}
+    ))
+    monkeypatch.setattr(cli, "GetGenreClient", FakeClient)
+
+    output_path = Path(tmp_path / "out.json")
+    cli.enrich(input=Path(tmp_path / "in.json"), output=output_path, fmt=None, api="getgenre")
+
+    assert captured["client"] == "getgenre"
+    assert captured["written_tracks"][0].genres == ["indie"]
+    assert "Enriched 1/1 tracks with getgenre" in capsys.readouterr().out
+
+
 def test_library_merge_merges_playlists_genres_and_metadata(tmp_path):
     first_input = Path(tmp_path / "library_a.json")
     second_input = Path(tmp_path / "library_b.json")
@@ -253,7 +330,7 @@ def test_library_merge_merges_playlists_genres_and_metadata(tmp_path):
                 album="First Album",
                 playlist_ids=["p1", "p2"],
                 playlist_names=["Playlist One", "Playlist Two"],
-                artist_genres=["rock", "indie"],
+                genres=["rock", "indie"],
                 year=None,
                 duration_ms=111000,
             ),
@@ -270,7 +347,7 @@ def test_library_merge_merges_playlists_genres_and_metadata(tmp_path):
                 album="Second Album",
                 playlist_ids=["p2", "p3"],
                 playlist_names=["Different Name Ignored", "Playlist Three"],
-                artist_genres=["indie", "electronic"],
+                genres=["indie", "electronic"],
                 year=2002,
                 duration_ms=222000,
             ),
@@ -290,7 +367,7 @@ def test_library_merge_merges_playlists_genres_and_metadata(tmp_path):
     assert shared.year == 2002
     assert shared.playlist_ids == ["p1", "p2", "p3"]
     assert shared.playlist_names == ["Playlist One", "Playlist Two", "Playlist Three"]
-    assert shared.artist_genres == ["rock", "indie", "electronic"]
+    assert shared.genres == ["rock", "indie", "electronic"]
     assert set(merged.keys()) == {"shared", "first-only", "second-only"}
 
 
@@ -325,7 +402,7 @@ def test_library_merge_repeated_input_keeps_first_file_duplicates(tmp_path):
                 album="X",
                 playlist_ids=["p1"],
                 playlist_names=["One"],
-                artist_genres=["rock"],
+                genres=["rock"],
                 year=None,
             ),
             Track(
@@ -335,7 +412,7 @@ def test_library_merge_repeated_input_keeps_first_file_duplicates(tmp_path):
                 album="Y",
                 playlist_ids=["p2"],
                 playlist_names=["Two"],
-                artist_genres=["pop"],
+                genres=["pop"],
                 year=None,
             ),
         ],

@@ -37,9 +37,9 @@
 
 ## 3. API Updates
 
-- [ ] Add an `--api` argument to the `enrich` command which defaults to
+- [x] Add an `--api` argument to the `enrich` command which defaults to
   `reccobeats` but can be set to `getgenre` to use the GetGenre API instead.
-- [ ] When specifying `getgenre` as the API, the `enrich` command should call
+- [x] When specifying `getgenre` as the API, the `enrich` command should call
   the GetGenre API for each track and/or artist, and store the returned
   genre(s) in the output file.
     - https://www.getgenre.com/api
@@ -59,9 +59,34 @@
         - Add a `--force` argument to the `pull` command to force pulling all playlists
           regardless of snapshot_id, in case the user wants to refresh their
           library even if nothing has changed.
+- [ ] Add a `--level` argument to the `enrich` command (currently only used for GetGenre)
+      which takes `top`, `best` (default), `clean`, or `all` to specify which level
+      of genres to return for each track/artist (`top` only gets those at
+      considered "top genres", `clean` gets both "top genres" and "genres",
+      `all` includes unvalidated ones as well.  `best` gets only "top genres" but if
+      that is missing/blank, then it gets only "genres", and if that is also
+      missing/blank then it gets only "unvalidated genres". Note that `best` is not
+      necessarily only a single genre, since a track/artist can have multiple
+      "top genres", or multiple "genres", or multiple "unvalidated genres".
+        - The `genre_source` field will indicate which level was used to get 
+        the genre(s) for that track/artist.
+            - `top` = "top genres" only
+            - `validated` = "genres" only
+            - `unvalidated` = "unvalidated genres" only
+            - `clean` = "top genres" plus "genres"
+            - `all` = "top genres" plus "genres" plus "unvalidated genres"
+        - The `genre_source` will also indicate whether the genre(s) were
+          returned for that specific album/artist, or if they were returned 
+          for the artist in general (but not necessarily for that specific
+          album).
+        - Examples:
+            - `getgenre album top`
+            - `getgenre artist clean`
+            - `getgenre artist unvalidated`
 - [ ] Add a `--recheck` argument to the `enrich` command to force rechecking
       any tracks that were cached as "not found" in the ReccoBeats/GetGenre API, in case
       they have been added to the API since the last time they were checked.
+        - Should this also recheck getgenre which are marked as `exhausted = false`?
 - [ ] Add a `--force` argument to the `enrich` command to force rechecking 
       every track with the ReccoBeats/GetGenre API even if it already has a cached
       result and updating the cache with the new result.
@@ -70,10 +95,12 @@
         - Store all of them in the `artist` field as a semicolon-separated string?
         - Convert `artist` to an array?
         - Use `artist` as the primary artist, but store additional ones in a separate field?
+- [ ] Add a `--debug` flag for any command which calls any external API
+      (spotify, reccobeats, getgenre) to print the raw API response for debugging purposes.
 
 ## 4. Additional Library Commands
 
-- [ ] Add a `library merge` command to merge multiple library files into a single file.
+- [x] Add a `library merge` command to merge multiple library files into a single file.
     - Allow multiple `--input` arguments to specify the input files to merge.
     - Allow an `--output` argument to specify the output file name.
     - Note: for tracks matched in both files, the merged library should contain
@@ -88,10 +115,6 @@
       the resulting merged library for tracks which otherwise lack metadata,
       but should otherwise not show up in the merged library.  (If a metadata
       file does contain playlist information, it should be ignored.)
-        - Is this the best way to handle this?  Is there a better, more general
-          way of handling tracks that have no playlists which works across all
-          commands?  Maybe just treat them like everything else but add a
-          `library clean` command to remove them?
 - [ ] Add a `library check` command to check the library to sure that it 
       contains no duplicate tracks (i.e. tracks with the same Spotify ID) and
       that all tracks have at least one playlist.
@@ -128,6 +151,10 @@
       CLI's ability to read/write files correctly.
 - [ ] Update CI to enforce code coverage thresholds (e.g. 80% or 90%) and fail
       the build if coverage drops below that.
+- [ ] Fix: It appears that if the token has expired, the `pull`
+      command will happily return 0 playlists and 0 tracks, which is
+      misleading.  It should instead detect that the token has expired and
+      prompt the user to re-authenticate.
 
 ## 5. Manual Testing
 

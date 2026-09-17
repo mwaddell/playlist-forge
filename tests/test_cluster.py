@@ -14,7 +14,7 @@ def test_cluster_kmeans_raises_for_empty_tracks():
 
 
 def test_cluster_kmeans_handles_single_track():
-    tracks = [Track(spotify_id="t1", title="A", artist="X", album="", artist_genres=["rock"])]
+    tracks = [Track(spotify_id="t1", title="A", artist="X", album="", genres=["rock"])]
     clustered = cluster_kmeans(tracks, k="auto")
     assert len(clustered) == 1
     assert clustered[0].cluster_id == 0
@@ -27,7 +27,7 @@ def test_cluster_kmeans_handles_all_identical_vectors():
             title="A",
             artist="X",
             album="",
-            artist_genres=["rock"],
+            genres=["rock"],
             tempo=120.0,
             energy=0.5,
             year=2000,
@@ -37,7 +37,7 @@ def test_cluster_kmeans_handles_all_identical_vectors():
             title="B",
             artist="Y",
             album="",
-            artist_genres=["rock"],
+            genres=["rock"],
             tempo=120.0,
             energy=0.5,
             year=2000,
@@ -47,7 +47,7 @@ def test_cluster_kmeans_handles_all_identical_vectors():
             title="C",
             artist="Z",
             album="",
-            artist_genres=["rock"],
+            genres=["rock"],
             tempo=120.0,
             energy=0.5,
             year=2000,
@@ -65,8 +65,8 @@ def test_choose_k_returns_one_for_single_row_matrix():
 
 def test_cluster_kmeans_passes_audio_feature_weight_overrides(monkeypatch):
     tracks = [
-        Track(spotify_id="t1", title="A", artist="X", album="", artist_genres=["rock"]),
-        Track(spotify_id="t2", title="B", artist="Y", album="", artist_genres=["pop"]),
+        Track(spotify_id="t1", title="A", artist="X", album="", genres=["rock"]),
+        Track(spotify_id="t2", title="B", artist="Y", album="", genres=["pop"]),
     ]
     captured_kwargs: dict = {}
 
@@ -89,8 +89,8 @@ def test_cluster_kmeans_passes_audio_feature_weight_overrides(monkeypatch):
 
 def test_cluster_hdbscan_passes_audio_feature_weight_overrides(monkeypatch):
     tracks = [
-        Track(spotify_id="t1", title="A", artist="X", album="", artist_genres=["rock"]),
-        Track(spotify_id="t2", title="B", artist="Y", album="", artist_genres=["pop"]),
+        Track(spotify_id="t1", title="A", artist="X", album="", genres=["rock"]),
+        Track(spotify_id="t2", title="B", artist="Y", album="", genres=["pop"]),
     ]
     captured_kwargs: dict = {}
 
