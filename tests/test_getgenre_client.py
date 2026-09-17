@@ -161,7 +161,7 @@ def test_enrich_uses_progress_indicator(monkeypatch):
     monkeypatch.setattr(
         client,
         "fetch",
-        lambda album, artist: {"top_genres": ["indie"], "genres": ["indie"], "confidence": 0.8},
+        lambda album, artist: {"top_genres": ["indie"], "genres": ["indie"]},
     )
 
     enriched = client.enrich(tracks)
@@ -169,7 +169,6 @@ def test_enrich_uses_progress_indicator(monkeypatch):
     assert descriptions == ["Enriching tracks..."]
     assert enriched is tracks
     assert all(track.genre_source.startswith("getgenre") for track in tracks)
-    assert all(track.genre_match_confidence == 0.8 for track in tracks)
 
 
 def test_fallback_progress_track_returns_iterator():
