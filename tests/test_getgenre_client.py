@@ -70,7 +70,7 @@ def test_get_retries_with_lowercase_retry_after_header(monkeypatch):
     monkeypatch.setattr(client.session, "get", lambda *args, **kwargs: responses.pop(0))
     monkeypatch.setattr("playlist_forge.getgenre_client.time.sleep", lambda seconds: slept.append(seconds))
 
-    payload = client._get({"track_name": "Song", "artist_name": "Artist", "timeout": 10})
+    payload = client._get({"album_name": "Album", "artist_name": "Artist", "timeout": 10})
 
     assert payload == {"top_genres": ["indie"], "genres": ["indie", "rock"]}
     assert slept == [0.25]
@@ -106,12 +106,12 @@ def test_fetch_does_not_cache_transient_failure(monkeypatch):
     monkeypatch.setattr(client, "_get", raise_network_failure)
 
     with pytest.raises(NetworkFailureError):
-        client.fetch_by_track("Song", "Artist")
+        client.fetch("Album", "Artist")
 
     assert cache_writes == []
 
 
-def test_fetch_by_track_caches_not_found_results(monkeypatch):
+def test_fetch_caches_not_found_results(monkeypatch):
     client = GetGenreClient(DummySettings())
     writes: list[tuple[cache.CacheType, str, dict]] = []
 
@@ -120,11 +120,11 @@ def test_fetch_by_track_caches_not_found_results(monkeypatch):
     monkeypatch.setattr(client, "_get", lambda _params: None)
     monkeypatch.setattr("playlist_forge.getgenre_client.time.sleep", lambda _seconds: None)
 
-    assert client.fetch_by_track("Song", "Artist") is None
-    assert writes == [(cache.CacheType.GETGENRE, "track:song:artist", {})]
+    assert client.fetch("Album", "Artist") is None
+    assert writes == [(cache.CacheType.GETGENRE, "getgenre:album:artist", {})]
 
 
-def test_fetch_by_track_skips_cache_for_non_terminal_payload(monkeypatch):
+def test_fetch_skips_cache_for_non_terminal_payload(monkeypatch):
     client = GetGenreClient(DummySettings())
     writes: list[tuple[cache.CacheType, str, dict]] = []
 
@@ -132,40 +132,15 @@ def test_fetch_by_track_skips_cache_for_non_terminal_payload(monkeypatch):
     monkeypatch.setattr(cache, "set", lambda typ, key, value: writes.append((typ, key, value)))
     monkeypatch.setattr(client, "_get", lambda _params: {"genre_finished": False})
 
-    assert client.fetch_by_track("Song", "Artist") == {"genre_finished": False}
+    assert client.fetch("Album", "Artist") == {"genre_finished": False}
     assert writes == []
-
-
-def test_enrich_uses_track_then_artist_fallback(monkeypatch):
-    client = GetGenreClient(DummySettings())
-    tracks = [Track(spotify_id="track-1", title="Song 1", artist="Artist 1", album="Album 1")]
-    calls: list[tuple[str, str]] = []
-
-    def fake_fetch_by_track(title: str, artist: str):
-        calls.append(("track", f"{title}|{artist}"))
-        return None
-
-    def fake_fetch_by_artist(artist: str):
-        calls.append(("artist", artist))
-        return {"top_genres": ["shoegaze"], "genres": ["shoegaze", "dream pop"]}
-
-    monkeypatch.setattr(client, "fetch_by_track", fake_fetch_by_track)
-    monkeypatch.setattr(client, "fetch_by_artist", fake_fetch_by_artist)
-
-    enriched = client.enrich(tracks)
-
-    assert enriched is tracks
-    assert calls == [("track", "Song 1|Artist 1"), ("artist", "Artist 1")]
-    assert tracks[0].genres == ["shoegaze", "dream pop"]
-    assert tracks[0].genre_source == "getgenre"
 
 
 def test_enrich_marks_unmatched_when_no_genres_found(monkeypatch):
     client = GetGenreClient(DummySettings())
     tracks = [Track(spotify_id="track-1", title="Song 1", artist="Artist 1", album="Album 1", genres=["legacy"])]
 
-    monkeypatch.setattr(client, "fetch_by_track", lambda title, artist: {})
-    monkeypatch.setattr(client, "fetch_by_artist", lambda artist: {})
+    monkeypatch.setattr(client, "fetch", lambda album, artist: {})
 
     enriched = client.enrich(tracks)
 
@@ -188,8 +163,7 @@ def test_enrich_clears_stale_getgenre_match_when_no_genres_found(monkeypatch):
         )
     ]
 
-    monkeypatch.setattr(client, "fetch_by_track", lambda title, artist: {})
-    monkeypatch.setattr(client, "fetch_by_artist", lambda artist: {})
+    monkeypatch.setattr(client, "fetch", lambda album, artist: {})
 
     enriched = client.enrich(tracks)
 
@@ -213,8 +187,8 @@ def test_enrich_uses_progress_indicator(monkeypatch):
     )
     monkeypatch.setattr(
         client,
-        "fetch_by_track",
-        lambda title, artist: {"top_genres": ["indie"], "genres": ["indie"], "confidence": 0.8},
+        "fetch",
+        lambda album, artist: {"top_genres": ["indie"], "genres": ["indie"], "confidence": 0.8},
     )
 
     enriched = client.enrich(tracks)
