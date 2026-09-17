@@ -9,7 +9,6 @@ import requests
 from playlist_forge import cache
 from playlist_forge.errors import (
     ConfigurationError,
-    ExternalServiceError,
     NetworkFailureError,
     RateLimitExceededError,
 )
