@@ -169,6 +169,40 @@ def list_playlists(spotify: spotipy.Spotify) -> list[Playlist]:
     ]
 
 
+def _normalize_playlist_filters(playlist_filters: str | list[str] | None) -> list[str]:
+    if playlist_filters is None:
+        return []
+    if isinstance(playlist_filters, str):
+        candidates = [playlist_filters]
+    else:
+        candidates = playlist_filters
+    return [candidate.casefold() for candidate in candidates if candidate]
+
+
+def playlist_matches_filter(
+    playlist_name: str,
+    playlist_id: str,
+    playlist_filters: str | list[str] | None = None,
+) -> bool:
+    """Return whether a playlist matches any configured filter substring.
+
+    Args:
+        playlist_name: Playlist display name.
+        playlist_id: Spotify playlist ID.
+        playlist_filters: Optional playlist name/ID substring filters.
+
+    Returns:
+        ``True`` when no filters are provided or any filter matches the playlist
+        name or Spotify ID.
+    """
+    normalized_filters = _normalize_playlist_filters(playlist_filters)
+    if not normalized_filters:
+        return True
+    name = playlist_name.casefold()
+    spotify_id = playlist_id.casefold()
+    return any(candidate in name or candidate in spotify_id for candidate in normalized_filters)
+
+
 def pull_playlist_tracks(
     spotify: spotipy.Spotify,
     playlist: Playlist,
@@ -248,19 +282,25 @@ def pull_playlist_tracks(
     return tracks
 
 
-def pull_library(spotify: spotipy.Spotify, playlist_name_filter: str | None = None, force: bool = False) -> list[Track]:
+def pull_library(
+    spotify: spotipy.Spotify,
+    playlist_filters: str | list[str] | None = None,
+    force: bool = False,
+) -> list[Track]:
     """Pull playlists and merge duplicate track IDs across playlists.
 
     Args:
         spotify: Authenticated Spotify API client.
-        playlist_name_filter: Optional case-insensitive playlist name substring filter.
+        playlist_filters: Optional case-insensitive playlist name or ID
+            substring filters.
 
     Returns:
         Unique tracks with combined playlist membership fields.
     """
     playlists = list_playlists(spotify)
-    if playlist_name_filter:
-        playlists = [p for p in playlists if playlist_name_filter.lower() in p.name.lower()]
+    playlists = [
+        p for p in playlists if playlist_matches_filter(p.name, p.spotify_id, playlist_filters)
+    ]
 
     by_id: dict[str, Track] = {}
     current_user_id: str | None = None

@@ -197,3 +197,34 @@ def test_pull_library_raises_external_error_when_current_user_id_is_unavailable(
 
     with pytest.raises(ExternalServiceError, match="could not determine the current Spotify user id"):
         spotify_client.pull_library(FakeSpotify())
+
+
+def test_playlist_matches_filter_checks_name_and_id():
+    assert spotify_client.playlist_matches_filter("My Playlist", "abc123", ["playlist"])
+    assert spotify_client.playlist_matches_filter("My Playlist", "37i9dQZF1DXcBWIGoYBM5M", ["BWIG"])
+    assert not spotify_client.playlist_matches_filter("My Playlist", "abc123", ["other"])
+
+
+def test_pull_library_filters_by_multiple_playlist_name_or_id_substrings(monkeypatch):
+    class FakeSpotify:
+        pass
+
+    selected_by_name = Playlist(spotify_id="p1", name="Road Trip")
+    selected_by_id = Playlist(spotify_id="37i9dQZF1DXcBWIGoYBM5M", name="Daily Mix")
+    skipped = Playlist(spotify_id="p3", name="Focus")
+    pulled_ids: list[str] = []
+
+    def fake_pull_playlist_tracks(_spotify, playlist, force=False):
+        pulled_ids.append(playlist.spotify_id)
+        return []
+
+    monkeypatch.setattr(
+        spotify_client,
+        "list_playlists",
+        lambda _spotify: [selected_by_name, selected_by_id, skipped],
+    )
+    monkeypatch.setattr(spotify_client, "pull_playlist_tracks", fake_pull_playlist_tracks)
+
+    spotify_client.pull_library(FakeSpotify(), playlist_filters=["Trip", "BWIG"])
+
+    assert pulled_ids == ["p1", "37i9dQZF1DXcBWIGoYBM5M"]
