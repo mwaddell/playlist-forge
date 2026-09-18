@@ -243,15 +243,15 @@ def enrich(
     tracks = io_formats.read_tracks(input)
     target_tracks = _select_tracks_by_playlist(tracks, playlist)
     client = ReccoBeatsClient(settings) if api == "reccobeats" else GetGenreClient(settings)
-    client.enrich(target_tracks)
-    io_formats.write_tracks(tracks, output, fmt)
+    enriched = client.enrich(target_tracks)
+    io_formats.write_tracks(enriched, output, fmt)
 
     matched = (
-        sum(1 for t in target_tracks if t.feature_source == "reccobeats")
+        sum(1 for t in enriched if t.feature_source == "reccobeats")
         if api == "reccobeats"
-        else sum(1 for t in target_tracks if t.genre_source and t.genre_source.startswith("getgenre"))
+        else sum(1 for t in enriched if t.genre_source and t.genre_source.startswith("getgenre"))
     )
-    typer.echo(f"Enriched {matched}/{len(target_tracks)} tracks with {api} -> {output}")
+    typer.echo(f"Enriched {matched}/{len(enriched)} tracks with {api} -> {output}")
 
 
 # ---------------------------------------------- library: convert ----
