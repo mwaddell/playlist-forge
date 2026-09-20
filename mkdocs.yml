@@ -3,6 +3,7 @@ site_description: Export, analyze, and reorganize Spotify playlists from the com
 site_url: https://www.waddellnet.com/playlist-forge/
 repo_url: https://github.com/mwaddell/playlist-forge
 repo_name: mwaddell/playlist-forge
+edit_uri: null
 docs_dir: docs
 site_dir: site
 strict: true
@@ -11,7 +12,6 @@ theme:
   name: mkdocs
 
 nav:
-  - Home: index.md
   - Getting started: getting-started.md
   - Commands: commands.md
   - Configuration: configuration.md
