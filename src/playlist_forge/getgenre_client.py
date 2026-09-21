@@ -325,7 +325,7 @@ class GetGenreClient:
         self,
         tracks: list[Track],
         playlist_filter: list[str] | None = None,
-        top_only: bool = True,
+        level: str = "all",
     ) -> list[Track]:
         """Populate track genres using GetGenre matches."""
         subs = set(pfilter.casefold() for pfilter in playlist_filter) if playlist_filter else None
@@ -339,8 +339,11 @@ class GetGenreClient:
                 continue
 
             payload = self.fetch(track.artist, track.album) or {}
-            level = "top" if top_only else "all"
             match_source, confidence, genres = self._extract_genres(payload, level)
+            if match_source == "unmatched" and track.album:
+                # Try again without album name
+                payload = self.fetch(track.artist) or {}
+                match_source, confidence, genres = self._extract_genres(payload, level)
 
             track.genres = genres
             track.genre_source = match_source
