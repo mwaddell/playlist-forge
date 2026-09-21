@@ -22,7 +22,7 @@ def merge(
         tracks: Tracks to include in the new playlist.
         into_name: Name for the new merged playlist.
         playlist_names: Optional list of names of the playlists being merged.
-        dedupe_by_isrc: Whether to skip tracks with duplicate ISRCs.
+        dedupe_by_isrc: Whether to drop duplicate ISRC matches.
         dry_run: Whether to skip API writes and only print actions.
 
     Returns:
