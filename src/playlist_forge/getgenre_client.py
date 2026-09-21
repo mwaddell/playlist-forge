@@ -282,7 +282,7 @@ class GetGenreClient:
             # Get genres by album
             val = GetGenreClient._add_all_genres(genres, [payload], "genres")
             if genres:
-                if level == "best": 
+                if level == "best":
                     return "getgenre album validated", val, genres
                 if level == "clean":
                     return "getgenre album clean", val, genres
@@ -306,7 +306,7 @@ class GetGenreClient:
             # Get genres by artist
             val = GetGenreClient._add_all_genres(genres, artists, "genres")
             if genres:
-                if level == "best": 
+                if level == "best":
                     return "getgenre artist validated", val, genres
                 if level == "clean":
                     return "getgenre artist clean", val, genres
@@ -321,11 +321,29 @@ class GetGenreClient:
 
         return "unmatched", 0.0, genres
 
-    def enrich(self, tracks: list[Track], top_only: bool = True) -> list[Track]:
+    def enrich(
+        self,
+        tracks: list[Track],
+        playlist_filter: list[str] | None = None,
+        level: str = "best",
+    ) -> list[Track]:
         """Populate track genres using GetGenre matches."""
+        subs = set(pfilter.casefold() for pfilter in playlist_filter) if playlist_filter else None
+
         for track in _maybe_progress_track(tracks, description="Enriching tracks..."):
+            if subs and not any(
+                sub in playlist_id.casefold() or sub in playlist_name.casefold()
+                for playlist_id, playlist_name in zip(track.playlist_ids, track.playlist_names)
+                for sub in subs
+            ):
+                continue
+
             payload = self.fetch(track.artist, track.album) or {}
-            match_source, confidence, genres = self._extract_genres(payload, top_only)
+            match_source, confidence, genres = self._extract_genres(payload, level)
+            if match_source == "unmatched" and track.album:
+                # Try again without album name
+                payload = self.fetch(track.artist) or {}
+                match_source, confidence, genres = self._extract_genres(payload, level)
 
             track.genres = genres
             track.genre_source = match_source

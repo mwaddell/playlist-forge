@@ -165,18 +165,28 @@ class ReccoBeatsClient:
         cache.set(cache.CacheType.RECCOBEATS, cache_key, data if data is not None else {})
         return data
 
-    def enrich(self, tracks: list[Track]) -> list[Track]:
+    def enrich(self, tracks: list[Track], playlist_filter: list[str] | None = None) -> list[Track]:
         """Populate audio-feature fields on tracks using ReccoBeats matches.
 
         Args:
             tracks: Tracks to enrich in place.
+            playlist_filter: Optional list of playlist names/ids to restrict enrichment to.
 
         Returns:
             The same list with feature fields and provenance updated. Tracks
             without a match are marked with ``feature_source="unmatched"`` so
             downstream analysis can treat missing values explicitly.
         """
+        subs = set(pfilter.casefold() for pfilter in playlist_filter) if playlist_filter else None
+
         for t in _maybe_progress_track(tracks, description="Enriching tracks..."):
+            if subs and not any(
+                sub in playlist_id.casefold() or sub in playlist_name.casefold()
+                for playlist_id, playlist_name in zip(t.playlist_ids, t.playlist_names)
+                for sub in subs
+            ):
+                continue
+
             response = self.fetch_by_spotify_id(t.spotify_id)
             content = response.get("content", []) if response else []
             payload = content[0] if content else {}
@@ -184,7 +194,7 @@ class ReccoBeatsClient:
                 for field_name in FEATURE_FIELDS:
                     setattr(t, field_name, None)
                 t.feature_source = "unmatched"
-                t.feature_confidence = 0.0
+                t.feature_match_confidence = 0.0
                 continue
 
             for field_name in FEATURE_FIELDS:

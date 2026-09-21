@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from ..models import Track
 from .features import build_feature_matrix
 
 
@@ -62,21 +63,29 @@ def score_outliers(
 
 
 def top_outliers_by_playlist(
-    tracks: list, top_n: int = 5, **feature_kwargs
-) -> dict[str, list[tuple]]:
+    tracks: list[Track],
+    top_n: int = 5,
+    genre_weight: float = 1.0,
+    audio_feature_weight: float = 1.0,
+    audio_feature_weights: dict[str, float] | None = None,
+    year_weight: float = 0.3,
+) -> dict[str, list[tuple[Track, float]]]:
     """Return top outliers for each playlist represented in the input tracks.
 
     Args:
         tracks: Tracks that may belong to one or more playlists.
         top_n: Number of top outliers to keep per playlist.
-        **feature_kwargs: Extra keyword args forwarded to :func:`score_outliers`.
+        genre_weight: Multiplier for one-hot genre features.
+        audio_feature_weight: Default multiplier for scaled audio features.
+        audio_feature_weights: Optional per-feature audio multipliers.
+        year_weight: Multiplier for standardized year feature.
 
     Returns:
         Mapping of playlist ID to ``(track, score)`` tuples. Tuple output
         avoids clobbering ``track.outlier_score`` when the same Track object
         appears in multiple playlists.
     """
-    by_playlist: dict[str, list[tuple]] = {}
+    by_playlist: dict[str, list[tuple[Track, str]]] = {}
     for t in tracks:
         if len(t.playlist_ids) != len(t.playlist_names):
             raise ValueError(
@@ -86,10 +95,16 @@ def top_outliers_by_playlist(
         for idx, pid in enumerate(t.playlist_ids):
             by_playlist.setdefault(pid, []).append((t, t.playlist_names[idx]))
 
-    results: dict[str, list[tuple]] = {}
+    results: dict[str, list[tuple[Track, float]]] = {}
     for pid, playlist_rows in by_playlist.items():
         playlist_tracks = [row[0] for row in playlist_rows]
-        matrix, _ = build_feature_matrix(playlist_tracks, **feature_kwargs)
+        matrix, _ = build_feature_matrix(
+            playlist_tracks,
+            genre_weight=genre_weight,
+            audio_feature_weight=audio_feature_weight,
+            audio_feature_weights=audio_feature_weights,
+            year_weight=year_weight,
+        )
         if len(playlist_tracks) < 3 or matrix.shape[1] == 0:
             scored = [(t, 0.0) for t in playlist_tracks]
         else:

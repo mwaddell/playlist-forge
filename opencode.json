@@ -3,15 +3,26 @@
 
   "permission": {
     "bash": {
-      "poetry run ruff *": "allow"
+      "poetry build *": "allow",
+      "poetry check *": "allow",
+      "poetry run ruff *": "allow",
+      "poetry run coverage *": "allow",
+      "poetry run mypy *": "allow",
+      "poetry run pdoc *": "allow",
+      "poetry run pylint *": "allow",
+      "poetry run pytest *": "allow",
+      "poetry show *": "allow"
     },
     "edit": {
         "**/.gitignore": "allow",
+        "**/.pylintrc": "allow",
         "**/*.py": "allow",
         "**/*.md": "allow",
         "**/*.yml": "allow",
         "**/poetry.lock": "allow",
-        "**/pyproject.toml": "allow"
+        "**/pyproject.toml": "allow",
+        "**/pytest.ini": "allow",
+        "**/renovate.json": "allow"
     }
   }
 }

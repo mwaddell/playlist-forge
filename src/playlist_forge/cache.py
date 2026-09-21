@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from enum import Enum
+from typing import Any
 
 from .config import CACHE_DIR
 
@@ -38,7 +39,7 @@ def get(typ: CacheType, key: str) -> dict | None:
     conn = _connect(typ)
     try:
         row = conn.execute(
-            f"SELECT payload FROM {typ.value}_cache WHERE key = ?", 
+            f"SELECT payload FROM {typ.value}_cache WHERE key = ?",
             (key,)
         ).fetchone()
         return json.loads(row[0]) if row else None
@@ -46,7 +47,7 @@ def get(typ: CacheType, key: str) -> dict | None:
         conn.close()
 
 
-def set(typ: CacheType, key: str, payload: dict) -> None:
+def set(typ: CacheType, key: str, payload: Any) -> None:
     """Store or replace a cached payload by key.
 
     Args:

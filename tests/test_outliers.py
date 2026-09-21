@@ -1,6 +1,7 @@
 import pytest
 
 from playlist_forge.analyze.outliers import score_outliers, top_outliers_by_playlist
+from playlist_forge.cli import _filter_tracks_by_playlist
 from playlist_forge.models import Track
 
 
@@ -71,6 +72,31 @@ def test_top_outliers_by_playlist_does_not_clobber_shared_track_state():
     assert shared.outlier_score is None
     assert len(results["p1"]) == 2
     assert len(results["p2"]) == 2
+
+
+def test_filtered_tracks_do_not_produce_outliers_for_unselected_playlists():
+    shared = Track(
+        spotify_id="shared",
+        title="Shared",
+        artist="X",
+        album="",
+        playlist_ids=["selected", "other"],
+        playlist_names=["Selected", "Other"],
+    )
+    selected = Track(
+        spotify_id="selected-only",
+        title="Selected",
+        artist="X",
+        album="",
+        playlist_ids=["selected"],
+        playlist_names=["Selected"],
+    )
+
+    results = top_outliers_by_playlist(
+        _filter_tracks_by_playlist([shared, selected], ["selected"])
+    )
+
+    assert set(results) == {"selected"}
 
 
 def test_top_outliers_by_playlist_raises_on_mismatched_playlist_metadata():

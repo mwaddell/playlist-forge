@@ -105,7 +105,7 @@ def test_fetch_does_not_cache_transient_failure(monkeypatch):
     monkeypatch.setattr(client, "_get", raise_network_failure)
 
     with pytest.raises(NetworkFailureError):
-        client.fetch("Album", "Artist")
+        client.fetch("Artist", "Album")
 
     assert cache_writes == []
 
@@ -119,8 +119,8 @@ def test_fetch_caches_not_found_results(monkeypatch):
     monkeypatch.setattr(client, "_get", lambda _params: None)
     monkeypatch.setattr("playlist_forge.getgenre_client.time.sleep", lambda _seconds: None)
 
-    assert client.fetch("Album", "Artist") is None
-    assert writes == [(cache.CacheType.GETGENRE, "getgenre:album:artist", {})]
+    assert client.fetch("Artist", "Album") is None
+    assert writes == [(cache.CacheType.GETGENRE, "getgenre:artist:album", {})]
 
 
 def test_enrich_clears_stale_getgenre_match_when_no_genres_found(monkeypatch):
@@ -136,7 +136,7 @@ def test_enrich_clears_stale_getgenre_match_when_no_genres_found(monkeypatch):
         )
     ]
 
-    monkeypatch.setattr(client, "fetch", lambda album, artist: {})
+    monkeypatch.setattr(client, "fetch", lambda artist, album="": {})
 
     enriched = client.enrich(tracks)
 
@@ -161,7 +161,7 @@ def test_enrich_uses_progress_indicator(monkeypatch):
     monkeypatch.setattr(
         client,
         "fetch",
-        lambda album, artist: {"top_genres": ["indie"], "genres": ["indie"]},
+        lambda artist, album="": {"top_genres": ["indie"], "genres": ["indie"]},
     )
 
     enriched = client.enrich(tracks)
