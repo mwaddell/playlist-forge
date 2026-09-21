@@ -120,7 +120,7 @@ def test_fetch_caches_not_found_results(monkeypatch):
     monkeypatch.setattr("playlist_forge.getgenre_client.time.sleep", lambda _seconds: None)
 
     assert client.fetch("Artist", "Album") is None
-    assert writes == [(cache.CacheType.GETGENRE, "getgenre:album:artist", {})]
+    assert writes == [(cache.CacheType.GETGENRE, "getgenre:artist:album", {})]
 
 
 def test_enrich_clears_stale_getgenre_match_when_no_genres_found(monkeypatch):
