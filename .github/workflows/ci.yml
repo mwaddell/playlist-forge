@@ -14,12 +14,30 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+        with: 
+          clean: true
+          lfs: true
+
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
+
       - uses: abatilo/actions-poetry@v4
+
+      - name: Set up local venv
+        run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+
       - run: poetry install --with dev --no-interaction
+
       - run: poetry run ruff check src tests
+
+      # - run: poetry run pylint --recursive y src
+
+      # - run: poetry run mypy src
+
       - run: poetry run pytest -q

@@ -248,19 +248,21 @@ def pull_playlist_tracks(
     return tracks
 
 
-def pull_library(spotify: spotipy.Spotify, playlist_name_filter: str | None = None, force: bool = False) -> list[Track]:
+def pull_library(spotify: spotipy.Spotify, playlist_filter: list[str] | None = None, force: bool = False) -> list[Track]:
     """Pull playlists and merge duplicate track IDs across playlists.
 
     Args:
         spotify: Authenticated Spotify API client.
-        playlist_name_filter: Optional case-insensitive playlist name substring filter.
+        playlist_filter: Optional list of case-insensitive substrings to filter playlist names/IDs
 
     Returns:
         Unique tracks with combined playlist membership fields.
     """
+
     playlists = list_playlists(spotify)
-    if playlist_name_filter:
-        playlists = [p for p in playlists if playlist_name_filter.lower() in p.name.lower()]
+    if playlist_filter:
+        subs = set(pfilter.casefold() for pfilter in playlist_filter)
+        playlists = [p for p in playlists if any(sub in p.name.casefold() or sub in p.spotify_id.casefold() for sub in subs)]
 
     by_id: dict[str, Track] = {}
     current_user_id: str | None = None
