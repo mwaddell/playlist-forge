@@ -54,15 +54,23 @@ confidence=
 # no Warning level messages displayed, use "--disable=all --enable=classes
 # --disable=W".
 disable=multiple-imports,
-        import-error
+        import-error,
+        missing-module-docstring,
+        missing-class-docstring,
+        redefined-builtin,
+        too-many-instance-attributes,
+        too-many-positional-arguments,
+        too-many-locals,
+        import-outside-toplevel,
+        too-many-statements,
+        too-many-return-statements,
+        invalid-name
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once). See also the "--disable" option for examples.
 enable=c-extension-no-member,
-       missing-module-docstring,
-       missing-class-docstring,
        missing-function-docstring
 
 

@@ -282,7 +282,7 @@ class GetGenreClient:
             # Get genres by album
             val = GetGenreClient._add_all_genres(genres, [payload], "genres")
             if genres:
-                if level == "best": 
+                if level == "best":
                     return "getgenre album validated", val, genres
                 if level == "clean":
                     return "getgenre album clean", val, genres
@@ -306,7 +306,7 @@ class GetGenreClient:
             # Get genres by artist
             val = GetGenreClient._add_all_genres(genres, artists, "genres")
             if genres:
-                if level == "best": 
+                if level == "best":
                     return "getgenre artist validated", val, genres
                 if level == "clean":
                     return "getgenre artist clean", val, genres
@@ -339,7 +339,8 @@ class GetGenreClient:
                 continue
 
             payload = self.fetch(track.artist, track.album) or {}
-            match_source, confidence, genres = self._extract_genres(payload, top_only)
+            level = "top" if top_only else "all"
+            match_source, confidence, genres = self._extract_genres(payload, level)
 
             track.genres = genres
             track.genre_source = match_source

@@ -194,7 +194,7 @@ class ReccoBeatsClient:
                 for field_name in FEATURE_FIELDS:
                     setattr(t, field_name, None)
                 t.feature_source = "unmatched"
-                t.feature_confidence = 0.0
+                t.feature_match_confidence = 0.0
                 continue
 
             for field_name in FEATURE_FIELDS:

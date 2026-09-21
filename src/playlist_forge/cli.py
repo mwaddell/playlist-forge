@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import functools
+from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Literal, ParamSpec, TypeVar, cast
 
 import typer
 
@@ -21,7 +22,11 @@ from .config import (
 from .errors import PlaylistForgeError
 from .getgenre_client import GetGenreClient
 from .library import merge_libraries, playlist_name_for_id
+from .models import Track
 from .reccobeats_client import ReccoBeatsClient
+
+P = ParamSpec("P")
+T = TypeVar("T")
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 config_app = typer.Typer(help="Manage local configuration.")
@@ -48,9 +53,9 @@ _AUDIO_FEATURE_FIELDS = (
 )
 
 
-def _handle_cli_errors(func):
+def _handle_cli_errors(func: Callable[P, T]) -> Callable[P, T]:
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         try:
             return func(*args, **kwargs)
         except PlaylistForgeError as exc:
@@ -59,7 +64,9 @@ def _handle_cli_errors(func):
 
     return wrapper
 
-def _filter_tracks_by_playlist(tracks: list, playlist_filter: list[str] | None):
+def _filter_tracks_by_playlist(
+    tracks: list[Track], playlist_filter: list[str] | None
+) -> list[Track]:
     if not playlist_filter:
         return tracks
 
@@ -87,7 +94,7 @@ def _filter_tracks_by_playlist(tracks: list, playlist_filter: list[str] | None):
 @_handle_cli_errors
 def config_init(
     force: bool = typer.Option(False, "--force", help="Replace an existing config.json file."),
-):
+) -> None:
     """Create the local config.json file, or replace it with ``--force``.
 
     Args:
@@ -104,7 +111,7 @@ def config_init(
 @_handle_cli_errors
 def config_clientid(
     client_id: Annotated[str, typer.Argument(help="Spotify client ID to store in config.json.")],
-):
+) -> None:
     """Store a Spotify client ID in the local config.json file.
 
     Args:
@@ -121,7 +128,7 @@ def config_clientid(
 @_handle_cli_errors
 def config_getgenre(
     username: Annotated[str, typer.Argument(help="GetGenre username to store in config.json.")],
-):
+) -> None:
     """Store GetGenre credentials in the local config.json file.
 
     Args:
@@ -138,7 +145,7 @@ def config_getgenre(
 # ---------------------------------------------------------------- auth ----
 @auth_app.command("login")
 @_handle_cli_errors
-def auth_login():
+def auth_login() -> None:
     """Run Spotify OAuth and cache the token for later commands.
 
     Returns:
@@ -150,7 +157,7 @@ def auth_login():
 
 @auth_app.command("logout")
 @_handle_cli_errors
-def auth_logout():
+def auth_logout() -> None:
     """Clear the cached Spotify OAuth token file from disk.
 
     Returns:
@@ -176,7 +183,7 @@ def pull(
         help="Only pull playlists whose name or ID contains any supplied substring.",
     )] = None,
     force: bool = typer.Option(False, "--force", help="Pull from Spotify API even if the result was already cached."),
-):
+) -> None:
     """Pull playlists and tracks from Spotify into a local dataset.
 
     Args:
@@ -209,7 +216,7 @@ def enrich(
         Literal["reccobeats", "getgenre"],
         typer.Option("--api", help="reccobeats|getgenre"),
     ] = "reccobeats",
-):
+) -> None:
     """Add enrichment data from the selected API to a pulled dataset file.
 
     Args:
@@ -227,8 +234,11 @@ def enrich(
     enriched = client.enrich(tracks, playlist_filter=playlist)
     io_formats.write_tracks(enriched, output, fmt)
 
-    matched = (sum(1 for t in enriched if t.feature_source == "reccobeats")
-        if api == "reccobeats" else sum(1 for t in enriched if t.genre_source.startswith("getgenre")))
+    matched = (
+        sum(1 for t in enriched if t.feature_source == "reccobeats")
+        if api == "reccobeats"
+        else sum(1 for t in enriched if t.genre_source and t.genre_source.startswith("getgenre"))
+    )
     typer.echo(f"Enriched {matched}/{len(enriched)} tracks with {api} -> {output}")
 
 
@@ -239,7 +249,7 @@ def library_convert(
     input: Path = typer.Option(..., "--input", "-i"),
     output: Path = typer.Option(..., "--output", "-o"),
     fmt: str | None = typer.Option(None, "--format", "-f"),
-):
+) -> None:
     """Copy a dataset file into another supported format.
 
     Args:
@@ -261,7 +271,7 @@ def library_merge(
     input: Annotated[list[Path], typer.Option(..., "--input", "-i")],
     output: Path = typer.Option(..., "--output", "-o"),
     fmt: str | None = typer.Option(None, "--format", "-f"),
-):
+) -> None:
     """Merge one or more dataset files into a single dataset file.
 
     Args:
@@ -310,7 +320,7 @@ def analyze_cluster(
     audio_tempo_weight: Annotated[float | None, typer.Option("--audio-tempo-weight")] = None,
     audio_valence_weight: Annotated[float | None, typer.Option("--audio-valence-weight")] = None,
     year_weight: Annotated[float | None, typer.Option("--year-weight")] = None,
-):
+) -> None:
     """Cluster tracks by genre, audio-feature, and year similarity.
 
     Args:
@@ -425,7 +435,7 @@ def analyze_outliers(
         help="Only analyze playlists whose name or ID contains any supplied substring.",
     )] = None,
     top_n: int = typer.Option(5, help="Top N outliers per playlist."),
-):
+) -> None:
     """Print the highest outlier tracks for each playlist.
 
     Args:
@@ -455,7 +465,7 @@ def analyze_dedupe(
     )] = None,
     track_threshold: float = typer.Option(0.90),
     playlist_threshold: float = typer.Option(0.60),
-):
+) -> None:
     """Find duplicate tracks and overlapping playlists, then write a JSON report.
 
     Args:
@@ -496,7 +506,7 @@ def act_split(
     prefix: str = typer.Option("Auto-"),
     skip_noise: bool = typer.Option(True),
     dry_run: bool = typer.Option(False),
-):
+) -> None:
     """Create Spotify playlists from clustered dataset output.
 
     Args:
@@ -527,10 +537,10 @@ def act_merge(
     playlist: Annotated[list[str], typer.Option(
         "--playlist",
         help="Merge all playlists whose name or ID contains any supplied substring.",
-    )] = ...,
+    )] = cast(list[str], ...),
     into: str = typer.Option(..., help="Name for the new merged playlist."),
     dry_run: bool = typer.Option(False),
-):
+) -> None:
     """Merge existing playlists into one new deduplicated playlist.
 
     Args:

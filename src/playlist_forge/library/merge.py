@@ -8,7 +8,7 @@ from .. import io_formats
 from ..models import Track
 
 
-def playlist_name_for_id(track, playlist_id: str) -> str:
+def playlist_name_for_id(track: Track, playlist_id: str) -> str:
     """Return the playlist name corresponding to a playlist id on a track.
 
     Args:
@@ -34,14 +34,14 @@ def _merge_unique_strings(existing: list[str], incoming: list[str]) -> list[str]
     return merged
 
 
-def _playlist_membership_pairs(track) -> list[tuple[str, str]]:
+def _playlist_membership_pairs(track: Track) -> list[tuple[str, str]]:
     pairs: list[tuple[str, str]] = []
     for pid in track.playlist_ids:
         pairs.append((pid, playlist_name_for_id(track, pid)))
     return pairs
 
 
-def _merge_track_metadata(existing, incoming) -> None:
+def _merge_track_metadata(existing: Track, incoming: Track) -> None:
     playlist_name_by_id = dict(_playlist_membership_pairs(existing))
     for pid, pname in _playlist_membership_pairs(incoming):
         playlist_name_by_id.setdefault(pid, pname)
@@ -72,7 +72,7 @@ def merge_libraries(inputs: list[Path]) -> list[Track]:
         return io_formats.read_tracks(inputs[0])
 
     merged_tracks = [copy.deepcopy(track) for track in io_formats.read_tracks(inputs[0])]
-    merged_by_id: dict[str, list] = {}
+    merged_by_id: dict[str, list[Track]] = {}
     for track in merged_tracks:
         merged_by_id.setdefault(track.spotify_id, []).append(track)
 

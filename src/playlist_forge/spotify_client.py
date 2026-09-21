@@ -50,11 +50,11 @@ _SPOTIFY_MAX_RETRIES = 3
 _SPOTIFY_BASE_BACKOFF_SECONDS = 1.0
 
 
-def _retry_after_seconds(headers: dict | None) -> float | None:
+def _retry_after_seconds(headers: Mapping[str, object] | None) -> float | None:
     if not headers:
         return None
     raw = headers.get("Retry-After") or headers.get("retry-after")
-    if not raw:
+    if not isinstance(raw, str) or not raw:
         return None
     try:
         return max(float(raw), 0.0)
@@ -231,12 +231,12 @@ def pull_playlist_tracks(
             Track(
                 spotify_id=t["id"],
                 title=t["name"],
-                artist=primary_artist["name"],
+                artist=str(primary_artist.get("name") or "Unknown"),
                 album=(t.get("album") or {}).get("name", ""),
                 playlist_ids=[playlist.spotify_id],
                 playlist_names=[playlist.name],
                 isrc=(t.get("external_ids") or {}).get("isrc"),
-                year=year if year > 1900 else None,
+                year=year if year is not None and year > 1900 else None,
                 duration_ms=t.get("duration_ms"),
                 added_at=item.get("added_at"),
                 genres=sorted(set(genres)),
@@ -395,10 +395,12 @@ def create_playlist(
             me["id"], name, public=public, description=description
         ),
     )
-    for i in range(0, len(track_ids), 100):  # API caps add_items at 100/request
+    for index in range(0, len(track_ids), 100):  # API caps add_items at 100/request
         _spotify_call(
             f"adding tracks to playlist '{name}'",
-            lambda: spotify.playlist_add_items(playlist["id"], track_ids[i : i + 100]),
+            lambda index=index: spotify.playlist_add_items(  # type: ignore[misc]
+                playlist["id"], track_ids[index : index + 100]
+            ),
         )
     return playlist["id"]
 
@@ -420,8 +422,10 @@ def add_tracks(
     if dry_run:
         print(f"[dry-run] Would add {len(track_ids)} tracks to playlist {playlist_id}.")
         return
-    for i in range(0, len(track_ids), 100):
+    for index in range(0, len(track_ids), 100):
         _spotify_call(
             f"adding tracks to playlist '{playlist_id}'",
-            lambda: spotify.playlist_add_items(playlist_id, track_ids[i : i + 100]),
+            lambda index=index: spotify.playlist_add_items(  # type: ignore[misc]
+                playlist_id, track_ids[index : index + 100]
+            ),
         )
