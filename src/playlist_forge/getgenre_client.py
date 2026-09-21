@@ -249,7 +249,7 @@ class GetGenreClient:
             params["album_name"] = album
         if artist:
             params["artist_name"] = artist
-        return self._search_with_cache(self._cache_key("getgenre", artist, album), params)
+        return self._search_with_cache(self._cache_key("getgenre", album, artist), params)
 
     @staticmethod
     def _add_new_genres(existing: list[str], payload: dict, key: str) -> None:
