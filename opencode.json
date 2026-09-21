@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "permission": {
+    "bash": {
+      "poetry run ruff *": "allow"
+    },
+    "edit": {
+        "**/.gitignore": "allow",
+        "**/*.py": "allow",
+        "**/*.md": "allow",
+        "**/*.yml": "allow",
+        "**/poetry.lock": "allow",
+        "**/pyproject.toml": "allow"
+    }
+  }
+}
