@@ -268,7 +268,8 @@ def test_enrich_uses_reccobeats_by_default(monkeypatch, capsys, tmp_path):
         def __init__(self, _settings):
             captured["client"] = "reccobeats"
 
-        def enrich(self, input_tracks):
+        def enrich(self, input_tracks, playlist_filter=None):
+            captured["playlist_filter"] = playlist_filter
             input_tracks[0].feature_source = "reccobeats"
             return input_tracks
 
@@ -283,6 +284,7 @@ def test_enrich_uses_reccobeats_by_default(monkeypatch, capsys, tmp_path):
     cli.enrich(input=Path(tmp_path / "in.json"), output=output_path, fmt=None)
 
     assert captured["client"] == "reccobeats"
+    assert captured["playlist_filter"] is None
     assert captured["written_tracks"] == tracks
     assert captured["write_path"] == output_path
     assert "Enriched 1/1 tracks with reccobeats" in capsys.readouterr().out
@@ -296,7 +298,8 @@ def test_enrich_uses_getgenre_when_requested(monkeypatch, capsys, tmp_path):
         def __init__(self, _settings):
             captured["client"] = "getgenre"
 
-        def enrich(self, input_tracks):
+        def enrich(self, input_tracks, playlist_filter=None):
+            captured["playlist_filter"] = playlist_filter
             input_tracks[0].genre_source = "getgenre"
             input_tracks[0].genres = ["indie"]
             return input_tracks
@@ -312,8 +315,67 @@ def test_enrich_uses_getgenre_when_requested(monkeypatch, capsys, tmp_path):
     cli.enrich(input=Path(tmp_path / "in.json"), output=output_path, fmt=None, api="getgenre")
 
     assert captured["client"] == "getgenre"
+    assert captured["playlist_filter"] is None
     assert captured["written_tracks"][0].genres == ["indie"]
     assert "Enriched 1/1 tracks with getgenre" in capsys.readouterr().out
+
+
+def test_playlist_filter_keeps_only_matching_memberships():
+    tracks = [
+        Track(
+            spotify_id="shared",
+            title="Shared",
+            artist="Artist",
+            album="Album",
+            playlist_ids=["selected-id", "other-id"],
+            playlist_names=["Selected Playlist", "Other Playlist"],
+        ),
+        Track(
+            spotify_id="other",
+            title="Other",
+            artist="Artist",
+            album="Album",
+            playlist_ids=["other-id"],
+            playlist_names=["Other Playlist"],
+        ),
+    ]
+
+    filtered = cli._filter_tracks_by_playlist(tracks, ["selected"])
+
+    assert len(filtered) == 1
+    assert filtered[0].playlist_ids == ["selected-id"]
+    assert filtered[0].playlist_names == ["Selected Playlist"]
+    assert tracks[0].playlist_ids == ["selected-id", "other-id"]
+
+
+def test_push_merge_rejects_no_matching_playlists(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
+    monkeypatch.setattr(cli.auth, "get_spotify_client", lambda _settings: object())
+    monkeypatch.setattr(
+        cli.io_formats,
+        "read_tracks",
+        lambda _path: [
+            Track(
+                spotify_id="track",
+                title="Song",
+                artist="Artist",
+                album="Album",
+                playlist_ids=["playlist-id"],
+                playlist_names=["Playlist"],
+            )
+        ],
+    )
+
+    with pytest.raises(typer.Exit) as exc_info:
+        cli.act_merge(
+            input=tmp_path / "library.json",
+            playlist=["missing"],
+            into="Merged",
+            dry_run=True,
+        )
+
+    assert exc_info.value.exit_code == 1
+    assert "No tracks matched the supplied --playlist filters." in capsys.readouterr().err
 
 
 def test_library_merge_merges_playlists_genres_and_metadata(tmp_path):

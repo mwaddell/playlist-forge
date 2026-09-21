@@ -177,15 +177,17 @@ class ReccoBeatsClient:
             without a match are marked with ``feature_source="unmatched"`` so
             downstream analysis can treat missing values explicitly.
         """
-        subs = set(pfilter.casefold() for pfilter in playlist_filters) if playlist_filter else None
+        subs = set(pfilter.casefold() for pfilter in playlist_filter) if playlist_filter else None
 
         for t in _maybe_progress_track(tracks, description="Enriching tracks..."):
-            if not subs or any(sub in pid.casefold() for pid in t.playlist_ids for sub in subs) 
-                    or any(sub in pname.casefold() for pname in t.playlist_names for sub in subs):
-                response = self.fetch_by_spotify_id(t.spotify_id)
-            else:
-                response = None
+            if subs and not any(
+                sub in playlist_id.casefold() or sub in playlist_name.casefold()
+                for playlist_id, playlist_name in zip(t.playlist_ids, t.playlist_names)
+                for sub in subs
+            ):
+                continue
 
+            response = self.fetch_by_spotify_id(t.spotify_id)
             content = response.get("content", []) if response else []
             payload = content[0] if content else {}
             if not payload:

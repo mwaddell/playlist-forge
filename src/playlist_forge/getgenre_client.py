@@ -321,17 +321,24 @@ class GetGenreClient:
 
         return "unmatched", 0.0, genres
 
-    def enrich(self, tracks: list[Track], playlist_filter: list[str] | None = None, top_only: bool = True) -> list[Track]:
+    def enrich(
+        self,
+        tracks: list[Track],
+        playlist_filter: list[str] | None = None,
+        top_only: bool = True,
+    ) -> list[Track]:
         """Populate track genres using GetGenre matches."""
-        subs = set(pfilter.casefold() for pfilter in playlist_filters) if playlist_filter else None
+        subs = set(pfilter.casefold() for pfilter in playlist_filter) if playlist_filter else None
 
         for track in _maybe_progress_track(tracks, description="Enriching tracks..."):
-            if not subs or any(sub in pid.casefold() for pid in t.playlist_ids for sub in subs) 
-                    or any(sub in pname.casefold() for pname in t.playlist_names for sub in subs):
-                payload = self.fetch(track.artist, track.album) or {}
-            else:
-                payload = {}
+            if subs and not any(
+                sub in playlist_id.casefold() or sub in playlist_name.casefold()
+                for playlist_id, playlist_name in zip(track.playlist_ids, track.playlist_names)
+                for sub in subs
+            ):
+                continue
 
+            payload = self.fetch(track.artist, track.album) or {}
             match_source, confidence, genres = self._extract_genres(payload, top_only)
 
             track.genres = genres

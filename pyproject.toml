@@ -56,4 +56,4 @@ select = ["E", "F", "I", "UP"]  # pyflakes/pycodestyle/isort/pyupgrade — pract
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-testpaths = ["test"]
+testpaths = ["tests"]

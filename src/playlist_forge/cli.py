@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+from dataclasses import replace
 from pathlib import Path
 from typing import Annotated, Literal
 
@@ -58,17 +59,27 @@ def _handle_cli_errors(func):
 
     return wrapper
 
-def _filter_tracks_by_playlist(tracks: list, playlist_filters: list[str] | None):
-    if not playlist_filters:
+def _filter_tracks_by_playlist(tracks: list, playlist_filter: list[str] | None):
+    if not playlist_filter:
         return tracks
 
-    subs = set(pfilter.casefold() for pfilter in playlist_filters)
-
-    return [
-        track for track in tracks
-        if any(sub in pid.casefold() for pid in track.playlist_ids for sub in subs)
-        or any(sub in pname.casefold() for pname in track.playlist_names for sub in subs)
-    ]
+    subs = set(pfilter.casefold() for pfilter in playlist_filter)
+    filtered_tracks = []
+    for track in tracks:
+        memberships = [
+            (playlist_id, playlist_name)
+            for playlist_id, playlist_name in zip(track.playlist_ids, track.playlist_names)
+            if any(
+                sub in playlist_id.casefold() or sub in playlist_name.casefold()
+                for sub in subs
+            )
+        ]
+        if memberships:
+            playlist_ids, playlist_names = zip(*memberships)
+            filtered_tracks.append(
+                replace(track, playlist_ids=list(playlist_ids), playlist_names=list(playlist_names))
+            )
+    return filtered_tracks
 
 
 # -------------------------------------------------------------- config ----
@@ -178,7 +189,7 @@ def pull(
     """
     settings = load_settings()
     spotify = auth.get_spotify_client(settings)
-    tracks = spotify_client.pull_library(spotify, playlist_filters=playlist, force=force)
+    tracks = spotify_client.pull_library(spotify, playlist_filter=playlist, force=force)
     io_formats.write_tracks(tracks, output, fmt)
     typer.echo(f"Pulled {len(tracks)} unique tracks -> {output}")
 
@@ -213,7 +224,7 @@ def enrich(
     settings = load_settings()
     tracks = io_formats.read_tracks(input)
     client = ReccoBeatsClient(settings) if api == "reccobeats" else GetGenreClient(settings)
-    enriched = client.enrich(tracks, playlist_filters=playlist)
+    enriched = client.enrich(tracks, playlist_filter=playlist)
     io_formats.write_tracks(enriched, output, fmt)
 
     matched = (sum(1 for t in enriched if t.feature_source == "reccobeats")
@@ -513,10 +524,10 @@ def act_merge(
     input: Path = typer.Option(
         ..., "--input", "-i", help="Clustered dataset from `analyze cluster`."
     ),
-    playlist: Annotated[list[str] | None, typer.Option(
+    playlist: Annotated[list[str], typer.Option(
         "--playlist",
         help="Merge all playlists whose name or ID contains any supplied substring.",
-    )] = None,
+    )] = ...,
     into: str = typer.Option(..., help="Name for the new merged playlist."),
     dry_run: bool = typer.Option(False),
 ):
@@ -533,6 +544,8 @@ def act_merge(
     settings = load_settings()
     spotify = auth.get_spotify_client(settings)
     tracks = _filter_tracks_by_playlist(io_formats.read_tracks(input), playlist)
+    if not tracks:
+        raise PlaylistForgeError("No tracks matched the supplied --playlist filters.")
     new_id = merge_playlists.merge(spotify, tracks, into, playlist, dry_run=dry_run)
     typer.echo(f"Merged into '{into}' -> {new_id or '(dry-run)'}")
 

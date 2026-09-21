@@ -248,7 +248,11 @@ def pull_playlist_tracks(
     return tracks
 
 
-def pull_library(spotify: spotipy.Spotify, playlist_filter: list[str] | None = None, force: bool = False) -> list[Track]:
+def pull_library(
+    spotify: spotipy.Spotify,
+    playlist_filter: list[str] | None = None,
+    force: bool = False,
+) -> list[Track]:
     """Pull playlists and merge duplicate track IDs across playlists.
 
     Args:
@@ -262,7 +266,14 @@ def pull_library(spotify: spotipy.Spotify, playlist_filter: list[str] | None = N
     playlists = list_playlists(spotify)
     if playlist_filter:
         subs = set(pfilter.casefold() for pfilter in playlist_filter)
-        playlists = [p for p in playlists if any(sub in p.name.casefold() or sub in p.spotify_id.casefold() for sub in subs)]
+        playlists = [
+            playlist
+            for playlist in playlists
+            if any(
+                sub in playlist.name.casefold() or sub in playlist.spotify_id.casefold()
+                for sub in subs
+            )
+        ]
 
     by_id: dict[str, Track] = {}
     current_user_id: str | None = None
