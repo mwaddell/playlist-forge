@@ -36,8 +36,8 @@ jobs:
 
       - run: poetry run ruff check src tests
 
-      # - run: poetry run pylint --recursive y src
+      - run: poetry run pylint --recursive y src
 
-      # - run: poetry run mypy src
+      - run: poetry run mypy src
 
       - run: poetry run pytest -q
