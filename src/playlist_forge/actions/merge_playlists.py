@@ -32,13 +32,15 @@ def merge(
     seen_ids: set[str] = set()
     seen_isrcs: set[str] = set()
     track_ids: list[str] = []
-    for track in tracks:
-        if track.spotify_id in seen_ids or (dedupe_by_isrc and track.isrc and track.isrc in seen_isrcs):
+    for t in tracks:
+        if t.spotify_id in seen_ids:
             continue
-        seen_ids.add(track.spotify_id)
-        if track.isrc:
-            seen_isrcs.add(track.isrc)
-        track_ids.append(track.spotify_id)
+        if dedupe_by_isrc and t.isrc and t.isrc in seen_isrcs:
+            continue
+        seen_ids.add(t.spotify_id)
+        if t.isrc:
+            seen_isrcs.add(t.isrc)
+        track_ids.append(t.spotify_id)
 
     return spotify_client.create_playlist(
         spotify, into_name, track_ids,
