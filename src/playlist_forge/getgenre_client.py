@@ -325,7 +325,7 @@ class GetGenreClient:
         self,
         tracks: list[Track],
         playlist_filter: list[str] | None = None,
-        level: str = "all",
+        level: str = "best",
     ) -> list[Track]:
         """Populate track genres using GetGenre matches."""
         subs = set(pfilter.casefold() for pfilter in playlist_filter) if playlist_filter else None

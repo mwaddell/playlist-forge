@@ -11,11 +11,11 @@
 
 ## 2. Argument Standardization
 
-- [ ] Update the `pull --playlist` argument to support **multiple playlists**
+- [x] Update the `pull --playlist` argument to support **multiple playlists**
   (e.g. `pull --playlist "My Playlist" --playlist "Other Playlist"`).
   Additionally, it should support substring matching in both **playlist name** and **playlist ID** (e.g.
   `pull --playlist "My Playlist"` or `pull --playlist "37i9dQZF1DXcBWIGoYBM5M"`).
-- [ ] Add the `--playlist` argument (which supports multiple playlists and
+- [x] Add the `--playlist` argument (which supports multiple playlists and
   name/id matching) to the `enrich` and `analyze` commands, so users can operate on only specific
   playlists instead of the entire library.
     - Note that `analyze cluster` always updates the cluster_id for the entire
@@ -27,7 +27,7 @@
       others untouched, so if `--playlist` is specified, then only tracks in
       the specified playlists should be enriched, and any others should be left
       as-is.
-- [ ] Rename the `--playlists` argument in `push merge` to `--playlist` and allow
+- [x] Rename the `--playlists` argument in `push merge` to `--playlist` and allow
   multiple `--playlist` arguments to specify multiple source playlists to merge
   into the destination playlist INSTEAD of requiring a single comma-separated
   list of playlists.
@@ -90,7 +90,7 @@
 - [ ] Add a `--force` argument to the `enrich` command to force rechecking 
       every track with the ReccoBeats/GetGenre API even if it already has a cached
       result and updating the cache with the new result.
-- [ ] Update `push merge` so that it doesn't re-pull the playlists but uses those in the library
+- [x] Update `push merge` so that it doesn't re-pull the playlists but uses those in the library
 - [ ] Determine how to handle songs with multiple artists
         - Store all of them in the `artist` field as a semicolon-separated string?
         - Convert `artist` to an array?
@@ -155,6 +155,12 @@
       command will happily return 0 playlists and 0 tracks, which is
       misleading.  It should instead detect that the token has expired and
       prompt the user to re-authenticate.
+- [ ] Add dependabot and renovate
+- [ ] Enforce docstrings and explicit parameter and return contracts
+- [ ] Ask Claude/Copilot for code overall project review of tagged v1.0.0 RC1:
+        - Identify untested edge cases in the code
+        - Review all API failure handling
+        - Request a general code review (e.g. for bugs, unclear error messages, any place where mutable state could be overwritten or shared incorrectly, etc)
 
 ## 5. Manual Testing
 
@@ -183,14 +189,19 @@
 - [ ] Test all commands with libraries containing tracks that lack a playlist
       (e.g. tracks that were removed from all playlists) to ensure they are
       handled correctly and don't break any commands.
+- [ ] Make sure all long-running processes show a progress indicator
+- [ ] Add the option to quit early (like pressing ctrl-c prompts "are you sure 
+      you want to quit?" and if you say "n" it continues, if you say "y" it 
+      outputs the data it has gotten so far and leaves the remaining rows unmodified)
 
 ## 6. Release and Distribution
 
+- [ ] Add a release workflow
 - [ ] Tag as v1.0.0 and create a GitHub Release with notes, so early users have
       a stable point to install against instead of tracking `main`.
 - [ ] Create a `CHANGELOG.md` file and document all changes since the last release, 
       following [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format.
-- [ ] Compile a .exe for Windows users (e.g. via `pyinstaller` or `py2exe`) so
+- [ ] Compile a .exe for Windows users (using `pyinstaller`) so
       they can run the CLI without installing Python or any dependencies.
 - [ ] Compile a macOS .app bundle for users who don't want to install Python or
        dependencies.
@@ -198,3 +209,5 @@
       dependencies.
 - [ ] Publish the compiled binaries to GitHub Releases, so users can download
       them without needing to install Python or dependencies.
+- [ ] Add a `pyproject.toml` entry point
+- [ ] Consider publishing to PyPI
