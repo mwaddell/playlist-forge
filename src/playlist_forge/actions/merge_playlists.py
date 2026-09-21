@@ -29,17 +29,17 @@ def merge(
         Created playlist ID, or None in dry-run mode.
     """
     merged_from = ', '.join(playlist_names) if playlist_names else "all playlists"
+    seen_isrc: set[str] = set()
     seen_ids: set[str] = set()
-    seen_isrcs: set[str] = set()
     track_ids: list[str] = []
     for t in tracks:
         if t.spotify_id in seen_ids:
             continue
-        if dedupe_by_isrc and t.isrc and t.isrc in seen_isrcs:
+        if dedupe_by_isrc and t.isrc and t.isrc in seen_isrc:
             continue
         seen_ids.add(t.spotify_id)
         if t.isrc:
-            seen_isrcs.add(t.isrc)
+            seen_isrc.add(t.isrc)
         track_ids.append(t.spotify_id)
 
     return spotify_client.create_playlist(
