@@ -12,6 +12,7 @@ def merge(
     tracks: list,
     into_name: str,
     playlist_names: list[str] | None = None,
+    dedupe_by_isrc: bool = True,
     dry_run: bool = False,
 ) -> str | None:
     """Create a new playlist containing all of the specified tracks.
@@ -20,6 +21,8 @@ def merge(
         spotify: Authenticated Spotify API client.
         tracks: Tracks to include in the new playlist.
         into_name: Name for the new merged playlist.
+        playlist_names: Optional list of names of the playlists being merged.
+        dedupe_by_isrc: Whether to skip tracks with duplicate ISRCs.
         dry_run: Whether to skip API writes and only print actions.
 
     Returns:
@@ -30,7 +33,7 @@ def merge(
     seen_isrcs: set[str] = set()
     track_ids: list[str] = []
     for track in tracks:
-        if track.spotify_id in seen_ids or (track.isrc and track.isrc in seen_isrcs):
+        if track.spotify_id in seen_ids or (dedupe_by_isrc and track.isrc and track.isrc in seen_isrcs):
             continue
         seen_ids.add(track.spotify_id)
         if track.isrc:
