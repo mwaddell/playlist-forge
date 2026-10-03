@@ -108,7 +108,7 @@
       fields, the merged library should prefer non-null values from the first
       input file, then the second, and so on.
     - Note: specifying only a single `--input` file should work identically to `library convert`
-- [ ] Add a `--input-metadata` argument to the `library merge` command 
+- [x] Add a `--input-metadata` argument to the `library merge` command 
       (which can be specified more than once) to specify one or more input files
       that should be treated as "metadata-only" libraries (i.e. they contain
       only enriched metadata information) that should only be used to enrich

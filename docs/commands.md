@@ -63,11 +63,13 @@ Options:
 ### `playlist-forge library merge`
 
 Merge one or more dataset files into one output dataset. Repeat `--input` for
-multiple sources.
+multiple sources. Repeat `--input-metadata` to supply metadata-only datasets
+that enrich matching tracks without adding tracks or playlist memberships.
 
 Options:
 
 - `--input`, `-i`: input dataset path (repeatable)
+- `--input-metadata`: metadata-only dataset path (repeatable; ignores playlist memberships)
 - `--output`, `-o`: output dataset path
 - `--format`, `-f`: output format override
 

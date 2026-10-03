@@ -271,6 +271,10 @@ def library_merge(
     input: Annotated[list[Path], typer.Option(..., "--input", "-i")],
     output: Path = typer.Option(..., "--output", "-o"),
     fmt: str | None = typer.Option(None, "--format", "-f"),
+    input_metadata: Annotated[list[Path] | None, typer.Option(
+        "--input-metadata",
+        help="Metadata-only dataset path (repeatable); enriches matching tracks without adding tracks or playlists.",
+    )] = None,
 ) -> None:
     """Merge one or more dataset files into a single dataset file.
 
@@ -278,11 +282,12 @@ def library_merge(
         input: Input dataset paths (repeat ``--input`` for multiple files).
         output: Output dataset path.
         fmt: Optional output format override.
+        input_metadata: Optional metadata-only paths used to enrich matching tracks.
 
     Returns:
         None.
     """
-    tracks = merge_libraries(input)
+    tracks = merge_libraries(input, input_metadata)
     io_formats.write_tracks(tracks, output, fmt)
     typer.echo(f"Merged {len(input)} file(s) into {len(tracks)} tracks -> {output}")
 
