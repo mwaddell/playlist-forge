@@ -56,6 +56,12 @@ poetry run playlist-forge library convert --input library_enriched.json --output
 # 4b. Merge multiple library files
 poetry run playlist-forge library merge --input library_a.json --input library_b.json --output library_merged.json
 
+# 4c. Check, subset and summarize a library
+poetry run playlist-forge library check --input library.json
+poetry run playlist-forge library extract --input library.json --output subset.json --playlist "Rock"
+poetry run playlist-forge library remove --input library.json --output rest.json --playlist "Rock"
+poetry run playlist-forge library stats --input library.json [--playlist "Rock"]
+
 # 5. Cluster everything
 poetry run playlist-forge analyze cluster --input library_enriched.json --output clustered.json
 
