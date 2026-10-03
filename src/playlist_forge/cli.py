@@ -216,6 +216,22 @@ def enrich(
         Literal["reccobeats", "getgenre"],
         typer.Option("--api", help="reccobeats|getgenre"),
     ] = "reccobeats",
+    level: Annotated[
+        Literal["top", "best", "clean", "all"],
+        typer.Option(
+            "--level",
+            help="GetGenre only. Genre level: top (top genres), best (first non-empty of top, "
+            "genres, unvalidated), clean (top + genres), all (top + genres + unvalidated).",
+        ),
+    ] = "best",
+    recheck: Annotated[bool, typer.Option(
+        "--recheck",
+        help="Re-query lookups cached as not found (and GetGenre results with exhausted = false).",
+    )] = False,
+    force: Annotated[bool, typer.Option(
+        "--force",
+        help="Re-query every lookup even if cached, and update the cache.",
+    )] = False,
 ) -> None:
     """Add enrichment data from the selected API to a pulled dataset file.
 
@@ -223,15 +239,25 @@ def enrich(
         input: Input pulled dataset path.
         output: Output enriched dataset path.
         fmt: Optional output format override.
+        playlist: Optional playlist name/ID substring filters.
         api: Enrichment API to use.
+        level: GetGenre genre level (top, best, clean, all).
+        recheck: Re-query cached "not found" (and non-exhausted GetGenre) lookups.
+        force: Re-query all lookups and refresh the cache.
 
     Returns:
         None.
     """
     settings = load_settings()
     tracks = io_formats.read_tracks(input)
-    client = ReccoBeatsClient(settings) if api == "reccobeats" else GetGenreClient(settings)
-    enriched = client.enrich(tracks, playlist_filter=playlist)
+    if api == "reccobeats":
+        enriched = ReccoBeatsClient(settings).enrich(
+            tracks, playlist_filter=playlist, recheck=recheck, force=force
+        )
+    else:
+        enriched = GetGenreClient(settings).enrich(
+            tracks, playlist_filter=playlist, level=level, recheck=recheck, force=force
+        )
     io_formats.write_tracks(enriched, output, fmt)
 
     matched = (

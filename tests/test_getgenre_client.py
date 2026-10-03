@@ -190,3 +190,72 @@ def test_get_raises_after_repeated_rate_limits(monkeypatch):
 
     with pytest.raises(RateLimitExceededError):
         client._get({"artist_name": "Artist", "timeout": 10})
+
+
+LEVEL_PAYLOAD = {
+    "top_genres": ["rock"],
+    "genres": ["indie"],
+    "unvalidated_genres": ["lofi"],
+    "album_artists": [{"top_genres": ["pop"], "genres": ["synth"], "unvalidated_genres": ["x"]}],
+}
+
+
+@pytest.mark.parametrize(
+    ("level", "genres", "source"),
+    [
+        ("top", ["rock"], "getgenre album top"),
+        ("best", ["rock"], "getgenre album top"),
+        ("clean", ["rock", "indie"], "getgenre album clean"),
+        ("all", ["rock", "indie", "lofi"], "getgenre album all"),
+    ],
+)
+def test_extract_genres_levels(level, genres, source):
+    result_source, _, result = GetGenreClient._extract_genres(LEVEL_PAYLOAD, level)
+    assert (result_source, result) == (source, genres)
+
+
+def test_extract_genres_best_falls_back_by_tier():
+    assert GetGenreClient._extract_genres({"genres": ["a"], "unvalidated_genres": ["b"]}, "best")[::2] == (
+        "getgenre album validated",
+        ["a"],
+    )
+    assert GetGenreClient._extract_genres({"unvalidated_genres": ["b"]}, "best")[::2] == (
+        "getgenre album unvalidated",
+        ["b"],
+    )
+    artist_only = {"album_artists": [{"genres": ["g"]}]}
+    assert GetGenreClient._extract_genres(artist_only, "best")[::2] == ("getgenre artist validated", ["g"])
+    assert GetGenreClient._extract_genres({}, "top")[0] == "unmatched"
+
+
+def _cache_fakes(monkeypatch, cached):
+    writes: list[dict] = []
+    monkeypatch.setattr(cache, "get", lambda typ, key: cached)
+    monkeypatch.setattr(cache, "set", lambda typ, key, value: writes.append(value))
+    return writes
+
+
+@pytest.mark.parametrize(
+    ("cached", "recheck", "force", "calls"),
+    [
+        ({}, False, False, 0),
+        ({}, True, False, 1),
+        ({"exhausted": False, "genres": ["a"]}, False, False, 0),
+        ({"exhausted": False, "genres": ["a"]}, True, False, 1),
+        ({"exhausted": True, "genres": ["a"]}, True, False, 0),
+        ({"exhausted": True, "genres": ["a"]}, False, True, 1),
+    ],
+)
+def test_fetch_cache_recheck_and_force(monkeypatch, cached, recheck, force, calls):
+    client = GetGenreClient(DummySettings())
+    client.recheck, client.force = recheck, force
+    writes = _cache_fakes(monkeypatch, cached)
+    fresh = {"genres": ["new"]}
+    seen: list[dict] = []
+    monkeypatch.setattr(client, "_get", lambda params: seen.append(params) or fresh)
+
+    result = client.fetch("Artist", "Album")
+
+    assert len(seen) == calls
+    assert writes == ([fresh] if calls else [])
+    assert result == (fresh if calls else (cached or None))

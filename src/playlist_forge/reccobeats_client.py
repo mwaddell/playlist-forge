@@ -65,6 +65,8 @@ class ReccoBeatsClient:
         self.delay = settings.config["reccobeats"]["request_delay_seconds"]
         self.max_retries = 3
         self.base_backoff_seconds = 1.0
+        self.recheck = False
+        self.force = False
         self.api_key = settings.reccobeats_api_key  # None is fine; free tier needs no key today
         self.session = requests.Session()
         if self.api_key:
@@ -157,26 +159,36 @@ class ReccoBeatsClient:
             Audio-feature payload when matched, otherwise None.
         """
         cache_key = f"spotify:{spotify_id}"
-        cached = cache.get(cache.CacheType.RECCOBEATS, cache_key)
-        if cached is not None:
+        cached = None if self.force else cache.get(cache.CacheType.RECCOBEATS, cache_key)
+        if cached is not None and not (self.recheck and not cached):
             return cached or None  # cache.get returns {} for a cached "no match"
 
         data = self._get("/v1/audio-features", params={"ids": spotify_id})
         cache.set(cache.CacheType.RECCOBEATS, cache_key, data if data is not None else {})
         return data
 
-    def enrich(self, tracks: list[Track], playlist_filter: list[str] | None = None) -> list[Track]:
+    def enrich(
+        self,
+        tracks: list[Track],
+        playlist_filter: list[str] | None = None,
+        recheck: bool = False,
+        force: bool = False,
+    ) -> list[Track]:
         """Populate audio-feature fields on tracks using ReccoBeats matches.
 
         Args:
             tracks: Tracks to enrich in place.
             playlist_filter: Optional list of playlist names/ids to restrict enrichment to.
+            recheck: Re-query tracks cached as "not found".
+            force: Re-query every track and refresh the cache.
 
         Returns:
             The same list with feature fields and provenance updated. Tracks
             without a match are marked with ``feature_source="unmatched"`` so
             downstream analysis can treat missing values explicitly.
         """
+        self.recheck = recheck
+        self.force = force
         subs = set(pfilter.casefold() for pfilter in playlist_filter) if playlist_filter else None
 
         for t in _maybe_progress_track(tracks, description="Enriching tracks..."):

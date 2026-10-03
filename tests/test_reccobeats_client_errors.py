@@ -204,3 +204,29 @@ def test_fallback_progress_track_returns_iterator():
     progress_iter = _fallback_progress_track(items, description="Enriching tracks...", total=3)
 
     assert list(progress_iter) == items
+
+
+@pytest.mark.parametrize(
+    ("cached", "recheck", "force", "calls"),
+    [
+        ({}, False, False, 0),
+        ({}, True, False, 1),
+        ({"content": [{}]}, True, False, 0),
+        ({"content": [{}]}, False, True, 1),
+    ],
+)
+def test_fetch_cache_recheck_and_force(monkeypatch, cached, recheck, force, calls):
+    client = ReccoBeatsClient(DummySettings())
+    client.recheck, client.force = recheck, force
+    writes: list[dict] = []
+    seen: list[dict] = []
+    fresh = {"content": [{"energy": 0.5}]}
+    monkeypatch.setattr(cache, "get", lambda typ, key: cached)
+    monkeypatch.setattr(cache, "set", lambda typ, key, value: writes.append(value))
+    monkeypatch.setattr(client, "_get", lambda path, params: seen.append(params) or fresh)
+
+    result = client.fetch_by_spotify_id("id1")
+
+    assert len(seen) == calls
+    assert writes == ([fresh] if calls else [])
+    assert result == (fresh if calls else (cached or None))

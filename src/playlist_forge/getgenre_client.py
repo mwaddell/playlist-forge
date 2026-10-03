@@ -58,6 +58,8 @@ class GetGenreClient:
         self.session.headers["accept"] = "application/json"
         self._authenticated = False
         self._last_request_started_at: float | None = None
+        self.recheck = False
+        self.force = False
 
     @staticmethod
     def _retry_after_seconds(resp: requests.Response) -> float | None:
@@ -231,9 +233,11 @@ class GetGenreClient:
         return ":".join(normalized)
 
     def _search_with_cache(self, cache_key: str, params: dict[str, Any]) -> dict | None:
-        cached = cache.get(cache.CacheType.GETGENRE, cache_key)
+        cached = None if self.force else cache.get(cache.CacheType.GETGENRE, cache_key)
         if cached is not None:
-            return cached or None # cache.get returns {} for a cached "no match"
+            stale = self.recheck and (not cached or cached.get("exhausted") is False)
+            if not stale:
+                return cached or None  # cache.get returns {} for a cached "no match"
 
         data = self._get(params)
         cache.set(cache.CacheType.GETGENRE, cache_key, data if data is not None else {})
@@ -326,8 +330,23 @@ class GetGenreClient:
         tracks: list[Track],
         playlist_filter: list[str] | None = None,
         level: str = "best",
+        recheck: bool = False,
+        force: bool = False,
     ) -> list[Track]:
-        """Populate track genres using GetGenre matches."""
+        """Populate track genres using GetGenre matches.
+
+        Args:
+            tracks: Tracks to enrich in place.
+            playlist_filter: Optional list of playlist names/ids to restrict enrichment to.
+            level: Genre level to return: ``top``, ``best``, ``clean`` or ``all``.
+            recheck: Re-query cached "not found" results and results marked ``exhausted = false``.
+            force: Re-query every lookup and refresh the cache.
+
+        Returns:
+            The same list with genre fields and provenance updated.
+        """
+        self.recheck = recheck
+        self.force = force
         subs = set(pfilter.casefold() for pfilter in playlist_filter) if playlist_filter else None
 
         for track in _maybe_progress_track(tracks, description="Enriching tracks..."):
