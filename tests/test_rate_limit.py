@@ -166,9 +166,7 @@ def test_retry_delay_seconds_supports_http_date_retry_after(monkeypatch):
 
     monkeypatch.setattr(rate_limit, "datetime", FrozenDateTime)
 
-    assert (
-        rate_limit.retry_delay_seconds("Thu, 01 Jan 2026 12:00:05 GMT", attempt=0) == 5.0
-    )
+    assert rate_limit.retry_delay_seconds("Thu, 01 Jan 2026 12:00:05 GMT", attempt=0) == 5.0
 
 
 def test_retry_delay_seconds_falls_back_for_invalid_retry_after():

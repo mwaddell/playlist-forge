@@ -92,9 +92,7 @@ def test_filtered_tracks_do_not_produce_outliers_for_unselected_playlists():
         playlist_names=["Selected"],
     )
 
-    results = top_outliers_by_playlist(
-        _filter_tracks_by_playlist([shared, selected], ["selected"])
-    )
+    results = top_outliers_by_playlist(_filter_tracks_by_playlist([shared, selected], ["selected"]))
 
     assert set(results) == {"selected"}
 
