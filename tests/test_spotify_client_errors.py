@@ -105,9 +105,7 @@ def test_pull_playlist_tracks_keeps_403_as_external_error_without_skip_flag(
         spotify_client.pull_playlist_tracks(FakeSpotify(), playlist, force=False)
 
 
-def test_pull_library_warns_and_skips_for_playlist_permission_error(
-    capsys, monkeypatch, patched_spotify_exception
-):
+def test_pull_library_warns_and_skips_for_playlist_permission_error(capsys, monkeypatch, patched_spotify_exception):
     me_calls = {"count": 0}
 
     class FakeSpotify:
@@ -178,9 +176,7 @@ def test_pull_library_does_not_lookup_current_user_without_permission_error(monk
     assert me_calls["count"] == 0
 
 
-def test_pull_library_raises_external_error_when_current_user_id_is_unavailable(
-    monkeypatch, patched_spotify_exception
-):
+def test_pull_library_raises_external_error_when_current_user_id_is_unavailable(monkeypatch, patched_spotify_exception):
     class FakeSpotify:
         def current_user(self):
             return {}
@@ -188,6 +184,7 @@ def test_pull_library_raises_external_error_when_current_user_id_is_unavailable(
     playlist = Playlist(spotify_id="p1", name="Restricted", owner_id="other-user")
 
     monkeypatch.setattr(spotify_client, "list_playlists", lambda _spotify: [playlist])
+
     def fake_pull_playlist_tracks(_spotify, _playlist, force=False):
         raise ExternalServiceError(
             "Spotify request failed while pulling tracks (status=403)."

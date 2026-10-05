@@ -59,7 +59,7 @@
         - Add a `--force` argument to the `pull` command to force pulling all playlists
           regardless of snapshot_id, in case the user wants to refresh their
           library even if nothing has changed.
-- [ ] Add a `--level` argument to the `enrich` command (currently only used for GetGenre)
+- [x] Add a `--level` argument to the `enrich` command (currently only used for GetGenre)
       which takes `top`, `best` (default), `clean`, or `all` to specify which level
       of genres to return for each track/artist (`top` only gets those at
       considered "top genres", `clean` gets both "top genres" and "genres",
@@ -83,11 +83,11 @@
             - `getgenre album top`
             - `getgenre artist clean`
             - `getgenre artist unvalidated`
-- [ ] Add a `--recheck` argument to the `enrich` command to force rechecking
+- [x] Add a `--recheck` argument to the `enrich` command to force rechecking
       any tracks that were cached as "not found" in the ReccoBeats/GetGenre API, in case
       they have been added to the API since the last time they were checked.
         - Should this also recheck getgenre which are marked as `exhausted = false`?
-- [ ] Add a `--force` argument to the `enrich` command to force rechecking 
+- [x] Add a `--force` argument to the `enrich` command to force rechecking 
       every track with the ReccoBeats/GetGenre API even if it already has a cached
       result and updating the cache with the new result.
 - [x] Update `push merge` so that it doesn't re-pull the playlists but uses those in the library
@@ -163,6 +163,8 @@
         - Identify untested edge cases in the code
         - Review all API failure handling
         - Request a general code review (e.g. for bugs, unclear error messages, any place where mutable state could be overwritten or shared incorrectly, etc)
+        - Identify duplicate code that could be refactored into a common
+          function, duplicate definitions of enums, etc.
 
 ## 5. Manual Testing
 

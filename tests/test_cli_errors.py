@@ -268,22 +268,28 @@ def test_enrich_uses_reccobeats_by_default(monkeypatch, capsys, tmp_path):
         def __init__(self, _settings):
             captured["client"] = "reccobeats"
 
-        def enrich(self, input_tracks, playlist_filter=None):
+        def enrich(self, input_tracks, playlist_filter=None, recheck=False, force=False):
             captured["playlist_filter"] = playlist_filter
+            captured["flags"] = (recheck, force)
             input_tracks[0].feature_source = "reccobeats"
             return input_tracks
 
     monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
     monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: tracks)
-    monkeypatch.setattr(cli.io_formats, "write_tracks", lambda written_tracks, path, fmt: captured.update(
-        {"written_tracks": written_tracks, "write_path": path, "fmt": fmt}
-    ))
+    monkeypatch.setattr(
+        cli.io_formats,
+        "write_tracks",
+        lambda written_tracks, path, fmt: captured.update(
+            {"written_tracks": written_tracks, "write_path": path, "fmt": fmt}
+        ),
+    )
     monkeypatch.setattr(cli, "ReccoBeatsClient", FakeClient)
 
     output_path = Path(tmp_path / "out.json")
     cli.enrich(input=Path(tmp_path / "in.json"), output=output_path, fmt=None)
 
     assert captured["client"] == "reccobeats"
+    assert captured["flags"] == (False, False)
     assert captured["playlist_filter"] is None
     assert captured["written_tracks"] == tracks
     assert captured["write_path"] == output_path
@@ -298,23 +304,37 @@ def test_enrich_uses_getgenre_when_requested(monkeypatch, capsys, tmp_path):
         def __init__(self, _settings):
             captured["client"] = "getgenre"
 
-        def enrich(self, input_tracks, playlist_filter=None):
+        def enrich(self, input_tracks, playlist_filter=None, level="best", recheck=False, force=False):
             captured["playlist_filter"] = playlist_filter
+            captured["flags"] = (level, recheck, force)
             input_tracks[0].genre_source = "getgenre"
             input_tracks[0].genres = ["indie"]
             return input_tracks
 
     monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
     monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: tracks)
-    monkeypatch.setattr(cli.io_formats, "write_tracks", lambda written_tracks, path, fmt: captured.update(
-        {"written_tracks": written_tracks, "write_path": path, "fmt": fmt}
-    ))
+    monkeypatch.setattr(
+        cli.io_formats,
+        "write_tracks",
+        lambda written_tracks, path, fmt: captured.update(
+            {"written_tracks": written_tracks, "write_path": path, "fmt": fmt}
+        ),
+    )
     monkeypatch.setattr(cli, "GetGenreClient", FakeClient)
 
     output_path = Path(tmp_path / "out.json")
-    cli.enrich(input=Path(tmp_path / "in.json"), output=output_path, fmt=None, api="getgenre")
+    cli.enrich(
+        input=Path(tmp_path / "in.json"),
+        output=output_path,
+        fmt=None,
+        api="getgenre",
+        level="clean",
+        recheck=True,
+        force=True,
+    )
 
     assert captured["client"] == "getgenre"
+    assert captured["flags"] == ("clean", True, True)
     assert captured["playlist_filter"] is None
     assert captured["written_tracks"][0].genres == ["indie"]
     assert "Enriched 1/1 tracks with getgenre" in capsys.readouterr().out

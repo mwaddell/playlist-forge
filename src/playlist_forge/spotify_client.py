@@ -81,9 +81,7 @@ def _spotify_request(
         except spotipy.exceptions.SpotifyException as exc:
             if _spotify_status_code(exc) != 429 or attempt >= max_retries:
                 raise
-            delay = _retry_after_seconds(_spotify_headers(exc)) or (
-                _SPOTIFY_BASE_BACKOFF_SECONDS * (2**attempt)
-            )
+            delay = _retry_after_seconds(_spotify_headers(exc)) or (_SPOTIFY_BASE_BACKOFF_SECONDS * (2**attempt))
             print(f"[spotify] rate limited during {description}; retrying in {delay:.2f}s")
             time.sleep(delay)
 
@@ -102,30 +100,23 @@ def _spotify_call(
             headers = _spotify_headers(exc)
             if status == 401:
                 raise AuthFailureError(
-                    "Spotify authentication failed (401). "
-                    "Run `playlist-forge auth login` and retry."
+                    "Spotify authentication failed (401). Run `playlist-forge auth login` and retry."
                 ) from exc
             if status == 429:
                 if attempt >= _SPOTIFY_MAX_RETRIES:
                     raise RateLimitExceededError(
                         "Spotify rate limit persisted after retries. Please wait and try again."
                     ) from exc
-                delay = _retry_after_seconds(headers) or (
-                    _SPOTIFY_BASE_BACKOFF_SECONDS * (2**attempt)
-                )
+                delay = _retry_after_seconds(headers) or (_SPOTIFY_BASE_BACKOFF_SECONDS * (2**attempt))
                 time.sleep(delay)
                 continue
             if status and status >= 500 and attempt < _SPOTIFY_MAX_RETRIES:
                 time.sleep(_SPOTIFY_BASE_BACKOFF_SECONDS * (2**attempt))
                 continue
-            raise ExternalServiceError(
-                f"Spotify request failed while {operation} (status={status})."
-            ) from exc
+            raise ExternalServiceError(f"Spotify request failed while {operation} (status={status}).") from exc
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as exc:
             if attempt >= _SPOTIFY_MAX_RETRIES:
-                raise NetworkFailureError(
-                    "Spotify request timed out or lost connection after retries."
-                ) from exc
+                raise NetworkFailureError("Spotify request timed out or lost connection after retries.") from exc
             time.sleep(_SPOTIFY_BASE_BACKOFF_SECONDS * (2**attempt))
         except requests.exceptions.RequestException as exc:
             raise NetworkFailureError(f"Spotify request failed while {operation}: {exc}") from exc
@@ -195,8 +186,7 @@ def pull_playlist_tracks(
             playlist.spotify_id,
             additional_types=("track",),
             fields=(
-                "items(added_at,item(id,name,album(name,release_date),artists(id,name),"
-                "duration_ms,external_ids)),next"
+                "items(added_at,item(id,name,album(name,release_date),artists(id,name),duration_ms,external_ids)),next"
             ),
         ),
     )
@@ -269,10 +259,7 @@ def pull_library(
         playlists = [
             playlist
             for playlist in playlists
-            if any(
-                sub in playlist.name.casefold() or sub in playlist.spotify_id.casefold()
-                for sub in subs
-            )
+            if any(sub in playlist.name.casefold() or sub in playlist.spotify_id.casefold() for sub in subs)
         ]
 
     by_id: dict[str, Track] = {}
@@ -316,9 +303,7 @@ def pull_library(
     return list(by_id.values())
 
 
-def search_track(
-    spotify: spotipy.Spotify, title: str, artist: str = "", album: str = ""
-) -> Track | None:
+def search_track(spotify: spotipy.Spotify, title: str, artist: str = "", album: str = "") -> Track | None:
     """Best-effort match of plain text fields to a Spotify track.
 
     Args:
@@ -337,9 +322,7 @@ def search_track(
         query_parts.append(f"album:{album}")
     query = " ".join(query_parts)
 
-    results = _spotify_call(
-        "searching for track", lambda: spotify.search(q=query, type="track", limit=5)
-    )
+    results = _spotify_call("searching for track", lambda: spotify.search(q=query, type="track", limit=5))
     items = results.get("tracks", {}).get("items", [])
     if not items:
         # fall back to a looser, unscoped query
@@ -391,9 +374,7 @@ def create_playlist(
     me = _spotify_call("reading current Spotify user", spotify.current_user)
     playlist = _spotify_call(
         f"creating playlist '{name}'",
-        lambda: spotify.user_playlist_create(
-            me["id"], name, public=public, description=description
-        ),
+        lambda: spotify.user_playlist_create(me["id"], name, public=public, description=description),
     )
     for index in range(0, len(track_ids), 100):  # API caps add_items at 100/request
         _spotify_call(
@@ -405,9 +386,7 @@ def create_playlist(
     return playlist["id"]
 
 
-def add_tracks(
-    spotify: spotipy.Spotify, playlist_id: str, track_ids: list[str], dry_run: bool = False
-) -> None:
+def add_tracks(spotify: spotipy.Spotify, playlist_id: str, track_ids: list[str], dry_run: bool = False) -> None:
     """Add tracks to an existing playlist in API-sized batches.
 
     Args:

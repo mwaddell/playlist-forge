@@ -49,6 +49,8 @@ poetry run playlist-forge pull --output library.json
 #    (optional — clustering also works on year alone if you skip this)
 poetry run playlist-forge enrich --input library.json --output library_features.json
 poetry run playlist-forge enrich --input library_features.json --output library_enriched.json --api getgenre
+# --level top|best|clean|all selects GetGenre genre tiers (default: best);
+# --recheck retries cached "not found" lookups; --force re-queries everything and refreshes the cache.
 
 # 4. Convert between dataset formats
 poetry run playlist-forge library convert --input library_enriched.json --output library_enriched.tsv
