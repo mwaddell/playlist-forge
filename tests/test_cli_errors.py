@@ -456,6 +456,73 @@ def test_library_merge_single_input_matches_convert_behavior(tmp_path):
     assert [track.title for track in merged] == ["First", "Second"]
 
 
+def test_library_merge_uses_metadata_inputs_to_enrich_without_adding_tracks_or_playlists(tmp_path):
+    input_path = Path(tmp_path / "library.json")
+    metadata_path = Path(tmp_path / "metadata.json")
+    second_metadata_path = Path(tmp_path / "more_metadata.json")
+    output_path = Path(tmp_path / "merged.json")
+
+    write_tracks(
+        [
+            Track(
+                spotify_id="shared",
+                title="Song",
+                artist="Artist",
+                album="Album",
+                playlist_ids=["library-playlist"],
+                playlist_names=["Library Playlist"],
+                genres=["rock"],
+            ),
+        ],
+        input_path,
+    )
+    write_tracks(
+        [
+            Track(
+                spotify_id="shared",
+                title="Metadata title",
+                artist="Metadata artist",
+                album="Metadata album",
+                playlist_ids=["metadata-playlist"],
+                playlist_names=["Metadata Playlist"],
+                genres=["indie"],
+                year=2002,
+            ),
+            Track(spotify_id="metadata-only", title="Not added", artist="A", album="B", year=2003),
+        ],
+        metadata_path,
+    )
+    write_tracks(
+        [
+            Track(
+                spotify_id="shared",
+                title="Later title",
+                artist="Later artist",
+                album="Later album",
+                genres=["indie", "electronic"],
+                year=2004,
+            ),
+        ],
+        second_metadata_path,
+    )
+
+    cli.library_merge(
+        input=[input_path],
+        input_metadata=[metadata_path, second_metadata_path],
+        output=output_path,
+        fmt=None,
+    )
+
+    merged = read_tracks(output_path)
+    assert len(merged) == 1
+    assert merged[0].spotify_id == "shared"
+    assert merged[0].title == "Song"
+    assert merged[0].year == 2002
+    assert merged[0].genres == ["rock", "indie", "electronic"]
+    assert merged[0].playlist_ids == ["library-playlist"]
+    assert merged[0].playlist_names == ["Library Playlist"]
+
+
 def test_library_merge_repeated_input_keeps_first_file_duplicates(tmp_path):
     input_path = Path(tmp_path / "library.json")
     output_path = Path(tmp_path / "merged.json")
