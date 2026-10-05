@@ -41,12 +41,13 @@ def _playlist_membership_pairs(track: Track) -> list[tuple[str, str]]:
     return pairs
 
 
-def _merge_track_metadata(existing: Track, incoming: Track) -> None:
-    playlist_name_by_id = dict(_playlist_membership_pairs(existing))
-    for pid, pname in _playlist_membership_pairs(incoming):
-        playlist_name_by_id.setdefault(pid, pname)
-    existing.playlist_ids = list(playlist_name_by_id.keys())
-    existing.playlist_names = list(playlist_name_by_id.values())
+def _merge_track_metadata(existing: Track, incoming: Track, include_playlists: bool = True) -> None:
+    if include_playlists:
+        playlist_name_by_id = dict(_playlist_membership_pairs(existing))
+        for pid, pname in _playlist_membership_pairs(incoming):
+            playlist_name_by_id.setdefault(pid, pname)
+        existing.playlist_ids = list(playlist_name_by_id.keys())
+        existing.playlist_names = list(playlist_name_by_id.values())
     existing.genres = _merge_unique_strings(existing.genres, incoming.genres)
 
     for field in dataclass_fields(existing):
@@ -56,20 +57,18 @@ def _merge_track_metadata(existing: Track, incoming: Track) -> None:
             setattr(existing, field.name, getattr(incoming, field.name))
 
 
-def merge_libraries(inputs: list[Path]) -> list[Track]:
+def merge_libraries(inputs: list[Path], input_metadata: list[Path] | None = None) -> list[Track]:
     """Merge one or more library track files into a single track list.
 
     Args:
         inputs: Input track dataset paths in precedence order.
+        input_metadata: Optional metadata-only dataset paths used to enrich matched tracks.
 
     Returns:
         Merged track list.
     """
     if not inputs:
         raise ValueError("At least one input path is required to merge libraries.")
-
-    if len(inputs) == 1:
-        return io_formats.read_tracks(inputs[0])
 
     merged_tracks = [copy.deepcopy(track) for track in io_formats.read_tracks(inputs[0])]
     merged_by_id: dict[str, list[Track]] = {}
@@ -88,4 +87,14 @@ def merge_libraries(inputs: list[Path]) -> list[Track]:
             copied = copy.deepcopy(track)
             merged_tracks.append(copied)
             existing_tracks.append(copied)
+
+    for path in input_metadata or []:
+        seen_counts = {}
+        for track in io_formats.read_tracks(path):
+            incoming_index = seen_counts.get(track.spotify_id, 0)
+            seen_counts[track.spotify_id] = incoming_index + 1
+            existing_tracks = merged_by_id.get(track.spotify_id, [])
+            if incoming_index < len(existing_tracks):
+                _merge_track_metadata(existing_tracks[incoming_index], track, include_playlists=False)
+
     return merged_tracks
