@@ -220,8 +220,8 @@ def enrich(
         Literal["top", "best", "clean", "all"],
         typer.Option(
             "--level",
-            help="GetGenre only. Genre level: top (top genres), best (first non-empty of top, "
-            "genres, unvalidated), clean (top + genres), all (top + genres + unvalidated).",
+            help="GetGenre only. Genre level: top ('top genres' only), best (first non-empty of 'top genres', "
+            "'genres', or 'unvalidated'), clean ('top genres' + 'genres'), all ('top genres' + 'genres' + 'unvalidated').",
         ),
     ] = "best",
     recheck: Annotated[bool, typer.Option(
