@@ -11,9 +11,15 @@ import numpy as np
 from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler
 
 AUDIO_FEATURE_FIELDS = (
-    "tempo", "energy", "danceability", "valence",
-    "acousticness", "instrumentalness", "liveness",
-    "loudness", "speechiness"
+    "tempo",
+    "energy",
+    "danceability",
+    "valence",
+    "acousticness",
+    "instrumentalness",
+    "liveness",
+    "loudness",
+    "speechiness",
 )
 
 # ReccoBeats documents most audio fields as 0..1. Tempo/loudness use broader
@@ -78,9 +84,7 @@ def build_feature_matrix(
     audio_fields = []
     audio_feature_weights = audio_feature_weights or {}
     for field_name in AUDIO_FEATURE_FIELDS:
-        col = np.array(
-            [getattr(t, field_name) for t in tracks], dtype=float
-        )  # NaN where None
+        col = np.array([getattr(t, field_name) for t in tracks], dtype=float)  # NaN where None
         if np.isnan(col).all():
             continue  # nobody has this field enriched — skip rather than fabricate
         col_mean = np.nanmean(col)

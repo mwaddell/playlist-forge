@@ -200,9 +200,7 @@ class GetGenreClient:
                 return resp.json()
             except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as exc:
                 if attempt >= self.max_retries:
-                    raise NetworkFailureError(
-                        "GetGenre request timed out or lost connection after retries."
-                    ) from exc
+                    raise NetworkFailureError("GetGenre request timed out or lost connection after retries.") from exc
                 time.sleep(self.base_backoff_seconds * (2**attempt))
             except requests.HTTPError as exc:
                 response = exc.response or resp

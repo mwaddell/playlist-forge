@@ -63,9 +63,13 @@ def test_get_retries_with_lowercase_retry_after_header(monkeypatch):
         FakeResponse(200, {"top_genres": ["indie"], "genres": ["indie", "rock"]}),
     ]
 
-    monkeypatch.setattr(client.session, "post", lambda *args, **kwargs: auth_calls.append(kwargs) or FakeResponse(
-        200, {"access_token": "token", "token_type": "Bearer"}
-    ))
+    monkeypatch.setattr(
+        client.session,
+        "post",
+        lambda *args, **kwargs: (
+            auth_calls.append(kwargs) or FakeResponse(200, {"access_token": "token", "token_type": "Bearer"})
+        ),
+    )
     monkeypatch.setattr(client.session, "get", lambda *args, **kwargs: responses.pop(0))
     monkeypatch.setattr("playlist_forge.getgenre_client.time.sleep", lambda seconds: slept.append(seconds))
 
@@ -182,9 +186,11 @@ def test_fallback_progress_track_returns_iterator():
 def test_get_raises_after_repeated_rate_limits(monkeypatch):
     client = GetGenreClient(DummySettings())
 
-    monkeypatch.setattr(client.session, "post", lambda *args, **kwargs: FakeResponse(
-        200, {"access_token": "token", "token_type": "Bearer"}
-    ))
+    monkeypatch.setattr(
+        client.session,
+        "post",
+        lambda *args, **kwargs: FakeResponse(200, {"access_token": "token", "token_type": "Bearer"}),
+    )
     monkeypatch.setattr(client.session, "get", lambda *args, **kwargs: FakeResponse(429, headers={"Retry-After": "0"}))
     monkeypatch.setattr("playlist_forge.getgenre_client.time.sleep", lambda _seconds: None)
 

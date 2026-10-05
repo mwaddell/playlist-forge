@@ -17,6 +17,7 @@ class CacheType(Enum):
     RECCOBEATS = "reccobeats"
     GETGENRE = "getgenre"
 
+
 def _connect(typ: CacheType) -> sqlite3.Connection:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -38,10 +39,7 @@ def get(typ: CacheType, key: str) -> dict | None:
     """
     conn = _connect(typ)
     try:
-        row = conn.execute(
-            f"SELECT payload FROM {typ.value}_cache WHERE key = ?",
-            (key,)
-        ).fetchone()
+        row = conn.execute(f"SELECT payload FROM {typ.value}_cache WHERE key = ?", (key,)).fetchone()
         return json.loads(row[0]) if row else None
     finally:
         conn.close()

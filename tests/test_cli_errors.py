@@ -276,9 +276,13 @@ def test_enrich_uses_reccobeats_by_default(monkeypatch, capsys, tmp_path):
 
     monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
     monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: tracks)
-    monkeypatch.setattr(cli.io_formats, "write_tracks", lambda written_tracks, path, fmt: captured.update(
-        {"written_tracks": written_tracks, "write_path": path, "fmt": fmt}
-    ))
+    monkeypatch.setattr(
+        cli.io_formats,
+        "write_tracks",
+        lambda written_tracks, path, fmt: captured.update(
+            {"written_tracks": written_tracks, "write_path": path, "fmt": fmt}
+        ),
+    )
     monkeypatch.setattr(cli, "ReccoBeatsClient", FakeClient)
 
     output_path = Path(tmp_path / "out.json")
@@ -309,14 +313,25 @@ def test_enrich_uses_getgenre_when_requested(monkeypatch, capsys, tmp_path):
 
     monkeypatch.setattr(cli, "load_settings", lambda: DummySettings())
     monkeypatch.setattr(cli.io_formats, "read_tracks", lambda _path: tracks)
-    monkeypatch.setattr(cli.io_formats, "write_tracks", lambda written_tracks, path, fmt: captured.update(
-        {"written_tracks": written_tracks, "write_path": path, "fmt": fmt}
-    ))
+    monkeypatch.setattr(
+        cli.io_formats,
+        "write_tracks",
+        lambda written_tracks, path, fmt: captured.update(
+            {"written_tracks": written_tracks, "write_path": path, "fmt": fmt}
+        ),
+    )
     monkeypatch.setattr(cli, "GetGenreClient", FakeClient)
 
     output_path = Path(tmp_path / "out.json")
-    cli.enrich(input=Path(tmp_path / "in.json"), output=output_path, fmt=None, api="getgenre",
-                level="clean", recheck=True, force=True)
+    cli.enrich(
+        input=Path(tmp_path / "in.json"),
+        output=output_path,
+        fmt=None,
+        api="getgenre",
+        level="clean",
+        recheck=True,
+        force=True,
+    )
 
     assert captured["client"] == "getgenre"
     assert captured["flags"] == ("clean", True, True)

@@ -130,9 +130,7 @@ def initialize_config(*, force: bool = False) -> Path:
     """Create config.json, or replace it when ``force`` is true."""
     _ensure_config_path_is_regular_file()
     if CONFIG_PATH.exists() and not force:
-        raise ConfigurationError(
-            f"Config file already exists at {CONFIG_PATH}. Re-run with --force to replace it."
-        )
+        raise ConfigurationError(f"Config file already exists at {CONFIG_PATH}. Re-run with --force to replace it.")
     return write_config(default_config())
 
 
@@ -197,8 +195,7 @@ def load_settings() -> Settings:
 
     return Settings(
         spotify_client_id=spotify_config.get("client_id"),
-        spotify_redirect_uri=spotify_config.get("redirect_uri", DEFAULT_REDIRECT_URI)
-        or DEFAULT_REDIRECT_URI,
+        spotify_redirect_uri=spotify_config.get("redirect_uri", DEFAULT_REDIRECT_URI) or DEFAULT_REDIRECT_URI,
         reccobeats_api_key=reccobeats_config.get("api_key"),
         config=merged,
         getgenre_username=getgenre_config.get("username"),

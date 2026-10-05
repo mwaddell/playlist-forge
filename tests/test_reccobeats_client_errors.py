@@ -42,7 +42,7 @@ class FakeResponse:
 
 def test_get_retries_timeout_then_succeeds(monkeypatch):
     client = ReccoBeatsClient(DummySettings())
-    responses = [requests.exceptions.Timeout("timeout"), FakeResponse(200, {"content":[{"tempo": 128}]})]
+    responses = [requests.exceptions.Timeout("timeout"), FakeResponse(200, {"content": [{"tempo": 128}]})]
 
     def fake_get(*args, **kwargs):
         result = responses.pop(0)
@@ -75,7 +75,7 @@ def test_get_retries_with_lowercase_retry_after_header(monkeypatch):
     slept: list[float] = []
     responses = [
         FakeResponse(429, headers={"retry-after": "0.25"}),
-        FakeResponse(200, {"content":[{"tempo": 128}]}),
+        FakeResponse(200, {"content": [{"tempo": 128}]}),
     ]
 
     def fake_get(*args, **kwargs):
@@ -89,7 +89,7 @@ def test_get_retries_with_lowercase_retry_after_header(monkeypatch):
 
     payload = client._get("/v1/audio-features", {"ids": "abc"})
 
-    assert payload == {"content":[{"tempo": 128}]}
+    assert payload == {"content": [{"tempo": 128}]}
     assert slept == [0.25]
 
 
@@ -112,9 +112,7 @@ def test_retry_after_parses_http_date_header(monkeypatch):
 
 def test_sets_bearer_auth_header_when_api_key_present():
     client = ReccoBeatsClient(DummySettingsWithApiKey())
-    assert client.session.headers["Authorization"] == (
-        "Bearer " + DummySettingsWithApiKey.reccobeats_api_key
-    )
+    assert client.session.headers["Authorization"] == ("Bearer " + DummySettingsWithApiKey.reccobeats_api_key)
 
 
 def test_fetch_does_not_cache_transient_failure(monkeypatch):
@@ -147,8 +145,9 @@ def test_enrich_uses_progress_indicator(monkeypatch):
         "playlist_forge.reccobeats_client.progress_track",
         lambda items, description: descriptions.append(description) or iter(items),
     )
-    monkeypatch.setattr(client, "fetch_by_spotify_id", 
-        lambda spotify_id: {"content": [{"tempo": 123.0, "confidence": 0.9}]})
+    monkeypatch.setattr(
+        client, "fetch_by_spotify_id", lambda spotify_id: {"content": [{"tempo": 123.0, "confidence": 0.9}]}
+    )
 
     enriched = client.enrich(tracks)
 
