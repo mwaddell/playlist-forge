@@ -219,7 +219,8 @@ def enrich(
         typer.Option(
             "--level",
             help="GetGenre only. Genre level: top ('top genres' only), best (first non-empty of 'top genres', "
-            "'genres', or 'unvalidated'), clean ('top genres' + 'genres'), all ('top genres' + 'genres' + 'unvalidated').",
+            "'genres', or 'unvalidated'), clean ('top genres' + 'genres'), "
+            "all ('top genres' + 'genres' + 'unvalidated').",
         ),
     ] = "best",
     recheck: Annotated[
@@ -303,7 +304,8 @@ def library_merge(
         list[Path] | None,
         typer.Option(
             "--input-metadata",
-            help="Metadata-only dataset path (repeatable); enriches matching tracks without adding tracks or playlists.",
+            help="Metadata-only dataset path (repeatable); "
+            "enriches matching tracks without adding tracks or playlists.",
         ),
     ] = None,
 ) -> None:
