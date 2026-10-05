@@ -95,8 +95,45 @@
         - Store all of them in the `artist` field as a semicolon-separated string?
         - Convert `artist` to an array?
         - Use `artist` as the primary artist, but store additional ones in a separate field?
+        - No matter which one we choose, store both the artist name and artist
+          id for each artist, so that we can use the artist id to get the
+          correct artist from the Spotify API, since the artist name is not
+          guaranteed to be unique.
 - [ ] Add a `--debug` flag for any command which calls any external API
       (spotify, reccobeats, getgenre) to print the raw API response for debugging purposes.
+- [ ] Store album_id in the library (in addition to album name) and the album_type (Album, Single, Compilation, etc.) for each track
+- [ ] Store explicit flag in the library (for each track)
+- [ ] Add flags for pulling user's saved tracks and albums, in addition to playlists
+        - Pull all saved tracks (e.g. `--saved-tracks`) and store them in a special "Saved Tracks" playlist
+            - Allow specifying the playlist to override "Saved Tracks" as another commandline option
+        - Pull all saved albums (e.g. `--saved-albums`) and store them in a special "Saved Albums" playlist (this playlist will contain every track from every saved album, even if the user has already saved some of those tracks individually)
+            - Allow specifying the playlist to override "Saved Albums" as another commandline option
+        - Pull all of the user's top tracks (e.g. `--top-tracks`) and store them in a special "Top Tracks" playlist
+            - Allow specifying the playlist to override "Top Items" as another commandline option
+            - By default, this will be the top 50 items from the past 6 months (`medium_term`),
+              but the user can specify `--top-items-limit` to override the
+              number of items to pull (up to 100) and `--top-items-time-range`
+              to specify the time range (short_term, medium_term, long_term)
+- [ ] Add a new method which goes through all specified playlist(s).  For each
+        track in the playlist, it adds every other track within the same album
+        to the playlist to "fill out" the playlist.
+        - User's can specify whether ALL albums should be considered, or only
+          "compilations" or only regular "albums".
+        - So, for example, if a user has a playlist of their favorite songs, but they
+          only have one song from each album, this command would add all of the
+          other songs from those albums to the playlist.
+- [ ] Add a new method which allows you to specify one or more playlists and it
+        will cluster the tracks in those playlists INTO every other playlist
+        (so the "cluster_id" field becomes the playlist_id of the playlist that
+        the track best fit into (other than its own playlist).  This allows you
+        to "sort" your playlists into other playlists based on the clustering
+        algorithm, so if you have a playlist of your favorite songs, it will
+        cluster those songs into other playlists based on their similarity to
+        the other songs in those playlists.
+            - Add a threshold argument to specify how similar a track must be
+              to a playlist in order to be added to that playlist.  If the
+              similarity is below the threshold, the track will not be added to
+              that playlist.
 
 ## 4. Additional Library Commands
 
