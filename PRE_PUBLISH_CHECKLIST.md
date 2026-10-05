@@ -95,8 +95,10 @@
         - Store all of them in the `artist` field as a semicolon-separated string?
         - Convert `artist` to an array?
         - Use `artist` as the primary artist, but store additional ones in a separate field?
-- [ ] Add a `--debug` flag for any command which calls any external API
-      (spotify, reccobeats, getgenre) to print the raw API response for debugging purposes.
+        - No matter which one we choose, store both the artist name and artist
+          id for each artist, so that we can use the artist id to get the
+          correct artist from the Spotify API, since the artist name is not
+          guaranteed to be unique.
 
 ## 4. Additional Library Commands
 
@@ -108,7 +110,7 @@
       fields, the merged library should prefer non-null values from the first
       input file, then the second, and so on.
     - Note: specifying only a single `--input` file should work identically to `library convert`
-- [ ] Add a `--input-metadata` argument to the `library merge` command 
+- [x] Add a `--input-metadata` argument to the `library merge` command
       (which can be specified more than once) to specify one or more input files
       that should be treated as "metadata-only" libraries (i.e. they contain
       only enriched metadata information) that should only be used to enrich
@@ -155,7 +157,7 @@
       command will happily return 0 playlists and 0 tracks, which is
       misleading.  It should instead detect that the token has expired and
       prompt the user to re-authenticate.
-- [ ] Add dependabot and renovate
+- [x] Add dependabot and renovate
 - [ ] Enforce docstrings and explicit parameter and return contracts
 - [ ] Ask Claude/Copilot for code overall project review of tagged v1.0.0 RC1:
         - Identify untested edge cases in the code
@@ -193,6 +195,11 @@
 - [ ] Add the option to quit early (like pressing ctrl-c prompts "are you sure 
       you want to quit?" and if you say "n" it continues, if you say "y" it 
       outputs the data it has gotten so far and leaves the remaining rows unmodified)
+- [ ] Review all documentation for completeness and accuracy and make sure it is up to 
+      date with the current codebase, including:
+        - README.md
+        - CLI help text
+        - Any other documentation files
 
 ## 6. Release and Distribution
 
