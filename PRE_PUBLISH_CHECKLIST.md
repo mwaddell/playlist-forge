@@ -163,6 +163,8 @@
         - Identify untested edge cases in the code
         - Review all API failure handling
         - Request a general code review (e.g. for bugs, unclear error messages, any place where mutable state could be overwritten or shared incorrectly, etc)
+        - Identify duplicate code that could be refactored into a common
+          function, duplicate definitions of enums, etc.
 
 ## 5. Manual Testing
 
