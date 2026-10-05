@@ -157,7 +157,7 @@
       command will happily return 0 playlists and 0 tracks, which is
       misleading.  It should instead detect that the token has expired and
       prompt the user to re-authenticate.
-- [ ] Add dependabot and renovate
+- [x] Add dependabot and renovate
 - [ ] Enforce docstrings and explicit parameter and return contracts
 - [ ] Ask Claude/Copilot for code overall project review of tagged v1.0.0 RC1:
         - Identify untested edge cases in the code
