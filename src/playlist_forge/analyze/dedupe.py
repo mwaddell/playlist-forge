@@ -57,8 +57,7 @@ def find_duplicate_tracks(tracks: list, threshold: float = 0.90) -> list[Duplica
         # cheap pre-filter: same ISRC is an automatic match, skip fuzzy scoring
         if a.isrc and b.isrc and a.isrc == b.isrc:
             pairs.append(
-                DuplicateTrackPair(a.spotify_id, b.spotify_id, a.title, b.title,
-                                    a.artist, b.artist, similarity=1.0)
+                DuplicateTrackPair(a.spotify_id, b.spotify_id, a.title, b.title, a.artist, b.artist, similarity=1.0)
             )
             continue
         title_sim = fuzz.token_sort_ratio(_norm(a.title), _norm(b.title)) / 100
@@ -66,15 +65,14 @@ def find_duplicate_tracks(tracks: list, threshold: float = 0.90) -> list[Duplica
         combined = (title_sim * 0.7) + (artist_sim * 0.3)
         if combined >= threshold:
             pairs.append(
-                DuplicateTrackPair(a.spotify_id, b.spotify_id, a.title, b.title,
-                                    a.artist, b.artist, similarity=round(combined, 3))
+                DuplicateTrackPair(
+                    a.spotify_id, b.spotify_id, a.title, b.title, a.artist, b.artist, similarity=round(combined, 3)
+                )
             )
     return sorted(pairs, key=lambda p: p.similarity, reverse=True)
 
 
-def find_playlist_overlaps(
-    tracks: list, threshold: float = 0.60
-) -> list[PlaylistOverlap]:
+def find_playlist_overlaps(tracks: list, threshold: float = 0.60) -> list[PlaylistOverlap]:
     """Find playlist pairs with high track overlap.
 
     Args:

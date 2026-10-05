@@ -95,9 +95,16 @@ class Track:
             elif key in ("year", "duration_ms", "cluster_id"):
                 kwargs[key] = int(value)
             elif key in (
-                "tempo", "energy", "danceability", "valence",
-                "acousticness", "instrumentalness", "liveness", 
-                "loudness", "speechiness", "feature_match_confidence",
+                "tempo",
+                "energy",
+                "danceability",
+                "valence",
+                "acousticness",
+                "instrumentalness",
+                "liveness",
+                "loudness",
+                "speechiness",
+                "feature_match_confidence",
                 "outlier_score",
             ):
                 kwargs[key] = float(value)

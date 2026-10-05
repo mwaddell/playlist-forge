@@ -34,6 +34,7 @@ from .models import Track
 
 T = TypeVar("T")
 
+
 def _fallback_progress_track(sequence: Iterable[T], *args: object, **kwargs: object) -> Iterator[T]:
     """Return an iterator over the input when Rich is unavailable."""
     _ = (args, kwargs)
@@ -52,10 +53,17 @@ def _maybe_progress_track(sequence: Iterable[T], description: str) -> Iterator[T
         return iter(sequence)
     return iter(progress_track(sequence, description=description))
 
+
 FEATURE_FIELDS = (
-    "tempo", "energy", "danceability", "valence",
-    "acousticness", "instrumentalness", "liveness",
-    "loudness", "speechiness"
+    "tempo",
+    "energy",
+    "danceability",
+    "valence",
+    "acousticness",
+    "instrumentalness",
+    "liveness",
+    "loudness",
+    "speechiness",
 )
 
 
@@ -65,6 +73,8 @@ class ReccoBeatsClient:
         self.delay = settings.config["reccobeats"]["request_delay_seconds"]
         self.max_retries = 3
         self.base_backoff_seconds = 1.0
+        self.recheck = False
+        self.force = False
         self.api_key = settings.reccobeats_api_key  # None is fine; free tier needs no key today
         self.session = requests.Session()
         if self.api_key:
@@ -96,17 +106,14 @@ class ReccoBeatsClient:
                     return None
                 if resp.status_code == 401:
                     raise AuthFailureError(
-                        "ReccoBeats authentication failed (401). "
-                        "Check RECCOBEATS_API_KEY and retry."
+                        "ReccoBeats authentication failed (401). Check RECCOBEATS_API_KEY and retry."
                     )
                 if resp.status_code == 429:
                     if attempt >= self.max_retries:
                         raise RateLimitExceededError(
                             "ReccoBeats rate limit persisted after retries. Please wait and retry."
                         )
-                    delay = self._retry_after_seconds(resp) or (
-                        self.base_backoff_seconds * (2**attempt)
-                    )
+                    delay = self._retry_after_seconds(resp) or (self.base_backoff_seconds * (2**attempt))
                     time.sleep(delay)
                     continue
                 if resp.status_code >= 500 and attempt < self.max_retries:
@@ -116,30 +123,19 @@ class ReccoBeatsClient:
                 return resp.json()
             except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as exc:
                 if attempt >= self.max_retries:
-                    raise NetworkFailureError(
-                        "ReccoBeats request timed out or lost connection after retries."
-                    ) from exc
+                    raise NetworkFailureError("ReccoBeats request timed out or lost connection after retries.") from exc
                 time.sleep(self.base_backoff_seconds * (2**attempt))
             except requests.HTTPError as exc:
                 response = exc.response or resp
                 if response is not None and response.status_code == 401:
                     raise AuthFailureError(
-                        "ReccoBeats authentication failed (401). "
-                        "Check RECCOBEATS_API_KEY and retry."
+                        "ReccoBeats authentication failed (401). Check RECCOBEATS_API_KEY and retry."
                     ) from exc
-                if (
-                    response is not None
-                    and response.status_code == 429
-                    and attempt < self.max_retries
-                ):
-                    delay = self._retry_after_seconds(response) or (
-                        self.base_backoff_seconds * (2**attempt)
-                    )
+                if response is not None and response.status_code == 429 and attempt < self.max_retries:
+                    delay = self._retry_after_seconds(response) or (self.base_backoff_seconds * (2**attempt))
                     time.sleep(delay)
                     continue
-                raise ExternalServiceError(
-                    f"ReccoBeats request failed for {params}: {exc}"
-                ) from exc
+                raise ExternalServiceError(f"ReccoBeats request failed for {params}: {exc}") from exc
             except requests.RequestException as exc:
                 raise NetworkFailureError(
                     f"ReccoBeats request failed due to network issue for {params}: {exc}"
@@ -157,26 +153,36 @@ class ReccoBeatsClient:
             Audio-feature payload when matched, otherwise None.
         """
         cache_key = f"spotify:{spotify_id}"
-        cached = cache.get(cache.CacheType.RECCOBEATS, cache_key)
-        if cached is not None:
+        cached = None if self.force else cache.get(cache.CacheType.RECCOBEATS, cache_key)
+        if cached is not None and not (self.recheck and not cached):
             return cached or None  # cache.get returns {} for a cached "no match"
 
         data = self._get("/v1/audio-features", params={"ids": spotify_id})
         cache.set(cache.CacheType.RECCOBEATS, cache_key, data if data is not None else {})
         return data
 
-    def enrich(self, tracks: list[Track], playlist_filter: list[str] | None = None) -> list[Track]:
+    def enrich(
+        self,
+        tracks: list[Track],
+        playlist_filter: list[str] | None = None,
+        recheck: bool = False,
+        force: bool = False,
+    ) -> list[Track]:
         """Populate audio-feature fields on tracks using ReccoBeats matches.
 
         Args:
             tracks: Tracks to enrich in place.
             playlist_filter: Optional list of playlist names/ids to restrict enrichment to.
+            recheck: Re-query tracks cached as "not found".
+            force: Re-query every track and refresh the cache.
 
         Returns:
             The same list with feature fields and provenance updated. Tracks
             without a match are marked with ``feature_source="unmatched"`` so
             downstream analysis can treat missing values explicitly.
         """
+        self.recheck = recheck
+        self.force = force
         subs = set(pfilter.casefold() for pfilter in playlist_filter) if playlist_filter else None
 
         for t in _maybe_progress_track(tracks, description="Enriching tracks..."):

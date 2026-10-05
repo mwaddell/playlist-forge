@@ -64,9 +64,8 @@ def _handle_cli_errors(func: Callable[P, T]) -> Callable[P, T]:
 
     return wrapper
 
-def _filter_tracks_by_playlist(
-    tracks: list[Track], playlist_filter: list[str] | None
-) -> list[Track]:
+
+def _filter_tracks_by_playlist(tracks: list[Track], playlist_filter: list[str] | None) -> list[Track]:
     if not playlist_filter:
         return tracks
 
@@ -76,16 +75,11 @@ def _filter_tracks_by_playlist(
         memberships = [
             (playlist_id, playlist_name)
             for playlist_id, playlist_name in zip(track.playlist_ids, track.playlist_names)
-            if any(
-                sub in playlist_id.casefold() or sub in playlist_name.casefold()
-                for sub in subs
-            )
+            if any(sub in playlist_id.casefold() or sub in playlist_name.casefold() for sub in subs)
         ]
         if memberships:
             playlist_ids, playlist_names = zip(*memberships)
-            filtered_tracks.append(
-                replace(track, playlist_ids=list(playlist_ids), playlist_names=list(playlist_names))
-            )
+            filtered_tracks.append(replace(track, playlist_ids=list(playlist_ids), playlist_names=list(playlist_names)))
     return filtered_tracks
 
 
@@ -175,13 +169,14 @@ def auth_logout() -> None:
 @_handle_cli_errors
 def pull(
     output: Path = typer.Option(..., "--output", "-o", help="Output file path."),
-    fmt: str | None = typer.Option(
-        None, "--format", "-f", help="json|csv|tsv (inferred from --output if omitted)."
-    ),
-    playlist: Annotated[list[str] | None, typer.Option(
-        "--playlist",
-        help="Only pull playlists whose name or ID contains any supplied substring.",
-    )] = None,
+    fmt: str | None = typer.Option(None, "--format", "-f", help="json|csv|tsv (inferred from --output if omitted)."),
+    playlist: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--playlist",
+            help="Only pull playlists whose name or ID contains any supplied substring.",
+        ),
+    ] = None,
     force: bool = typer.Option(False, "--force", help="Pull from Spotify API even if the result was already cached."),
 ) -> None:
     """Pull playlists and tracks from Spotify into a local dataset.
@@ -208,14 +203,40 @@ def enrich(
     input: Path = typer.Option(..., "--input", "-i"),
     output: Path = typer.Option(..., "--output", "-o"),
     fmt: str | None = typer.Option(None, "--format", "-f"),
-    playlist: Annotated[list[str] | None, typer.Option(
-        "--playlist",
-        help="Only enrich playlists whose name or ID contains any supplied substring.",
-    )] = None,
+    playlist: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--playlist",
+            help="Only enrich playlists whose name or ID contains any supplied substring.",
+        ),
+    ] = None,
     api: Annotated[
         Literal["reccobeats", "getgenre"],
         typer.Option("--api", help="reccobeats|getgenre"),
     ] = "reccobeats",
+    level: Annotated[
+        Literal["top", "best", "clean", "all"],
+        typer.Option(
+            "--level",
+            help="GetGenre only. Genre level: top ('top genres' only), best (first non-empty of 'top genres', "
+            "'genres', or 'unvalidated'), clean ('top genres' + 'genres'), "
+            "all ('top genres' + 'genres' + 'unvalidated').",
+        ),
+    ] = "best",
+    recheck: Annotated[
+        bool,
+        typer.Option(
+            "--recheck",
+            help="Re-query lookups cached as not found (and GetGenre results with exhausted = false).",
+        ),
+    ] = False,
+    force: Annotated[
+        bool,
+        typer.Option(
+            "--force",
+            help="Re-query every lookup even if cached, and update the cache.",
+        ),
+    ] = False,
 ) -> None:
     """Add enrichment data from the selected API to a pulled dataset file.
 
@@ -223,15 +244,23 @@ def enrich(
         input: Input pulled dataset path.
         output: Output enriched dataset path.
         fmt: Optional output format override.
+        playlist: Optional playlist name/ID substring filters.
         api: Enrichment API to use.
+        level: GetGenre genre level (top, best, clean, all).
+        recheck: Re-query cached "not found" (and non-exhausted GetGenre) lookups.
+        force: Re-query all lookups and refresh the cache.
 
     Returns:
         None.
     """
     settings = load_settings()
     tracks = io_formats.read_tracks(input)
-    client = ReccoBeatsClient(settings) if api == "reccobeats" else GetGenreClient(settings)
-    enriched = client.enrich(tracks, playlist_filter=playlist)
+    if api == "reccobeats":
+        enriched = ReccoBeatsClient(settings).enrich(tracks, playlist_filter=playlist, recheck=recheck, force=force)
+    else:
+        enriched = GetGenreClient(settings).enrich(
+            tracks, playlist_filter=playlist, level=level, recheck=recheck, force=force
+        )
     io_formats.write_tracks(enriched, output, fmt)
 
     matched = (
@@ -271,10 +300,14 @@ def library_merge(
     input: Annotated[list[Path], typer.Option(..., "--input", "-i")],
     output: Path = typer.Option(..., "--output", "-o"),
     fmt: str | None = typer.Option(None, "--format", "-f"),
-    input_metadata: Annotated[list[Path] | None, typer.Option(
-        "--input-metadata",
-        help="Metadata-only dataset path (repeatable); enriches matching tracks without adding tracks or playlists.",
-    )] = None,
+    input_metadata: Annotated[
+        list[Path] | None,
+        typer.Option(
+            "--input-metadata",
+            help="Metadata-only dataset path (repeatable); "
+            "enriches matching tracks without adding tracks or playlists.",
+        ),
+    ] = None,
 ) -> None:
     """Merge one or more dataset files into a single dataset file.
 
@@ -299,29 +332,24 @@ def analyze_cluster(
     input: Path = typer.Option(..., "--input", "-i"),
     output: Path = typer.Option(..., "--output", "-o"),
     fmt: str | None = typer.Option(None, "--format", "-f"),
-    playlist: Annotated[list[str] | None, typer.Option(
-        "--playlist",
-        help="Only cluster playlists whose name or ID contains any supplied substring.",
-    )] = None,
+    playlist: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--playlist",
+            help="Only cluster playlists whose name or ID contains any supplied substring.",
+        ),
+    ] = None,
     algorithm: str = typer.Option("kmeans", help="kmeans|hdbscan"),
     k: str = typer.Option("auto", help="Number of clusters (kmeans only), or 'auto'."),
     genre_weight: Annotated[float | None, typer.Option("--genre-weight")] = None,
     audio_feature_weight: Annotated[float | None, typer.Option("--audio-feature-weight")] = None,
-    audio_acousticness_weight: Annotated[
-        float | None, typer.Option("--audio-acousticness-weight")
-    ] = None,
-    audio_danceability_weight: Annotated[
-        float | None, typer.Option("--audio-danceability-weight")
-    ] = None,
+    audio_acousticness_weight: Annotated[float | None, typer.Option("--audio-acousticness-weight")] = None,
+    audio_danceability_weight: Annotated[float | None, typer.Option("--audio-danceability-weight")] = None,
     audio_energy_weight: Annotated[float | None, typer.Option("--audio-energy-weight")] = None,
-    audio_instrumentalness_weight: Annotated[
-        float | None, typer.Option("--audio-instrumentalness-weight")
-    ] = None,
+    audio_instrumentalness_weight: Annotated[float | None, typer.Option("--audio-instrumentalness-weight")] = None,
     audio_liveness_weight: Annotated[float | None, typer.Option("--audio-liveness-weight")] = None,
     audio_loudness_weight: Annotated[float | None, typer.Option("--audio-loudness-weight")] = None,
-    audio_speechiness_weight: Annotated[
-        float | None, typer.Option("--audio-speechiness-weight")
-    ] = None,
+    audio_speechiness_weight: Annotated[float | None, typer.Option("--audio-speechiness-weight")] = None,
     audio_tempo_weight: Annotated[float | None, typer.Option("--audio-tempo-weight")] = None,
     audio_valence_weight: Annotated[float | None, typer.Option("--audio-valence-weight")] = None,
     year_weight: Annotated[float | None, typer.Option("--year-weight")] = None,
@@ -352,9 +380,7 @@ def analyze_cluster(
         None.
     """
     if algorithm not in {"kmeans", "hdbscan"}:
-        raise PlaylistForgeError(
-            f"Unsupported --algorithm '{algorithm}'. Expected one of: kmeans, hdbscan."
-        )
+        raise PlaylistForgeError(f"Unsupported --algorithm '{algorithm}'. Expected one of: kmeans, hdbscan.")
 
     maybe_missing_values = [
         genre_weight,
@@ -375,17 +401,11 @@ def analyze_cluster(
         cluster_config = settings.config.get("cluster", {})
     else:
         cluster_config = {}
-    resolved_genre_weight = (
-        genre_weight if genre_weight is not None else cluster_config.get("genre_weight", 1.0)
-    )
+    resolved_genre_weight = genre_weight if genre_weight is not None else cluster_config.get("genre_weight", 1.0)
     resolved_audio_feature_weight = (
-        audio_feature_weight
-        if audio_feature_weight is not None
-        else cluster_config.get("audio_feature_weight", 1.0)
+        audio_feature_weight if audio_feature_weight is not None else cluster_config.get("audio_feature_weight", 1.0)
     )
-    resolved_year_weight = (
-        year_weight if year_weight is not None else cluster_config.get("year_weight", 0.3)
-    )
+    resolved_year_weight = year_weight if year_weight is not None else cluster_config.get("year_weight", 0.3)
 
     cli_audio_weight_overrides = {
         "acousticness": audio_acousticness_weight,
@@ -435,10 +455,13 @@ def analyze_cluster(
 @_handle_cli_errors
 def analyze_outliers(
     input: Path = typer.Option(..., "--input", "-i"),
-    playlist: Annotated[list[str] | None, typer.Option(
-        "--playlist",
-        help="Only analyze playlists whose name or ID contains any supplied substring.",
-    )] = None,
+    playlist: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--playlist",
+            help="Only analyze playlists whose name or ID contains any supplied substring.",
+        ),
+    ] = None,
     top_n: int = typer.Option(5, help="Top N outliers per playlist."),
 ) -> None:
     """Print the highest outlier tracks for each playlist.
@@ -464,10 +487,13 @@ def analyze_outliers(
 def analyze_dedupe(
     input: Path = typer.Option(..., "--input", "-i"),
     output: Path = typer.Option(..., "--output", "-o"),
-    playlist: Annotated[list[str] | None, typer.Option(
-        "--playlist",
-        help="Only analyze playlists whose name or ID contains any supplied substring.",
-    )] = None,
+    playlist: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--playlist",
+            help="Only analyze playlists whose name or ID contains any supplied substring.",
+        ),
+    ] = None,
     track_threshold: float = typer.Option(0.90),
     playlist_threshold: float = typer.Option(0.60),
 ) -> None:
@@ -496,8 +522,7 @@ def analyze_dedupe(
     }
     output.write_text(json.dumps(report, indent=2), encoding="utf-8")
     typer.echo(
-        f"Found {len(dup_tracks)} duplicate track pairs and "
-        f"{len(overlaps)} overlapping playlist pairs -> {output}"
+        f"Found {len(dup_tracks)} duplicate track pairs and {len(overlaps)} overlapping playlist pairs -> {output}"
     )
 
 
@@ -505,9 +530,7 @@ def analyze_dedupe(
 @act_app.command("split")
 @_handle_cli_errors
 def act_split(
-    input: Path = typer.Option(
-        ..., "--input", "-i", help="Clustered dataset from `analyze cluster`."
-    ),
+    input: Path = typer.Option(..., "--input", "-i", help="Clustered dataset from `analyze cluster`."),
     prefix: str = typer.Option("Auto-"),
     skip_noise: bool = typer.Option(True),
     dry_run: bool = typer.Option(False),
@@ -536,13 +559,14 @@ def act_split(
 @act_app.command("merge")
 @_handle_cli_errors
 def act_merge(
-    input: Path = typer.Option(
-        ..., "--input", "-i", help="Clustered dataset from `analyze cluster`."
-    ),
-    playlist: Annotated[list[str], typer.Option(
-        "--playlist",
-        help="Merge all playlists whose name or ID contains any supplied substring.",
-    )] = cast(list[str], ...),
+    input: Path = typer.Option(..., "--input", "-i", help="Clustered dataset from `analyze cluster`."),
+    playlist: Annotated[
+        list[str],
+        typer.Option(
+            "--playlist",
+            help="Merge all playlists whose name or ID contains any supplied substring.",
+        ),
+    ] = cast(list[str], ...),
     into: str = typer.Option(..., help="Name for the new merged playlist."),
     dry_run: bool = typer.Option(False),
 ) -> None:
