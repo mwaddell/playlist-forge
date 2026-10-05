@@ -99,41 +99,6 @@
           id for each artist, so that we can use the artist id to get the
           correct artist from the Spotify API, since the artist name is not
           guaranteed to be unique.
-- [ ] Add a `--debug` flag for any command which calls any external API
-      (spotify, reccobeats, getgenre) to print the raw API response for debugging purposes.
-- [ ] Store album_id in the library (in addition to album name) and the album_type (Album, Single, Compilation, etc.) for each track
-- [ ] Store explicit flag in the library (for each track)
-- [ ] Add flags for pulling user's saved tracks and albums, in addition to playlists
-        - Pull all saved tracks (e.g. `--saved-tracks`) and store them in a special "Saved Tracks" playlist
-            - Allow specifying the playlist to override "Saved Tracks" as another commandline option
-        - Pull all saved albums (e.g. `--saved-albums`) and store them in a special "Saved Albums" playlist (this playlist will contain every track from every saved album, even if the user has already saved some of those tracks individually)
-            - Allow specifying the playlist to override "Saved Albums" as another commandline option
-        - Pull all of the user's top tracks (e.g. `--top-tracks`) and store them in a special "Top Tracks" playlist
-            - Allow specifying the playlist to override "Top Items" as another commandline option
-            - By default, this will be the top 50 items from the past 6 months (`medium_term`),
-              but the user can specify `--top-items-limit` to override the
-              number of items to pull (up to 100) and `--top-items-time-range`
-              to specify the time range (short_term, medium_term, long_term)
-- [ ] Add a new method which goes through all specified playlist(s).  For each
-        track in the playlist, it adds every other track within the same album
-        to the playlist to "fill out" the playlist.
-        - User's can specify whether ALL albums should be considered, or only
-          "compilations" or only regular "albums".
-        - So, for example, if a user has a playlist of their favorite songs, but they
-          only have one song from each album, this command would add all of the
-          other songs from those albums to the playlist.
-- [ ] Add a new method which allows you to specify one or more playlists and it
-        will cluster the tracks in those playlists INTO every other playlist
-        (so the "cluster_id" field becomes the playlist_id of the playlist that
-        the track best fit into (other than its own playlist).  This allows you
-        to "sort" your playlists into other playlists based on the clustering
-        algorithm, so if you have a playlist of your favorite songs, it will
-        cluster those songs into other playlists based on their similarity to
-        the other songs in those playlists.
-            - Add a threshold argument to specify how similar a track must be
-              to a playlist in order to be added to that playlist.  If the
-              similarity is below the threshold, the track will not be added to
-              that playlist.
 
 ## 4. Additional Library Commands
 
@@ -192,7 +157,7 @@
       command will happily return 0 playlists and 0 tracks, which is
       misleading.  It should instead detect that the token has expired and
       prompt the user to re-authenticate.
-- [ ] Add dependabot and renovate
+- [x] Add dependabot and renovate
 - [ ] Enforce docstrings and explicit parameter and return contracts
 - [ ] Ask Claude/Copilot for code overall project review of tagged v1.0.0 RC1:
         - Identify untested edge cases in the code
@@ -230,6 +195,11 @@
 - [ ] Add the option to quit early (like pressing ctrl-c prompts "are you sure 
       you want to quit?" and if you say "n" it continues, if you say "y" it 
       outputs the data it has gotten so far and leaves the remaining rows unmodified)
+- [ ] Review all documentation for completeness and accuracy and make sure it is up to 
+      date with the current codebase, including:
+        - README.md
+        - CLI help text
+        - Any other documentation files
 
 ## 6. Release and Distribution
 
