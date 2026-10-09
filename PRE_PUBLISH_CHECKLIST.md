@@ -117,7 +117,7 @@
       the resulting merged library for tracks which otherwise lack metadata,
       but should otherwise not show up in the merged library.  (If a metadata
       file does contain playlist information, it should be ignored.)
-- [ ] Add a `library check` command to check the library to sure that it 
+- [x] Add a `library check` command to check the library to sure that it 
       contains no duplicate tracks (i.e. tracks with the same Spotify ID) and
       that all tracks have at least one playlist.
     - If duplicates are found, print a warning message and list the duplicate
@@ -127,13 +127,13 @@
     - Check all other **required** fields to make sure they are valid
     - Check for special characters?
     - Report on missing optional data (like `library stats`) ?
-- [ ] Add a `library extract` command to extract a subset of the library by playlist and output the extracted library to a new file.
+- [x] Add a `library extract` command to extract a subset of the library by playlist and output the extracted library to a new file.
     - Allow multiple `--playlist` arguments to extract multiple playlists.
     - Note: specifying no `--playlist` arguments should extract no playlists, resulting in an empty library file.
-- [ ] Add a `library remove` command to remove a subset of the library by playlist and output the remaining library to a new file.
+- [x] Add a `library remove` command to remove a subset of the library by playlist and output the remaining library to a new file.
     - Allow multiple `--playlist` arguments to remove multiple playlists.
     - Note: specifying no `--playlist` arguments should extract all playlists, simply copying the file.
-- [ ] Add a `library stats` command to compute and display basic statistics about the library, such as:
+- [x] Add a `library stats` command to compute and display basic statistics about the library, such as:
     - Total number of tracks
     - Total number of playlists
     - Total number of artists
