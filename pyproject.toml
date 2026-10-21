@@ -8,7 +8,7 @@ license = "MIT"
 authors = [{ name = "Michael J. Waddell" }]
 dependencies = [
     "spotipy==2.26.0",
-    "typer==0.27.2",
+    "typer==0.27.3",
     "requests==2.34.2",
     "scikit-learn==1.7.2; python_version < '3.15'",
     "scikit-learn==1.9.1; python_version >= '3.15'",
