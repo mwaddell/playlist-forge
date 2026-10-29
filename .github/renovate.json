@@ -10,9 +10,8 @@
   "lockFileMaintenance": { "enabled": true },
   "packageRules": [
     {
-      "description": "Don't pin dev dependencies; keep my existing ranges",
       "matchManagers": ["poetry"],
-      "matchDepTypes": ["group.dev.dependencies"],
+      "matchDepTypes": ["dependency-groups","dev-dependencies","project.optional-dependencies"],
       "rangeStrategy": "replace"
     }
   ]
