@@ -1,8 +1,19 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>pangaeatech/.github", "customManagers:githubActionsVersions"],
+  "extends": [
+    "github>pangaeatech/.github",
+    "customManagers:githubActionsVersions"
+  ],
   "baseBranchPatterns": ["main"],
   "branchPrefix": "renovate/",
   "enabledManagers": ["poetry", "custom.regex"],
-  "lockFileMaintenance": { "enabled": true }
+  "lockFileMaintenance": { "enabled": true },
+  "packageRules": [
+    {
+      "description": "Don't pin dev dependencies; keep my existing ranges",
+      "matchManagers": ["poetry"],
+      "matchDepTypes": ["group.dev.dependencies"],
+      "rangeStrategy": "replace"
+    }
+  ]
 }

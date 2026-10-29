@@ -14,15 +14,15 @@
       "poetry show *": "allow"
     },
     "edit": {
-        "**/.gitignore": "allow",
-        "**/.pylintrc": "allow",
-        "**/*.py": "allow",
-        "**/*.md": "allow",
-        "**/*.yml": "allow",
-        "**/poetry.lock": "allow",
-        "**/pyproject.toml": "allow",
-        "**/pytest.ini": "allow",
-        "**/renovate.json": "allow"
+      "**/.gitignore": "allow",
+      "**/.pylintrc": "allow",
+      "**/*.py": "allow",
+      "**/*.md": "allow",
+      "**/*.yml": "allow",
+      "**/poetry.lock": "allow",
+      "**/pyproject.toml": "allow",
+      "**/pytest.ini": "allow",
+      "**/renovate.json": "allow"
     }
   }
 }
