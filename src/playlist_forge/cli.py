@@ -22,6 +22,7 @@ from .config import (
 from .errors import PlaylistForgeError
 from .getgenre_client import GetGenreClient
 from .library import merge_libraries, playlist_name_for_id
+from .library.ops import check_library, compute_stats, extract_playlists, remove_playlists
 from .models import Track
 from .reccobeats_client import ReccoBeatsClient
 
@@ -323,6 +324,147 @@ def library_merge(
     tracks = merge_libraries(input, input_metadata)
     io_formats.write_tracks(tracks, output, fmt)
     typer.echo(f"Merged {len(input)} file(s) into {len(tracks)} tracks -> {output}")
+
+
+def _playlist_option(help_text: str):
+    return typer.Option("--playlist", help=help_text)
+
+
+@library_app.command("check")
+@_handle_cli_errors
+def library_check(
+    input: Path = typer.Option(..., "--input", "-i"),
+) -> None:
+    """Check a dataset for duplicates, missing playlists and invalid fields.
+
+    Args:
+        input: Input dataset path.
+
+    Returns:
+        None.
+    """
+    tracks = io_formats.read_tracks(input)
+    res = check_library(tracks)
+    issues = 0
+    if res["duplicates"]:
+        issues += 1
+        typer.echo(f"WARNING: {len(res['duplicates'])} duplicate Spotify ID(s) found:")
+        for sid, dups in res["duplicates"].items():
+            for t in dups:
+                typer.echo(f"  {sid}: {t.artist} - {t.title} [playlists: {'; '.join(t.playlist_names) or '-'}]")
+    if res["no_playlist"]:
+        issues += 1
+        typer.echo(f"WARNING: {len(res['no_playlist'])} track(s) belong to no playlist:")
+        for t in res["no_playlist"]:
+            typer.echo(f"  {t.spotify_id}: {t.artist} - {t.title} (album: {t.album}, year: {t.year}, isrc: {t.isrc})")
+    if res["invalid"]:
+        issues += 1
+        typer.echo(f"WARNING: {len(res['invalid'])} track(s) have invalid required fields:")
+        for t, problems in res["invalid"]:
+            typer.echo(f"  {t.spotify_id}: {', '.join(problems)}")
+    if res["special_chars"]:
+        issues += 1
+        typer.echo(f"WARNING: {len(res['special_chars'])} track(s) contain control characters or stray whitespace:")
+        for t, fields_ in res["special_chars"]:
+            typer.echo(f"  {t.spotify_id}: {', '.join(fields_)}")
+    if res["missing_optional"]:
+        typer.echo("Missing optional data (tracks lacking each field):")
+        for f, n in res["missing_optional"].items():
+            typer.echo(f"  {f}: {n}/{len(tracks)}")
+    if issues:
+        typer.echo(f"Checked {len(tracks)} tracks: {issues} kind(s) of problem found.")
+    else:
+        typer.echo(f"Checked {len(tracks)} tracks: no problems found.")
+
+
+@library_app.command("extract")
+@_handle_cli_errors
+def library_extract(
+    input: Path = typer.Option(..., "--input", "-i"),
+    output: Path = typer.Option(..., "--output", "-o"),
+    fmt: str | None = typer.Option(None, "--format", "-f"),
+    playlist: Annotated[list[str] | None, _playlist_option(
+        "Extract playlists whose name or ID contains this substring (repeatable)."
+    )] = None,
+) -> None:
+    """Extract the tracks of the given playlists into a new dataset file.
+
+    Args:
+        input: Input dataset path.
+        output: Output dataset path.
+        fmt: Optional output format override.
+        playlist: Playlist name/ID substrings; none yields an empty library.
+
+    Returns:
+        None.
+    """
+    tracks = extract_playlists(io_formats.read_tracks(input), playlist)
+    io_formats.write_tracks(tracks, output, fmt)
+    typer.echo(f"Extracted {len(tracks)} tracks -> {output}")
+
+
+@library_app.command("remove")
+@_handle_cli_errors
+def library_remove(
+    input: Path = typer.Option(..., "--input", "-i"),
+    output: Path = typer.Option(..., "--output", "-o"),
+    fmt: str | None = typer.Option(None, "--format", "-f"),
+    playlist: Annotated[list[str] | None, _playlist_option(
+        "Remove playlists whose name or ID contains this substring (repeatable)."
+    )] = None,
+) -> None:
+    """Remove the given playlists and write the remaining tracks.
+
+    Args:
+        input: Input dataset path.
+        output: Output dataset path.
+        fmt: Optional output format override.
+        playlist: Playlist name/ID substrings; none copies the library.
+
+    Returns:
+        None.
+    """
+    tracks = remove_playlists(io_formats.read_tracks(input), playlist)
+    io_formats.write_tracks(tracks, output, fmt)
+    typer.echo(f"Kept {len(tracks)} tracks -> {output}")
+
+
+@library_app.command("stats")
+@_handle_cli_errors
+def library_stats(
+    input: Path = typer.Option(..., "--input", "-i"),
+    playlist: Annotated[list[str] | None, _playlist_option(
+        "Only compute stats for playlists whose name or ID contains this substring (repeatable)."
+    )] = None,
+) -> None:
+    """Display basic statistics about a dataset.
+
+    Args:
+        input: Input dataset path.
+        playlist: Optional playlist name/ID substring filters.
+
+    Returns:
+        None.
+    """
+    tracks = _filter_tracks_by_playlist(io_formats.read_tracks(input), playlist)
+    s = compute_stats(tracks)
+    typer.echo(f"Tracks: {s['tracks']}")
+    typer.echo(f"Playlists: {s['playlists']}")
+    typer.echo(f"Artists: {s['artists']}")
+    typer.echo(f"Fully enriched tracks: {s['fully_enriched']}")
+    typer.echo(f"Genres ({len(s['genres'])}): {', '.join(s['genres']) or '-'}")
+
+    def line(name: str, v: dict) -> str:
+        return (f"  {name}: n={v['count']} min={v['min']:.4g} max={v['max']:.4g} "
+                f"mean={v['mean']:.4g} median={v['median']:.4g}")
+
+    if s["years"]:
+        typer.echo("Release years:")
+        typer.echo(line("year", s["years"]))
+    if s["numeric"]:
+        typer.echo("Numeric fields:")
+        for name, v in s["numeric"].items():
+            typer.echo(line(name, v))
 
 
 # ------------------------------------------------------------- analyze ----
